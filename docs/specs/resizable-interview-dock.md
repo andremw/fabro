@@ -1,6 +1,7 @@
 # Spec: Resizable Interview Dock
 
-**Status**: draft
+**Status**: approved
+**Approved at**: 2026-07-08T12:00:55.823678+00:00
 
 ## Intent Description
 When a run blocks on a human interview question, the bottom "Awaiting input" dock on `/runs/{run_id}` should not make the rest of the run page feel trapped behind a fixed overlay. Users need to keep reading the run context, stage output, changed files, logs, sandbox details, and other tab content while deciding how to answer.
