@@ -1,0 +1,7 @@
+diff --git a/.fabro/state/specs/current-spec.txt b/.fabro/state/specs/current-spec.txt
+new file mode 100644
+index 0000000..d0da27b
+--- /dev/null
++++ b/.fabro/state/specs/current-spec.txt
+@@ -0,0 +1 @@
++docs/specs/resizable-interview-dock.md
