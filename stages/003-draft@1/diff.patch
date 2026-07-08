@@ -1,0 +1,52 @@
+diff --git a/docs/specs/resizable-interview-dock.md b/docs/specs/resizable-interview-dock.md
+new file mode 100644
+index 0000000..c057b26
+--- /dev/null
++++ b/docs/specs/resizable-interview-dock.md
+@@ -0,0 +1,46 @@
++# Spec: Resizable Interview Dock
++
++**Status**: draft
++
++## Intent Description
++When a run blocks on a human interview question, the bottom "Awaiting input" dock on `/runs/{run_id}` should not make the rest of the run page feel trapped behind a fixed overlay. Users need to keep reading the run context, stage output, changed files, logs, sandbox details, and other tab content while deciding how to answer.
++
++The improved experience should make the content behind the interview dock scrollable with enough bottom clearance to reveal content that would otherwise be hidden. It should also let users vertically resize the interview dock so short questions can take less space and long questions or context can take more space without permanently obscuring the page.
++
++## Architecture Specification
++The feature is scoped to the Fabro web run detail page and its docked human-input controls:
++
++- `RunDetail` remains the owner of run-level dock layout state. Replace the fixed `--fabro-interview-dock-clearance` values with a clearance value derived from the active dock height. When there are pending interview questions, the clearance must track the current interview dock height plus any visual border/safe-area spacing needed so the final page content can scroll above the dock.
++- `RunDetailTabsAndOutlet` must apply bottom clearance to the actual scrollable area for every run detail tab, including routes that opt into the `fullHeight` layout. If a child route owns its own scroll container, the run detail shell must provide a layout contract that lets that scroll container reserve the same dock clearance instead of relying only on document-body scrolling.
++- `RunDetailDockedControls` keeps the dock fixed to the viewport bottom and still respects the Ask Fabro sidebar offset through its existing `right: sidebarWidth` behavior. Ask Fabro horizontal resizing and interview dock vertical resizing must not fight over pointer state or cause transition jitter.
++- `InterviewDock` gains a vertical resize affordance when pending questions are shown. The handle should sit at the top edge of the dock, be visually discoverable, and expose an accessible name such as "Resize interview question panel". Pointer dragging changes the dock height with pointer capture; keyboard interaction should support at least ArrowUp/ArrowDown for incremental resizing and Home/End or equivalent shortcuts for min/max sizes.
++- The interview dock height should have sensible bounds: default around the current fixed clearance, minimum large enough to keep the header and answer controls usable, and maximum capped by the viewport so the page still has visible context behind it. A target range of roughly `12rem` minimum, `18rem` default, and `min(70vh, available viewport below the run header)` maximum is acceptable unless implementation details require nearby values.
++- The dock body should become internally scrollable when its content exceeds the selected height. Header, resize handle, question text, context, answer controls, submission errors, and "more pending" cycling must remain reachable at all allowed sizes.
++- The existing steer bar behavior is out of scope except that it must not regress. When no pending interview questions are present, the steer bar may continue using its existing fixed bottom dock and clearance behavior.
++- The implementation should use Fabro web conventions for React effects and hooks. If resize observation, pointer listeners, or local persistence are introduced, they should live in a focused hook rather than ad hoc component effects.
++
++## Acceptance Criteria
++- [AC-1] On `/runs/{run_id}` with at least one pending interview question, the page content behind the "Awaiting input" dock can be scrolled so content that would otherwise sit under the dock is visible above it.
++- [AC-2] The bottom clearance matches the current interview dock height after initial render and after any resize, including on tabs that use the run detail `fullHeight` layout.
++- [AC-3] The interview dock exposes a visible top-edge resize handle with an accessible name, and users can resize the dock vertically with pointer dragging.
++- [AC-4] Keyboard users can focus the resize handle and adjust the dock height without a pointer, with the height clamped to the same minimum and maximum bounds as pointer resizing.
++- [AC-5] When the dock is resized smaller than its content, the interview dock content scrolls internally and the active question, context, answer controls, error message, and pending-question cycling control remain reachable.
++- [AC-6] Opening or resizing the Ask Fabro sidebar continues to move the bottom dock's right edge correctly, and vertical interview resizing does not break the sidebar transition or leave the dock under the sidebar.
++- [AC-7] When there are no pending interview questions, the existing steer bar path remains functionally unchanged and does not gain the interview-specific resize handle.
++
++## Ambiguity Log
++| Decision | Classification | Resolved By | Rationale / Answer |
++|---|---|---|---|
++| Should the fix only add more bottom padding, or also make the interview pane resizable? | `inferable` | inference | The request explicitly proposed both "allowing the content behind to scroll" and "allowing the user to drag the interview pane to resize it"; the spec includes both because they solve different parts of the obstruction problem. |
++| Should the dock become a modal, side panel, or remain a bottom dock? | `inferable` | inference | The user identified the existing fixed bottom dock and asked about improving it, not replacing the interaction model; the spec preserves the bottom dock. |
++| Should the selected dock height persist across runs or browser sessions? | `LOW_VALUE` | skipped | Persistence is not required to solve the reported obstruction and can be added later if users ask for it. The initial implementation can keep the height in page-local state. |
++| Should the steer bar become resizable too? | `LOW_VALUE` | skipped | The complaint is about the larger interview question pane. Resizing the compact steer bar would add complexity without addressing the stated issue. |
++| What exact min/default/max heights should be used? | `inferable` | inference | The spec sets approximate bounds based on current behavior and viewport safety while allowing implementation to choose nearby values that fit the design system and accessibility constraints. |
++
++## Consistency Gate
++- [x] Intent is unambiguous
++- [x] Every behavior/goal maps to an acceptance criterion
++- [x] Architecture constrains without over-engineering
++- [x] Terminology consistent across artifacts
++- [x] No contradictions between artifacts
++- [x] Every gap/ambiguity finding is logged
