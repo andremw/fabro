@@ -1,0 +1,7 @@
+diff --git a/.fabro-pr-watch b/.fabro-pr-watch
+new file mode 100644
+index 0000000..8a75263
+--- /dev/null
++++ b/.fabro-pr-watch
+@@ -0,0 +1 @@
++fabro-sh/fabro 581 feat/graph-zoom-lr-increase
