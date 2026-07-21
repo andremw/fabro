@@ -100,6 +100,8 @@ export default function RunDetail({ params }: { params: { id: string } }) {
   const { mutate } = useSWRConfig();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
+  const [dockHeight, setDockHeight] = useState("18rem");
+  const [dockResizeActive, setDockResizeActive] = useState(false);
   const { push, dismiss } = useToast();
   const lifecycleToastStateRef = useRef(createLifecycleToastState());
   const filesCount = runQuery.data?.diff?.files_changed ?? null;
@@ -300,9 +302,13 @@ export default function RunDetail({ params }: { params: { id: string } }) {
         : []),
     ],
   };
-  const dockClearance = hasPendingQuestions ? "18rem" : "5rem";
+  const dockClearance = hasPendingQuestions ? dockHeight : "5rem";
+  const dockTransition = dockResizeActive
+    ? "none"
+    : "padding 300ms cubic-bezier(0.16, 1, 0.3, 1)";
   const rootStyle = {
     "--fabro-interview-dock-clearance": dockClearance,
+    "--fabro-interview-dock-clearance-transition": dockTransition,
   } as CSSProperties;
 
   return (
@@ -366,6 +372,8 @@ export default function RunDetail({ params }: { params: { id: string } }) {
             sidebarWidth={sidebarWidth}
             isResizing={isResizing}
             steerBarRef={steerBarRef}
+            onDockHeightChange={setDockHeight}
+            onResizeActiveChange={setDockResizeActive}
           />
         </div>
       )}

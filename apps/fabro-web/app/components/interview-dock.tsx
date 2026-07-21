@@ -1,5 +1,7 @@
 import {
   useCallback,
+  useEffect,
+  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
@@ -24,6 +26,11 @@ import { ApiError } from "../lib/api-client";
 import { displayLabel } from "./interview-label";
 import { ErrorMessage } from "./ui";
 
+export const DEFAULT_DOCK_HEIGHT = "18rem";
+export const MIN_DOCK_HEIGHT = "12rem";
+export const MAX_DOCK_HEIGHT_VH = 80;
+export const STORAGE_KEY = "fabro.interviewDock.height";
+
 const PRIMARY_BUTTON =
   "inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-teal-500";
 
@@ -35,13 +42,145 @@ const CHOICE_BUTTON_SELECTED =
 
 type SubmitInterviewAnswer = SubmitInterviewAnswerArg["answer"];
 
+export function clampDockHeight(height: string): string {
+  // Parse the height value
+  const match = height.match(/^(\d+(?:\.\d+)?)(rem|px|vh)$/);
+  if (!match) return DEFAULT_DOCK_HEIGHT;
+
+  const [, valueStr, unit] = match;
+  const value = parseFloat(valueStr);
+
+  // Handle different units
+  if (unit === "rem") {
+    const minRem = parseFloat(MIN_DOCK_HEIGHT);
+    if (value < minRem) return MIN_DOCK_HEIGHT;
+
+    // Convert 80vh to rem for comparison (assuming 16px = 1rem, 1vh = 1% of viewport)
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
+    const maxRem = maxPx / 16;
+    if (value > maxRem) return `${maxRem}rem`;
+
+    return height;
+  }
+
+  if (unit === "px") {
+    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16; // 12rem = 192px
+    if (value < minPx) return MIN_DOCK_HEIGHT;
+
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
+    if (value > maxPx) return `${maxPx}px`;
+
+    return height;
+  }
+
+  if (unit === "vh") {
+    if (value > MAX_DOCK_HEIGHT_VH) return `${MAX_DOCK_HEIGHT_VH}vh`;
+
+    // Check if vh value would be below minimum
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const actualPx = (viewportHeight * value) / 100;
+    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16;
+    if (actualPx < minPx) return MIN_DOCK_HEIGHT;
+
+    return height;
+  }
+
+  return DEFAULT_DOCK_HEIGHT;
+}
+
+export function loadDockHeight(): string {
+  if (typeof window === "undefined") return DEFAULT_DOCK_HEIGHT;
+
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) return DEFAULT_DOCK_HEIGHT;
+
+    return clampDockHeight(stored);
+  } catch {
+    return DEFAULT_DOCK_HEIGHT;
+  }
+}
+
+export function saveDockHeight(height: string): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, height);
+  } catch {
+    // Ignore localStorage quota errors - dock height is non-critical state
+  }
+}
+
+export function parseDockHeightToPx(height: string): number {
+  const match = height.match(/^(\d+(?:\.\d+)?)(rem|px|vh)$/);
+  if (!match) return 288; // Default to 18rem = 288px
+
+  const [, valueStr, unit] = match;
+  const value = parseFloat(valueStr);
+
+  if (unit === "rem") {
+    return value * 16;
+  }
+  if (unit === "px") {
+    return value;
+  }
+  if (unit === "vh") {
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
+    return (viewportHeight * value) / 100;
+  }
+
+  return 288;
+}
+
 export interface InterviewDockProps {
   runId: string;
   questions: ApiQuestion[];
+  onDockHeightChange?: (height: string) => void;
+  onResizeActiveChange?: (active: boolean) => void;
 }
 
-export function InterviewDock({ runId, questions }: InterviewDockProps) {
+export function InterviewDock({
+  runId,
+  questions,
+  onDockHeightChange,
+  onResizeActiveChange,
+}: InterviewDockProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [dockHeight, setDockHeight] = useState(loadDockHeight);
+  const isFirstMount = useRef(true);
+
+  // Notify parent of initial height on mount
+  useEffect(() => {
+    onDockHeightChange?.(dockHeight);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist dock height to localStorage (skip initial mount to avoid writing default)
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    saveDockHeight(dockHeight);
+    onDockHeightChange?.(dockHeight);
+  }, [dockHeight, onDockHeightChange]);
+
+  // Re-clamp dock height on viewport resize
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+
+    const handleResize = () => {
+      const clamped = clampDockHeight(dockHeight);
+      if (clamped !== dockHeight) {
+        setDockHeight(clamped);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [dockHeight]);
 
   const safeIndex = activeIndex < questions.length ? activeIndex : 0;
   const question = questions[safeIndex];
@@ -59,6 +198,9 @@ export function InterviewDock({ runId, questions }: InterviewDockProps) {
       onCycle={() =>
         setActiveIndex((index) => (index + 1) % questions.length)
       }
+      dockHeight={dockHeight}
+      onDockHeightChange={setDockHeight}
+      onResizeActiveChange={onResizeActiveChange}
     />
   );
 }
@@ -68,15 +210,56 @@ function InterviewQuestionDock({
   question,
   moreCount,
   onCycle,
+  dockHeight,
+  onDockHeightChange,
+  onResizeActiveChange,
 }: {
   runId: string;
   question: ApiQuestion;
   moreCount: number;
   onCycle: () => void;
+  dockHeight: string;
+  onDockHeightChange: (height: string) => void;
+  onResizeActiveChange?: (active: boolean) => void;
 }) {
   const submitMutation = useSubmitInterviewAnswer(runId);
   const [error, setError] = useState<string | null>(null);
   const submitting = submitMutation.isMutating;
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOrigin = useRef<{ y: number; height: number } | null>(null);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    // Convert dockHeight to pixels for drag calculation
+    const currentHeightPx = parseDockHeightToPx(dockHeight);
+    dragOrigin.current = { y: event.clientY, height: currentHeightPx };
+    setIsDragging(true);
+    onResizeActiveChange?.(true);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const origin = dragOrigin.current;
+    if (!origin) return;
+    // For a bottom-docked panel with top resize handle: dragging upward
+    // (clientY decreasing) increases height
+    const delta = origin.y - event.clientY;
+    const nextPx = origin.height + delta;
+    // Clamp to bounds
+    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16; // 12rem = 192px
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
+    const clampedPx = Math.min(maxPx, Math.max(minPx, nextPx));
+    onDockHeightChange(`${clampedPx}px`);
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragOrigin.current) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    dragOrigin.current = null;
+    setIsDragging(false);
+    onResizeActiveChange?.(false);
+  };
 
   const submit = useCallback(
     async (answer: SubmitInterviewAnswer) => {
@@ -92,6 +275,21 @@ function InterviewQuestionDock({
 
   return (
     <section aria-label="Interview question">
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize interview dock"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="group relative h-2 cursor-ns-resize touch-none"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-0.5 transition-colors bg-transparent group-hover:bg-teal-500/60"
+        />
+      </div>
       <DockHeader
         stage={question.stage}
         moreCount={moreCount}

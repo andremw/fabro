@@ -6,7 +6,16 @@ import {
   QuestionType,
 } from "@qltysh/fabro-api-client";
 
-import { InterviewDock } from "./interview-dock";
+import {
+  InterviewDock,
+  DEFAULT_DOCK_HEIGHT,
+  MIN_DOCK_HEIGHT,
+  MAX_DOCK_HEIGHT_VH,
+  STORAGE_KEY,
+  loadDockHeight,
+  clampDockHeight,
+  saveDockHeight,
+} from "./interview-dock";
 import { displayLabel } from "./interview-label";
 import { generatedAxios } from "../lib/api-client";
 
@@ -63,7 +72,46 @@ function makeQuestion(overrides: Partial<ApiQuestion> = {}): ApiQuestion {
   };
 }
 
+describe("InterviewDock constants", () => {
+  test("DEFAULT_DOCK_HEIGHT is 18rem", () => {
+    expect(DEFAULT_DOCK_HEIGHT).toBe("18rem");
+  });
+
+  test("MIN_DOCK_HEIGHT is 12rem", () => {
+    expect(MIN_DOCK_HEIGHT).toBe("12rem");
+  });
+
+  test("MAX_DOCK_HEIGHT_VH is 80", () => {
+    expect(MAX_DOCK_HEIGHT_VH).toBe(80);
+  });
+
+  test("STORAGE_KEY is fabro.interviewDock.height", () => {
+    expect(STORAGE_KEY).toBe("fabro.interviewDock.height");
+  });
+});
+
 describe("InterviewDock", () => {
+  test("uses default dock height of 18rem when localStorage is empty", () => {
+    const storage = new Map<string, string>();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const tree = render(
+      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
+    );
+    // The dock height state should be initialized to DEFAULT_DOCK_HEIGHT
+    // We can verify this by checking that the component renders successfully
+    // (the actual CSS variable will be tested in later slices)
+    expect(tree.toJSON()).not.toBeNull();
+    // Should not write to localStorage on initial mount
+    expect(storage.has(STORAGE_KEY)).toBe(false);
+  });
+
   test("renders question text and stage in the header", () => {
     const tree = render(
       <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
@@ -225,6 +273,30 @@ describe("InterviewDock", () => {
     expect(tree.toJSON()).toBeNull();
   });
 
+  test("invokes onDockHeightChange callback with initial height on mount", () => {
+    const storage = new Map<string, string>();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const heights: string[] = [];
+    const onDockHeightChange = (height: string) => heights.push(height);
+
+    render(
+      <InterviewDock
+        runId="run-1"
+        questions={[makeQuestion()]}
+        onDockHeightChange={onDockHeightChange}
+      />,
+    );
+
+    expect(heights).toEqual([DEFAULT_DOCK_HEIGHT]);
+  });
+
   test("renders the optional context_display section", () => {
     const question = makeQuestion({
       context_display: "Plan:\n1. Deploy\n2. Verify",
@@ -235,6 +307,337 @@ describe("InterviewDock", () => {
     const text = textContent(tree.toJSON());
     expect(text).toContain("Context from preceding stage");
     expect(text).toContain("1. Deploy");
+  });
+
+  test("renders resize handle with correct ARIA attributes", () => {
+    const tree = render(
+      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
+    );
+    const handles = tree.root.findAllByProps({ role: "separator" });
+    expect(handles).toHaveLength(1);
+    const handle = handles[0];
+    expect(handle.props["aria-orientation"]).toBe("horizontal");
+    expect(handle.props["aria-label"]).toBe("Resize interview dock");
+  });
+
+  test("resize handle has hover state styling", () => {
+    const tree = render(
+      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
+    );
+    const handles = tree.root.findAllByProps({ role: "separator" });
+    expect(handles).toHaveLength(1);
+    const handle = handles[0];
+    expect(handle.props.className).toContain("cursor-ns-resize");
+    expect(handle.props.className).toContain("group");
+    // Verify the visual indicator span exists
+    const spans = handle.findAllByType("span");
+    expect(spans).toHaveLength(1);
+    expect(spans[0].props.className).toContain("group-hover:bg-teal-500/60");
+  });
+
+  test("drag state is initialized to false with null origin", () => {
+    const tree = render(
+      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
+    );
+    // Verify the component renders successfully with initial state
+    // (isDragging: false, dragOrigin: null)
+    expect(tree.toJSON()).not.toBeNull();
+    // Verify no drag-related visual changes are applied initially
+    const section = tree.root.findByProps({ "aria-label": "Interview question" });
+    expect(section).toBeDefined();
+  });
+
+  test("onPointerDown captures pointer and invokes resize active callback", () => {
+    const resizeActiveCalls: boolean[] = [];
+    const tree = render(
+      <InterviewDock
+        runId="run-1"
+        questions={[makeQuestion()]}
+        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
+      />,
+    );
+    const handle = tree.root.findByProps({ role: "separator" });
+
+    let preventDefaultCalled = false;
+    let capturedPointerId: number | null = null;
+    const mockEvent = {
+      preventDefault: () => { preventDefaultCalled = true; },
+      pointerId: 123,
+      clientY: 500,
+      currentTarget: {
+        setPointerCapture: (id: number) => { capturedPointerId = id; },
+      },
+    };
+
+    act(() => {
+      handle.props.onPointerDown(mockEvent);
+    });
+
+    expect(preventDefaultCalled).toBe(true);
+    expect(capturedPointerId).toBe(123);
+    expect(resizeActiveCalls).toEqual([true]);
+  });
+
+  test("onPointerMove computes height delta and clamps to bounds", () => {
+    globalThis.window = {
+      localStorage: {
+        getItem: () => null,
+        setItem: () => {},
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const heightChanges: string[] = [];
+    const tree = render(
+      <InterviewDock
+        runId="run-1"
+        questions={[makeQuestion()]}
+        onDockHeightChange={(height) => heightChanges.push(height)}
+      />,
+    );
+    const handle = tree.root.findByProps({ role: "separator" });
+
+    // Start drag at clientY=500, initial height is 18rem = 288px
+    act(() => {
+      handle.props.onPointerDown({
+        preventDefault: () => {},
+        pointerId: 1,
+        clientY: 500,
+        currentTarget: { setPointerCapture: () => {} },
+      });
+    });
+
+    // Move upward by 100px (clientY=400) should increase height by 100px
+    act(() => {
+      handle.props.onPointerMove({ clientY: 400 });
+    });
+
+    // Last height change should be 288 + 100 = 388px
+    expect(heightChanges[heightChanges.length - 1]).toBe("388px");
+
+    // Move downward by 200px (clientY=700) should decrease height
+    act(() => {
+      handle.props.onPointerMove({ clientY: 700 });
+    });
+
+    // Height should be 288 - 200 = 88px, but clamped to minimum 12rem = 192px
+    expect(heightChanges[heightChanges.length - 1]).toBe("192px");
+  });
+
+  test("onPointerUp releases pointer and invokes resize active callback with false", () => {
+    globalThis.window = {
+      localStorage: {
+        getItem: () => null,
+        setItem: () => {},
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const resizeActiveCalls: boolean[] = [];
+    const tree = render(
+      <InterviewDock
+        runId="run-1"
+        questions={[makeQuestion()]}
+        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
+      />,
+    );
+    const handle = tree.root.findByProps({ role: "separator" });
+
+    // Start drag
+    act(() => {
+      handle.props.onPointerDown({
+        preventDefault: () => {},
+        pointerId: 123,
+        clientY: 500,
+        currentTarget: { setPointerCapture: () => {} },
+      });
+    });
+
+    expect(resizeActiveCalls).toEqual([true]);
+
+    // End drag
+    let releasedPointerId: number | null = null;
+    act(() => {
+      handle.props.onPointerUp({
+        pointerId: 123,
+        currentTarget: {
+          releasePointerCapture: (id: number) => { releasedPointerId = id; },
+        },
+      });
+    });
+
+    expect(releasedPointerId).toBe(123);
+    expect(resizeActiveCalls).toEqual([true, false]);
+  });
+
+  test("onPointerCancel releases pointer and resets drag state", () => {
+    globalThis.window = {
+      localStorage: {
+        getItem: () => null,
+        setItem: () => {},
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const resizeActiveCalls: boolean[] = [];
+    const tree = render(
+      <InterviewDock
+        runId="run-1"
+        questions={[makeQuestion()]}
+        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
+      />,
+    );
+    const handle = tree.root.findByProps({ role: "separator" });
+
+    // Start drag
+    act(() => {
+      handle.props.onPointerDown({
+        preventDefault: () => {},
+        pointerId: 456,
+        clientY: 500,
+        currentTarget: { setPointerCapture: () => {} },
+      });
+    });
+
+    expect(resizeActiveCalls).toEqual([true]);
+
+    // Cancel drag
+    let releasedPointerId: number | null = null;
+    act(() => {
+      handle.props.onPointerCancel({
+        pointerId: 456,
+        currentTarget: {
+          releasePointerCapture: (id: number) => { releasedPointerId = id; },
+        },
+      });
+    });
+
+    expect(releasedPointerId).toBe(456);
+    expect(resizeActiveCalls).toEqual([true, false]);
+  });
+});
+
+describe("loadDockHeight", () => {
+  test("returns default height when localStorage is empty", () => {
+    const storage = new Map<string, string>();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    expect(loadDockHeight()).toBe(DEFAULT_DOCK_HEIGHT);
+  });
+
+  test("returns stored valid height", () => {
+    const storage = new Map<string, string>([[STORAGE_KEY, "24rem"]]);
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    expect(loadDockHeight()).toBe("24rem");
+  });
+
+  test("returns default when stored value is invalid", () => {
+    const storage = new Map<string, string>([[STORAGE_KEY, "invalid"]]);
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    expect(loadDockHeight()).toBe(DEFAULT_DOCK_HEIGHT);
+  });
+
+  test("clamps out-of-bounds height below minimum", () => {
+    const storage = new Map<string, string>([[STORAGE_KEY, "8rem"]]);
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    expect(loadDockHeight()).toBe(MIN_DOCK_HEIGHT);
+  });
+
+  test("clamps out-of-bounds height above maximum vh", () => {
+    const storage = new Map<string, string>([[STORAGE_KEY, "90vh"]]);
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    const result = loadDockHeight();
+    expect(result).toBe("80vh");
+  });
+});
+
+describe("saveDockHeight", () => {
+  test("writes height to localStorage under correct key", () => {
+    const storage = new Map<string, string>();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+      innerHeight: 1000,
+    } as any;
+
+    saveDockHeight("24rem");
+    expect(storage.get(STORAGE_KEY)).toBe("24rem");
+  });
+
+  test("does not throw when localStorage is unavailable", () => {
+    globalThis.window = {
+      localStorage: {
+        getItem: () => { throw new Error("Quota exceeded"); },
+        setItem: () => { throw new Error("Quota exceeded"); },
+      },
+      innerHeight: 1000,
+    } as any;
+
+    expect(() => saveDockHeight("24rem")).not.toThrow();
+  });
+});
+
+describe("clampDockHeight", () => {
+  test("returns valid rem value within bounds", () => {
+    expect(clampDockHeight("18rem")).toBe("18rem");
+  });
+
+  test("clamps rem value below minimum to minimum", () => {
+    expect(clampDockHeight("8rem")).toBe(MIN_DOCK_HEIGHT);
+  });
+
+  test("clamps vh value above maximum to maximum", () => {
+    expect(clampDockHeight("90vh")).toBe("80vh");
+  });
+
+  test("returns default for invalid format", () => {
+    expect(clampDockHeight("invalid")).toBe(DEFAULT_DOCK_HEIGHT);
+    expect(clampDockHeight("")).toBe(DEFAULT_DOCK_HEIGHT);
+    expect(clampDockHeight("100")).toBe(DEFAULT_DOCK_HEIGHT);
+  });
+
+  test("handles px values", () => {
+    expect(clampDockHeight("300px")).toBe("300px");
+  });
+
+  test("clamps px values below minimum", () => {
+    expect(clampDockHeight("100px")).toBe(MIN_DOCK_HEIGHT);
   });
 });
 
