@@ -1414,4 +1414,22 @@ Some text in between.
             "prompt.md should contain original prompt"
         );
     }
+
+    #[test]
+    fn extract_human_images_with_images_in_context() {
+        let context = Context::new();
+        context.set(
+            "fabro.human_answer_images.review",
+            serde_json::json!(["/tmp/img.png"]),
+        );
+        let result = extract_human_images(&context, "review");
+        assert_eq!(result, Some(vec!["/tmp/img.png".to_string()]));
+    }
+
+    #[test]
+    fn extract_human_images_returns_none_when_key_absent() {
+        let context = Context::new();
+        let result = extract_human_images(&context, "review");
+        assert_eq!(result, None);
+    }
 }
