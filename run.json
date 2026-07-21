@@ -308,7 +308,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T08:26:57.839134Z",
-  "last_event_at": "2026-07-21T08:27:00.545694Z",
+  "last_event_at": "2026-07-21T08:27:35.146278Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -349,9 +349,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 27,
       "checkpoint": {
-        "timestamp": "2026-07-21T08:27:03.791188Z",
+        "timestamp": "2026-07-21T08:27:08.734685Z",
         "current_node": "check",
         "completed_nodes": [
           "start",
@@ -359,22 +359,22 @@
         ],
         "node_retries": {},
         "context_values": {
-          "internal.fidelity": "compact",
-          "internal.retry_count.check": 0,
-          "outcome": "succeeded",
           "command.output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647",
           "internal.retry_count.start": 0,
-          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
-          "graph.loop_restart_signature_limit": "1000",
-          "failure_signature": "",
-          "graph.rankdir": "LR",
           "failure_class": "",
-          "internal.work_dir": "/workspace/fabro",
-          "internal.thread_id": "start",
+          "graph.loop_restart_signature_limit": "1000",
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "current_node": "check",
           "internal.node_visit_count": 1,
-          "thread.start.current_node": "check",
-          "internal.run_id": "01KY1WHQKHVT77ZA62MMD7PKE2"
+          "internal.retry_count.check": 0,
+          "internal.thread_id": "start",
+          "internal.work_dir": "/workspace/fabro",
+          "failure_signature": "",
+          "graph.rankdir": "LR",
+          "internal.run_id": "01KY1WHQKHVT77ZA62MMD7PKE2",
+          "internal.fidelity": "compact",
+          "outcome": "succeeded",
+          "thread.start.current_node": "check"
         },
         "node_outcomes": {
           "check": {
@@ -397,8 +397,96 @@
           }
         },
         "next_node_id": "address",
+        "git_commit_sha": "a7f78680dba95bddc91a1f196093064c538d5a19",
+        "node_visits": {
+          "start": 1,
+          "check": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T08:27:35.180521Z",
+        "current_node": "address",
+        "completed_nodes": [
+          "start",
+          "check",
+          "address"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "internal.fidelity": "compact",
+          "thread.check.current_node": "address",
+          "internal.retry_count.check": 0,
+          "outcome": "succeeded",
+          "command.output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647",
+          "internal.retry_count.start": 0,
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "graph.loop_restart_signature_limit": "1000",
+          "failure_signature": "",
+          "last_stage": "address",
+          "graph.rankdir": "LR",
+          "failure_class": "",
+          "internal.retry_count.address": 0,
+          "internal.work_dir": "/workspace/fabro",
+          "internal.thread_id": "check",
+          "response.address": "I'll check the PR status and address any feedback.The check stage verdict was correct: there is no open PR for branch `fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2`. The PR has either been merged, closed, or was never created.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+          "current_node": "address",
+          "internal.node_visit_count": 1,
+          "last_response": "I'll check the PR status and address any feedback.The check stage verdict was correct: there is no open PR for branch `fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2`. The PR has either been merged, closed, or ",
+          "thread.start.current_node": "check",
+          "preferred_label": "Done",
+          "internal.run_id": "01KY1WHQKHVT77ZA62MMD7PKE2"
+        },
+        "node_outcomes": {
+          "check": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647"
+            },
+            "notes": "Script completed: set -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 3206,
+              "active_time_ms": 3206
+            }
+          },
+          "address": {
+            "status": "succeeded",
+            "preferred_label": "Done",
+            "context_updates": {
+              "last_stage": "address",
+              "response.address": "I'll check the PR status and address any feedback.The check stage verdict was correct: there is no open PR for branch `fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2`. The PR has either been merged, closed, or was never created.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+              "last_response": "I'll check the PR status and address any feedback.The check stage verdict was correct: there is no open PR for branch `fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2`. The PR has either been merged, closed, or "
+            },
+            "notes": "Stage completed: address",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 26378,
+              "tool_time_ms": 0,
+              "active_time_ms": 26378
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "exit",
         "node_visits": {
           "check": 1,
+          "address": 1,
           "start": 1
         }
       },
@@ -432,6 +520,38 @@
   "superseded_by": null,
   "pending_interviews": {},
   "stages": {
+    "address@1": {
+      "first_event_seq": 30,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "acp",
+        "provider": "acp"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": {
+        "stdout": "I'll check the PR status and address any feedback.The check stage verdict was correct: there is no open PR for branch `fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2`. The PR has either been merged, closed, or was never created.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+        "stderr": "",
+        "stop_reason": "end_turn",
+        "duration_ms": 26378
+      },
+      "parallel_results": null,
+      "output": null,
+      "termination": "exited",
+      "started_at": "2026-07-21T08:27:08.736771Z",
+      "handler": "agent",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    },
     "start@1": {
       "first_event_seq": 16,
       "prompt": null,
@@ -470,7 +590,12 @@
       "first_event_seq": 20,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Script completed: set -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
+        "failure_reason": null,
+        "timestamp": "2026-07-21T08:27:03.776975Z"
+      },
       "provider_used": null,
       "diff": null,
       "script_invocation": {
@@ -478,11 +603,27 @@
         "command": "exec 2>&1\nset -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
         "language": "shell"
       },
-      "script_timing": null,
+      "script_timing": {
+        "output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647",
+        "exit_code": 0,
+        "duration_ms": 3206,
+        "termination": "exited",
+        "output_bytes": 96,
+        "live_streaming": true
+      },
       "parallel_results": null,
       "output": null,
+      "output_bytes": 96,
+      "live_streaming": true,
+      "termination": "exited",
       "started_at": "2026-07-21T08:27:00.545662Z",
       "handler": "command",
+      "timing": {
+        "wall_time_ms": 3231,
+        "inference_time_ms": 0,
+        "tool_time_ms": 3206,
+        "active_time_ms": 3206
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -491,7 +632,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "running"
+      "state": "succeeded"
     }
   }
 }
