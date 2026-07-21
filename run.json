@@ -513,15 +513,87 @@
     }
   },
   "web_url": "http://127.0.0.1:32276/runs/01KY1JG5Q9Q27K6P67TTM0G3PK",
-  "start": null,
-  "status": {
-    "kind": "starting"
+  "start": {
+    "start_time": "2026-07-21T05:31:15.703848Z",
+    "run_branch": "fabro/run/01KY1JG5Q9Q27K6P67TTM0G3PK",
+    "base_sha": "ee7532b433e5171405e0e1033b0df5847f4cb9ef"
   },
-  "status_updated_at": "2026-07-21T05:31:10.560314Z",
-  "last_event_at": "2026-07-21T05:31:15.394575Z",
+  "status": {
+    "kind": "running"
+  },
+  "status_updated_at": "2026-07-21T05:31:15.703879Z",
+  "last_event_at": "2026-07-21T05:31:19.414022Z",
   "pending_control": null,
-  "checkpoints": [],
-  "conclusion": null,
+  "checkpoints": [
+    {
+      "seq": 20,
+      "checkpoint": {
+        "timestamp": "2026-07-21T05:31:18.650328Z",
+        "current_node": "start",
+        "completed_nodes": [
+          "start"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "current_node": "start",
+          "failure_signature": "",
+          "failure_class": "",
+          "graph.goal": "Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request",
+          "graph.rankdir": "LR",
+          "internal.fidelity": "compact",
+          "internal.node_visit_count": 1,
+          "internal.retry_count.start": 0,
+          "internal.run_id": "01KY1JG5Q9Q27K6P67TTM0G3PK",
+          "internal.thread_id": null,
+          "internal.work_dir": "/workspace/fabro",
+          "outcome": "succeeded"
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "prepare",
+        "node_visits": {
+          "start": 1
+        }
+      },
+      "diff": {}
+    }
+  ],
+  "conclusion": {
+    "timestamp": "2026-07-21T05:31:19.440680Z",
+    "status": "failed",
+    "timing": {
+      "wall_time_ms": 3711,
+      "inference_time_ms": 0,
+      "tool_time_ms": 0,
+      "active_time_ms": 0
+    },
+    "failure": {
+      "reason": "cancelled",
+      "detail": {
+        "message": "Pipeline cancelled",
+        "category": "canceled"
+      }
+    },
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      }
+    ],
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -547,5 +619,71 @@
   "pull_request": null,
   "superseded_by": null,
   "pending_interviews": {},
-  "stages": {}
+  "stages": {
+    "start@1": {
+      "first_event_seq": 16,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T05:31:18.650039Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T05:31:18.649936Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "prepare@1": {
+      "first_event_seq": 21,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "acp",
+        "provider": "acp"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": {
+        "stdout": "",
+        "stderr": "",
+        "duration_ms": 528
+      },
+      "parallel_results": null,
+      "output": null,
+      "termination": "cancelled",
+      "started_at": "2026-07-21T05:31:18.650595Z",
+      "handler": "agent",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    }
+  }
 }
