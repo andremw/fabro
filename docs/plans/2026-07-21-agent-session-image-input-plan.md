@@ -620,19 +620,19 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Refactor
 
 ### Wave 2
-- [ ] Slice 5: Agent handler image propagation
-  - [ ] Add HUMAN_ANSWER_IMAGES_PREFIX constant
-  - [ ] Add extract_human_images helper
-  - [ ] Test extract_human_images with images in context
-  - [ ] Test extract_human_images returns None when key absent
-  - [ ] Identify prior stage from context
-  - [ ] Construct initial_content with images
-  - [ ] Test initial_content construction with images
-  - [ ] Test initial_content construction without images
-  - [ ] Update CodergenRunRequest construction call site
-  - [ ] Test fabro-llm attachment resolution
-  - [ ] Run full fabro-workflow tests
-  - [ ] Refactor
+- [x] Slice 5: Agent handler image propagation
+  - [x] Add HUMAN_ANSWER_IMAGES_PREFIX constant
+  - [x] Add extract_human_images helper
+  - [x] Test extract_human_images with images in context
+  - [x] Test extract_human_images returns None when key absent
+  - [x] Identify prior stage from context
+  - [x] Construct initial_content with images
+  - [x] Test initial_content construction with images
+  - [x] Test initial_content construction without images
+  - [x] Update CodergenRunRequest construction call site
+  - [x] Test fabro-llm attachment resolution
+  - [x] Run full fabro-workflow tests
+  - [x] Refactor
 - [ ] Slice 6: Server handler and external call sites
   - [ ] Update server sessions handler call site
   - [ ] Test server compiles
