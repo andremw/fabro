@@ -1,0 +1,25 @@
+diff --git a/docs/superpowers/specs/2026-07-21-agent-session-image-input.md b/docs/superpowers/specs/2026-07-21-agent-session-image-input.md
+index 20bf036..bfeda48 100644
+--- a/docs/superpowers/specs/2026-07-21-agent-session-image-input.md
++++ b/docs/superpowers/specs/2026-07-21-agent-session-image-input.md
+@@ -1,6 +1,6 @@
+ # Agent Session Image Input API — design
+ 
+-**Status:** draft spec, pre-approval
++**Status:** ready for approval
+ **Date:** 2026-07-21
+ **Related plan:** docs/plans/2026-07-21-freeform-image-attachments-plan.md
+ 
+@@ -291,3 +291,12 @@ session.process_message(req.initial_content, req.agent_tool_runtime).await?;
+ | Should `Message::User` serialization change to accommodate `Vec<ContentPart>`? | inferable | Existing serialization contract | No changes needed. `Message::to_session_message` and `from_session_message` (types.rs) already serialize/deserialize the content field via serde. Changing the content type from `String` to `Vec<ContentPart>` is a data-level change, but `ContentPart` already implements `Serialize`/`Deserialize` (transcript.rs:141-230), so serde handles the new structure automatically. Checkpoints that contain the old `String`-based User messages are no longer compatible, but checkpointing compatibility across codebase changes is not guaranteed (checkpoints are keyed by run ID and discarded when runs are pruned). |
+ 
+ **No open questions — all findings were inferable.**
++
++## Cross-Artifact Consistency Gate
++
++- [x] Intent is unambiguous — two developers would interpret it the same way.
++- [x] Every behavior/goal in the intent maps to at least one acceptance criterion.
++- [x] Architecture constrains implementation without over-engineering.
++- [x] Same concepts named consistently across all three artifacts.
++- [x] No artifact contradicts another.
++- [x] Every gap/ambiguity finding is logged — inferable with rationale, or resolved by the human.
