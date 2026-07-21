@@ -1222,6 +1222,86 @@ impl Session {
         self.last_input_usage.clone()
     }
 
+    /// Process a message with multi-part content. The inference/tool timing accumulated during the call
+    /// is available via [`Self::last_input_timing`] after this returns, even on
+    /// error.
+    pub async fn process_message(
+        &mut self,
+        content: Vec<ContentPart>,
+        agent_tool_runtime: AgentToolRuntime,
+    ) -> Result<(), Error> {
+        let mut timing = SessionInputTiming::default();
+        let mut usage = TokenCounts::default();
+        self.last_input_timing = timing;
+        self.last_input_usage = TokenCounts::default();
+        if self.state == SessionState::Closed {
+            return Err(Error::SessionClosed);
+        }
+
+        // Spawn wall-clock timeout task if configured
+        let timer_handle = self.config.wall_clock_timeout.map(|duration| {
+            let token = self.cancel_token.clone();
+            let reason_handle = self.interrupt_reason.clone();
+            tokio::spawn(async move {
+                time::sleep(duration).await;
+                {
+                    let mut guard = reason_handle
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    if guard.is_none() {
+                        *guard = Some(InterruptReason::WallClockTimeout);
+                    }
+                }
+                token.cancel();
+            })
+        });
+
+        // Process the initial message, then drain any followups
+        let mut result = self
+            .run_single_message(content, &agent_tool_runtime, &mut timing, &mut usage)
+            .await;
+
+        if result.is_ok() {
+            loop {
+                let followup = self
+                    .followup_queue
+                    .lock()
+                    .expect("followup queue lock poisoned")
+                    .pop_front();
+                let Some(followup) = followup else { break };
+                result = self
+                    .run_single_input(&followup, &agent_tool_runtime, &mut timing, &mut usage)
+                    .await;
+                if result.is_err() {
+                    break;
+                }
+            }
+        }
+
+        // Stop the timer so it doesn't fire after we're done.
+        if let Some(handle) = timer_handle {
+            handle.abort();
+        }
+
+        // Only transition to Idle if the session wasn't closed by an error
+        if self.state != SessionState::Closed {
+            self.transition(SessionState::Idle);
+        }
+
+        self.last_input_timing = timing;
+        self.last_input_usage = usage;
+        result
+    }
+
+    /// Process a text-only input as a convenience wrapper around process_message.
+    pub async fn process_text_input(&mut self, input: &str) -> Result<(), Error> {
+        self.process_message(
+            vec![ContentPart::Text(input.to_string())],
+            AgentToolRuntime::default(),
+        )
+        .await
+    }
+
     /// Process an input. The inference/tool timing accumulated during the call
     /// is available via [`Self::last_input_timing`] after this returns, even on
     /// error.
@@ -1293,6 +1373,46 @@ impl Session {
         result
     }
 
+    async fn run_single_message(
+        &mut self,
+        content: Vec<ContentPart>,
+        agent_tool_runtime: &AgentToolRuntime,
+        timing: &mut SessionInputTiming,
+        usage_accumulator: &mut TokenCounts,
+    ) -> Result<(), Error> {
+        if self.state == SessionState::Closed {
+            return Err(Error::SessionClosed);
+        }
+
+        self.transition(SessionState::Thinking);
+
+        // Extract text from content parts for event emission
+        let text_content: String = content
+            .iter()
+            .filter_map(|p| {
+                if let ContentPart::Text(t) = p {
+                    Some(t.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+        // Append user turn and emit event
+        self.history.push(Message::User {
+            content:   content,
+            timestamp: SystemTime::now(),
+        });
+        self.event_emitter
+            .emit(self.id.clone(), AgentEvent::UserInput {
+                text: text_content,
+            });
+
+        self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
+            .await
+    }
+
     async fn run_single_input(
         &mut self,
         input: &str,
@@ -1300,8 +1420,6 @@ impl Session {
         timing: &mut SessionInputTiming,
         usage_accumulator: &mut TokenCounts,
     ) -> Result<(), Error> {
-        const STREAM_CONSUME_RETRIES: usize = 3;
-
         if self.state == SessionState::Closed {
             return Err(Error::SessionClosed);
         }
@@ -1336,6 +1454,18 @@ impl Session {
             .emit(self.id.clone(), AgentEvent::UserInput {
                 text: expanded_input.clone(),
             });
+
+        self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
+            .await
+    }
+
+    async fn run_agent_loop_after_user_message(
+        &mut self,
+        agent_tool_runtime: &AgentToolRuntime,
+        timing: &mut SessionInputTiming,
+        usage_accumulator: &mut TokenCounts,
+    ) -> Result<(), Error> {
+        const STREAM_CONSUME_RETRIES: usize = 3;
 
         let mut round_count: usize = 0;
 
@@ -4998,6 +5128,77 @@ mod tests {
             if matches!(envelope.event, AgentEvent::SkillActivated { .. }) {
                 panic!("failed use_skill should not emit SkillActivated");
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_message_with_single_text_part() {
+        let mut session = make_session(vec![text_response("hello response")]).await;
+
+        let content = vec![ContentPart::Text("test message".to_string())];
+        let result = session
+            .process_message(content, AgentToolRuntime::default())
+            .await;
+
+        assert!(result.is_ok(), "process_message should succeed");
+        assert_eq!(session.history().turns().len(), 2); // User + Assistant
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content, .. } = first_turn {
+            assert_eq!(content.len(), 1);
+            assert!(matches!(content[0], ContentPart::Text(_)));
+        } else {
+            panic!("First turn should be User message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_message_with_multi_part_content() {
+        use fabro_llm::types::ImageData;
+
+        let mut session = make_session(vec![text_response("analyzed the image")]).await;
+
+        let content = vec![
+            ContentPart::Image(ImageData {
+                url:        Some("/tmp/test.png".to_string()),
+                data:       None,
+                media_type: None,
+                detail:     None,
+            }),
+            ContentPart::Text("analyze this image".to_string()),
+        ];
+        let result = session
+            .process_message(content.clone(), AgentToolRuntime::default())
+            .await;
+
+        assert!(result.is_ok(), "process_message should succeed with multi-part content");
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content: msg_content, .. } = first_turn {
+            assert_eq!(msg_content.len(), 2, "User message should have 2 parts");
+            assert!(matches!(msg_content[0], ContentPart::Image(_)), "First part should be Image");
+            assert!(matches!(msg_content[1], ContentPart::Text(_)), "Second part should be Text");
+        } else {
+            panic!("First turn should be User message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_text_input_delegates_to_process_message() {
+        let mut session = make_session(vec![text_response("hello response")]).await;
+
+        let result = session.process_text_input("test message").await;
+
+        assert!(result.is_ok(), "process_text_input should succeed");
+        assert_eq!(session.history().turns().len(), 2); // User + Assistant
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content, .. } = first_turn {
+            assert_eq!(content.len(), 1);
+            if let ContentPart::Text(text) = &content[0] {
+                assert_eq!(text, "test message");
+            } else {
+                panic!("Content should be Text");
+            }
+        } else {
+            panic!("First turn should be User message");
         }
     }
 }
