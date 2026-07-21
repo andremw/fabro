@@ -626,11 +626,10 @@
     "base_sha": "ee7532b433e5171405e0e1033b0df5847f4cb9ef"
   },
   "status": {
-    "kind": "blocked",
-    "blocked_reason": "human_input_required"
+    "kind": "running"
   },
-  "status_updated_at": "2026-07-21T05:35:18.034420Z",
-  "last_event_at": "2026-07-21T05:35:18.034420Z",
+  "status_updated_at": "2026-07-21T05:35:33.745695Z",
+  "last_event_at": "2026-07-21T05:39:34.420018Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -670,9 +669,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 29,
       "checkpoint": {
-        "timestamp": "2026-07-21T05:35:33.745977Z",
+        "timestamp": "2026-07-21T05:35:38.081121Z",
         "current_node": "describe",
         "completed_nodes": [
           "start",
@@ -680,24 +679,96 @@
         ],
         "node_retries": {},
         "context_values": {
+          "human.gate.selected": "freeform",
           "internal.thread_id": "start",
+          "current_node": "describe",
+          "human.gate.label": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+          "failure_class": "",
+          "internal.fidelity": "compact",
+          "internal.run_id": "01KY1JQFR528NTRZJ1G5Y3AT1B",
+          "human.gate.describe.answer": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+          "human.gate.text": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+          "internal.retry_count.start": 0,
+          "internal.node_visit_count": 1,
+          "thread.start.current_node": "describe",
+          "internal.work_dir": "/workspace/fabro",
+          "failure_signature": "",
+          "outcome": "succeeded",
+          "human.gate.describe.question": "Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead.",
+          "graph.rankdir": "LR",
+          "graph.goal": "Produce an approved specification and implementation plan (no code) for the feature described at the Describe Feature gate",
+          "internal.retry_count.describe": 0
+        },
+        "node_outcomes": {
+          "describe": {
+            "status": "succeeded",
+            "suggested_next_ids": [
+              "draft_spec"
+            ],
+            "context_updates": {
+              "human.gate.text": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+              "human.gate.describe.answer": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+              "human.gate.describe.question": "Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead.",
+              "human.gate.label": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+              "human.gate.selected": "freeform"
+            },
+            "usage": null
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "draft_spec",
+        "git_commit_sha": "c2a806d26c688d126891610093e65e345be39b2c",
+        "node_visits": {
+          "describe": 1,
+          "start": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T05:39:34.437213Z",
+        "current_node": "draft_spec",
+        "completed_nodes": [
+          "start",
+          "describe",
+          "draft_spec"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "internal.thread_id": "describe",
           "failure_class": "",
           "internal.run_id": "01KY1JQFR528NTRZJ1G5Y3AT1B",
+          "thread.describe.current_node": "draft_spec",
           "failure_signature": "",
           "graph.goal": "Produce an approved specification and implementation plan (no code) for the feature described at the Describe Feature gate",
           "internal.work_dir": "/workspace/fabro",
           "outcome": "succeeded",
+          "last_response": "I'll explore the repository to understand the current architecture and then draft the specification for the Session API change.Now I have a clear picture. Let me check if there's an existing spec and ",
           "human.gate.selected": "freeform",
           "human.gate.label": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
           "human.gate.text": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
+          "last_stage": "draft_spec",
+          "internal.retry_count.draft_spec": 0,
           "thread.start.current_node": "describe",
           "internal.fidelity": "compact",
           "human.gate.describe.answer": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.",
-          "current_node": "describe",
+          "current_node": "draft_spec",
           "human.gate.describe.question": "Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead.",
           "internal.retry_count.describe": 0,
           "graph.rankdir": "LR",
           "internal.retry_count.start": 0,
+          "response.draft_spec": "I'll explore the repository to understand the current architecture and then draft the specification for the Session API change.Now I have a clear picture. Let me check if there's an existing spec and then draft the specification.Now I understand the spec format. Let me create the specification document for the Session API change.Perfect! I've drafted the specification. Now let me review it once more to ensure completeness and check for any gaps or conflicts.\n\nThe specification I've created covers:\n\n## Summary\n\nI've drafted a comprehensive specification for enabling fabro-agent Session API to accept multi-part content (images + text) in the initial user message. The spec is located at:\n\n**`docs/superpowers/specs/2026-07-21-agent-session-image-input.md`**\n\n### Key Design Decisions\n\n1. **`Message::User` structure change**: Changed from `content: String` to `content: Vec<ContentPart>` to align with the LLM-facing `LlmMessage` structure\n\n2. **New Session API**: Replaced `process_input`/`process_input_with_runtime` with:\n   - `process_message(content: Vec<ContentPart>, runtime: AgentToolRuntime)` — primary entry point\n   - `process_text_input(input: &str)` — convenience wrapper for backward compatibility\n\n3. **`CodergenRunRequest` update**: Changed `prompt: &str` to `initial_content: Vec<ContentPart>` to carry multi-part messages from workflow handler to session\n\n4. **Workflow handler integration**: The agent handler constructs `Vec<ContentPart>` by prepending images from `fabro.human_answer_images.*` context keys, then appending the text prompt\n\n5. **Minimal surface area**: No changes needed to fabro-llm attachment resolution (already handles `ContentPart::Image` with file URLs)\n\n### Architecture Highlights\n\n- **Least-invasive approach**: Changes only the message construction layer, not the agent loop, LLM codecs, or provider adapters\n- **Clean migration path**: Existing text-only call sites use the new `process_text_input` wrapper with minimal code changes\n- **Leverages existing infrastructure**: fabro-llm's attachment resolver already loads images from disk and inlines them during request encoding\n\n### Ambiguity Resolution\n\nAll 10 design decisions in the Ambiguity Log were classified as **inferable** based on:\n- Existing codebase patterns (ContentPart already used throughout fabro-llm)\n- Rust ownership idioms (owned Vec vs borrowed slice)\n- API consistency (single process_message method vs split methods)\n- Established contracts (attachment resolution, serialization)\n\n**No open questions — all findings were inferable.**",
           "internal.node_visit_count": 1
         },
         "node_outcomes": {
@@ -718,10 +789,30 @@
               "human.gate.selected": "freeform"
             },
             "usage": null
+          },
+          "draft_spec": {
+            "status": "succeeded",
+            "context_updates": {
+              "last_response": "I'll explore the repository to understand the current architecture and then draft the specification for the Session API change.Now I have a clear picture. Let me check if there's an existing spec and ",
+              "response.draft_spec": "I'll explore the repository to understand the current architecture and then draft the specification for the Session API change.Now I have a clear picture. Let me check if there's an existing spec and then draft the specification.Now I understand the spec format. Let me create the specification document for the Session API change.Perfect! I've drafted the specification. Now let me review it once more to ensure completeness and check for any gaps or conflicts.\n\nThe specification I've created covers:\n\n## Summary\n\nI've drafted a comprehensive specification for enabling fabro-agent Session API to accept multi-part content (images + text) in the initial user message. The spec is located at:\n\n**`docs/superpowers/specs/2026-07-21-agent-session-image-input.md`**\n\n### Key Design Decisions\n\n1. **`Message::User` structure change**: Changed from `content: String` to `content: Vec<ContentPart>` to align with the LLM-facing `LlmMessage` structure\n\n2. **New Session API**: Replaced `process_input`/`process_input_with_runtime` with:\n   - `process_message(content: Vec<ContentPart>, runtime: AgentToolRuntime)` — primary entry point\n   - `process_text_input(input: &str)` — convenience wrapper for backward compatibility\n\n3. **`CodergenRunRequest` update**: Changed `prompt: &str` to `initial_content: Vec<ContentPart>` to carry multi-part messages from workflow handler to session\n\n4. **Workflow handler integration**: The agent handler constructs `Vec<ContentPart>` by prepending images from `fabro.human_answer_images.*` context keys, then appending the text prompt\n\n5. **Minimal surface area**: No changes needed to fabro-llm attachment resolution (already handles `ContentPart::Image` with file URLs)\n\n### Architecture Highlights\n\n- **Least-invasive approach**: Changes only the message construction layer, not the agent loop, LLM codecs, or provider adapters\n- **Clean migration path**: Existing text-only call sites use the new `process_text_input` wrapper with minimal code changes\n- **Leverages existing infrastructure**: fabro-llm's attachment resolver already loads images from disk and inlines them during request encoding\n\n### Ambiguity Resolution\n\nAll 10 design decisions in the Ambiguity Log were classified as **inferable** based on:\n- Existing codebase patterns (ContentPart already used throughout fabro-llm)\n- Rust ownership idioms (owned Vec vs borrowed slice)\n- API consistency (single process_message method vs split methods)\n- Established contracts (attachment resolution, serialization)\n\n**No open questions — all findings were inferable.**",
+              "last_stage": "draft_spec"
+            },
+            "notes": "Stage completed: draft_spec",
+            "usage": null,
+            "files_touched": [
+              "docs/superpowers/specs/2026-07-21-agent-session-image-input.md"
+            ],
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 236054,
+              "tool_time_ms": 0,
+              "active_time_ms": 236054
+            }
           }
         },
-        "next_node_id": "draft_spec",
+        "next_node_id": "clarify",
         "node_visits": {
+          "draft_spec": 1,
           "start": 1,
           "describe": 1
         }
@@ -754,18 +845,7 @@
   },
   "pull_request": null,
   "superseded_by": null,
-  "pending_interviews": {
-    "01KY1JQQGJSVG544NZ9Q5NDA6Y": {
-      "question": {
-        "id": "01KY1JQQGJSVG544NZ9Q5NDA6Y",
-        "text": "Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead.",
-        "stage": "describe",
-        "question_type": "freeform",
-        "allow_freeform": true
-      },
-      "started_at": "2026-07-21T05:35:18.034353Z"
-    }
-  },
+  "pending_interviews": {},
   "stages": {
     "start@1": {
       "first_event_seq": 16,
@@ -805,7 +885,12 @@
       "first_event_seq": 20,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T05:35:33.745854Z"
+      },
       "provider_used": null,
       "diff": null,
       "script_invocation": null,
@@ -814,6 +899,44 @@
       "output": null,
       "started_at": "2026-07-21T05:35:18.034283Z",
       "handler": "human",
+      "timing": {
+        "wall_time_ms": 15711,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "draft_spec@1": {
+      "first_event_seq": 32,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "acp",
+        "provider": "acp"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": {
+        "stdout": "I'll explore the repository to understand the current architecture and then draft the specification for the Session API change.Now I have a clear picture. Let me check if there's an existing spec and then draft the specification.Now I understand the spec format. Let me create the specification document for the Session API change.Perfect! I've drafted the specification. Now let me review it once more to ensure completeness and check for any gaps or conflicts.\n\nThe specification I've created covers:\n\n## Summary\n\nI've drafted a comprehensive specification for enabling fabro-agent Session API to accept multi-part content (images + text) in the initial user message. The spec is located at:\n\n**`docs/superpowers/specs/2026-07-21-agent-session-image-input.md`**\n\n### Key Design Decisions\n\n1. **`Message::User` structure change**: Changed from `content: String` to `content: Vec<ContentPart>` to align with the LLM-facing `LlmMessage` structure\n\n2. **New Session API**: Replaced `process_input`/`process_input_with_runtime` with:\n   - `process_message(content: Vec<ContentPart>, runtime: AgentToolRuntime)` — primary entry point\n   - `process_text_input(input: &str)` — convenience wrapper for backward compatibility\n\n3. **`CodergenRunRequest` update**: Changed `prompt: &str` to `initial_content: Vec<ContentPart>` to carry multi-part messages from workflow handler to session\n\n4. **Workflow handler integration**: The agent handler constructs `Vec<ContentPart>` by prepending images from `fabro.human_answer_images.*` context keys, then appending the text prompt\n\n5. **Minimal surface area**: No changes needed to fabro-llm attachment resolution (already handles `ContentPart::Image` with file URLs)\n\n### Architecture Highlights\n\n- **Least-invasive approach**: Changes only the message construction layer, not the agent loop, LLM codecs, or provider adapters\n- **Clean migration path**: Existing text-only call sites use the new `process_text_input` wrapper with minimal code changes\n- **Leverages existing infrastructure**: fabro-llm's attachment resolver already loads images from disk and inlines them during request encoding\n\n### Ambiguity Resolution\n\nAll 10 design decisions in the Ambiguity Log were classified as **inferable** based on:\n- Existing codebase patterns (ContentPart already used throughout fabro-llm)\n- Rust ownership idioms (owned Vec vs borrowed slice)\n- API consistency (single process_message method vs split methods)\n- Established contracts (attachment resolution, serialization)\n\n**No open questions — all findings were inferable.**",
+        "stderr": "",
+        "stop_reason": "end_turn",
+        "duration_ms": 236054
+      },
+      "parallel_results": null,
+      "output": null,
+      "termination": "exited",
+      "started_at": "2026-07-21T05:35:38.081852Z",
+      "handler": "agent",
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
