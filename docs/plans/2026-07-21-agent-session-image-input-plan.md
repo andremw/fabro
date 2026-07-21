@@ -572,16 +572,16 @@ These observations remain unchanged as they represent known trade-offs consisten
 ## Build Progress
 
 ### Wave 0
-- [ ] Slice 1: AgentMessage::User content type change
-  - [ ] Change Message::User content field type
-  - [ ] Test Message::User with single text part compiles
-  - [ ] Test Message::User with image and text parts
-  - [ ] Update History::convert_to_messages User arm
-  - [ ] Test history conversion with multi-part User
-  - [ ] Update all internal Message::User construction sites
-  - [ ] Test internal constructions compile
-  - [ ] Test SessionMessage round-trip
-  - [ ] Refactor
+- [x] Slice 1: AgentMessage::User content type change
+  - [x] Change Message::User content field type
+  - [x] Test Message::User with single text part compiles
+  - [x] Test Message::User with image and text parts
+  - [x] Update History::convert_to_messages User arm
+  - [x] Test history conversion with multi-part User
+  - [x] Update all internal Message::User construction sites
+  - [x] Test internal constructions compile
+  - [x] Test SessionMessage round-trip
+  - [x] Refactor
 
 ### Wave 1
 - [ ] Slice 2: Session::process_message API
