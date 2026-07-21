@@ -1,0 +1,88 @@
+I'll explore the codebase to understand the current Session API and how it needs to change to support images in the initial user message.Let me read the relevant files to understand the current Session API structure.Let me search for specific parts of the Session API.Now let me search for where the agent handler calls the session:Let me explore the fabro-workflow agent handler more carefully:Now let me look at the existing spec and understand what has already been added:Perfect! Now I have all the context I need. The spec exists in the brainstorms folder. Now let me look at the critical part - understanding the current Message type structure and where images need to go:Excellent! Now let me check the Message type in fabro-types:Perfect! Now I see the confusion. There are TWO Message types:
+
+1. **`fabro-agent::Message`** (in `lib/crates/fabro-agent/src/types.rs`) - Has `User { content: String, ... }` variant
+2. **`fabro-types::Message`** (in `lib/crates/fabro-types/src/transcript.rs`) - Has `content: Vec<ContentPart>` field
+
+Let me understand how they relate:Now let me check how fabro-agent's Message gets converted to fabro-llm's request:Perfect! Now I have all the pieces. Let me create the spec document:Now let me perform the self-critique:
+
+## Self-Critique
+
+### Gaps
+
+None identified. The spec covers:
+- The new `UserInput` type and its variants
+- Session API method signature changes
+- Message enum extension with `UserWithImages` variant
+- History conversion to LlmMessage with image prepending
+- Workflow integration via CodergenRunRequest.initial_images
+- Backend implementation in AgentApiBackend::run()
+- Type dependencies and imports
+- Backward compatibility preservation
+
+### Ambiguities
+
+1. **SessionMessage serialization strategy** (requires-stakeholder-input): The spec proposes extending `SessionMessage` enum with a `UserWithImages` variant but acknowledges this requires changes to fabro-types. The alternative is to degrade to `SessionMessage::User` with JSON-encoded image metadata. The spec author cannot infer which approach the stakeholder prefers without knowing the importance of session replay/serialization for image-bearing turns.
+
+### Conflicts
+
+None identified. The spec:
+- Preserves `Message::User` variant unchanged for backward compatibility
+- Uses `impl Into<UserInput>` to avoid breaking existing `process_input(&str)` calls
+- Follows existing patterns (separate enum variants, `From` impls for ergonomics)
+- Defers workflow-layer implementation details to Slice 5 while specifying the contract
+
+### Scope Violations
+
+None identified. The spec is narrowly focused on:
+- The Session API changes needed to accept images
+- The Message type extension to carry images
+- The conversion to LlmMessage with prepended images
+- The workflow integration point via CodergenRunRequest
+
+It explicitly does NOT specify:
+- How the workflow layer detects prior human stages (deferred to Slice 5)
+- How images are stored in the artifact directory (already specified in freeform-image-attachments plan)
+- How fabro-llm resolves file URLs to inline data (already implemented)
+- UI changes (covered in separate plan slices)## Summary
+
+I have created the specification document at `/repos/andremw/fabro/docs/specs/agent-session-image-input.md`.
+
+The spec addresses the core problem identified in the goal: **today's `Session::process_input/process_input_with_runtime` take `input: &str` and internally build `Message::User { content: String }`, so there's no path for `CodergenRunRequest.initial_images` to reach the LLM**.
+
+### Key Design Decisions
+
+1. **New `UserInput` enum** - Provides type-safe distinction between text-only and multimodal input while preserving backward compatibility via `From<&str>` impl
+
+2. **Separate `Message::UserWithImages` variant** - Less invasive than changing `Message::User.content` from `String` to `Vec<ContentPart>`, which would break all existing match arms
+
+3. **Images prepended before text** - Matches LLM provider conventions and user mental models
+
+4. **`impl Into<UserInput>` parameter** - Allows existing `process_input("text")` calls to work unchanged while supporting new `UserInput::with_images()` API
+
+5. **`CodergenRunRequest.initial_images: Option<Vec<ImageData>>`** - Provides the integration point for fabro-workflow to pass images from human stages to agent stages
+
+### Thread to LLM Providers
+
+The spec covers the complete path from workflow to LLM:
+
+```
+CodergenRunRequest.initial_images (Some(vec![img]))
+    ↓
+AgentApiBackend::run() constructs UserInput::with_images(images, prompt)
+    ↓
+Session::process_input_with_runtime(UserInput::WithImages { images, text })
+    ↓
+Session::run_single_input() creates Message::UserWithImages { images, content, timestamp }
+    ↓
+History::convert_to_messages() builds LlmMessage { role: User, content: [Image(img), Text(text)] }
+    ↓
+fabro-llm attachment resolution resolves ImageData { url: Some(path) } to inline base64
+    ↓
+LLM provider receives multimodal request
+```
+
+### Open Questions
+
+**1. Should `Message::UserWithImages` be serialized to a new `SessionMessage::UserWithImages` variant or degraded to `SessionMessage::User`?**
+
+This requires stakeholder input because it depends on whether session replay/persistence needs to preserve image data. The spec provides both paths but cannot infer which is preferred.
