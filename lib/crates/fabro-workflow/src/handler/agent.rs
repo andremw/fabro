@@ -426,10 +426,7 @@ impl Handler for AgentHandler {
 /// Returns `Some(Vec<String>)` if the key exists and contains valid paths,
 /// otherwise `None`.
 fn get_human_answer_images(context: &Context, stage_id: &str) -> Option<Vec<String>> {
-    let key = format!("{}{}", keys::HUMAN_ANSWER_IMAGES_PREFIX, stage_id);
-    context
-        .get(&key)
-        .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok())
+    context.get_human_answer_images(stage_id)
 }
 
 /// Identify the immediately prior human stage from workflow context.
