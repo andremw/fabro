@@ -51,6 +51,7 @@ pub mod keys {
     pub const THREAD_PREFIX: &str = "thread.";
     pub const RESPONSE_PREFIX: &str = "response.";
     pub const INTERNAL_RETRY_COUNT_PREFIX: &str = "internal.retry_count.";
+    pub const HUMAN_ANSWER_IMAGES_PREFIX: &str = "fabro.human_answer_images.";
 
     // --- Helper functions for dynamic keys ---
 
