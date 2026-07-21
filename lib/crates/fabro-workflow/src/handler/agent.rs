@@ -1415,4 +1415,13 @@ Some text in between.
             ])
         );
     }
+
+    #[test]
+    fn get_human_answer_images_with_no_images() {
+        let context = test_context();
+        // No human_answer_images key set
+
+        let images = get_human_answer_images(&context, "review");
+        assert_eq!(images, None);
+    }
 }
