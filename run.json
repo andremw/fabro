@@ -1,0 +1,551 @@
+{
+  "title": "Execute the approved implementation plan slice by slice in small batches with tests green, review...",
+  "spec": {
+    "run_id": "01KY1JG5Q9Q27K6P67TTM0G3PK",
+    "settings": {
+      "project": {
+        "name": null,
+        "description": null,
+        "metadata": {}
+      },
+      "workflow": {
+        "name": null,
+        "description": null,
+        "graph": "workflow.fabro",
+        "metadata": {}
+      },
+      "run": {
+        "goal": {
+          "type": "inline",
+          "value": "Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request"
+        },
+        "working_dir": null,
+        "metadata": {},
+        "inputs": {
+          "plan": "docs/plans/2026-07-21-freeform-image-attachments-plan.md"
+        },
+        "model": {
+          "provider": "anthropic",
+          "name": "claude-sonnet-4-6",
+          "fallbacks": [],
+          "controls": {
+            "reasoning_effort": null,
+            "speed": null
+          }
+        },
+        "git": {
+          "author": null
+        },
+        "prepare": {
+          "steps": [],
+          "timeout_ms": 300000
+        },
+        "execution": {
+          "mode": "normal",
+          "approval": "prompt"
+        },
+        "checkpoint": {
+          "exclude_globs": [],
+          "skip_git_hooks": false
+        },
+        "clone": {
+          "enabled": true
+        },
+        "run_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "meta_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "environment": {
+          "id": "fabro-dev-acp",
+          "provider": "docker",
+          "image": {
+            "docker": "fabro-dev-acp:latest",
+            "dockerfile": null
+          },
+          "resources": {
+            "cpu": null,
+            "memory": null,
+            "disk": null
+          },
+          "network": {
+            "mode": "allow_all",
+            "allow": []
+          },
+          "lifecycle": {
+            "preserve": false,
+            "stop_on_terminal": true,
+            "auto_stop": null
+          },
+          "labels": {},
+          "env": {
+            "CLAUDE_CODE_OAUTH_TOKEN": "{{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+          }
+        },
+        "notifications": {},
+        "interviews": {
+          "provider": null,
+          "slack": null
+        },
+        "agent": {
+          "fabro_tools": false,
+          "permissions": null,
+          "mcps": {}
+        },
+        "hooks": [],
+        "scm": {
+          "provider": null,
+          "owner": null,
+          "repository": null,
+          "github": null
+        },
+        "pull_request": {
+          "enabled": true,
+          "draft": true,
+          "auto_merge": false,
+          "merge_strategy": "squash"
+        },
+        "artifacts": {
+          "include": []
+        },
+        "integrations": {
+          "github": {
+            "permissions": {}
+          }
+        }
+      }
+    },
+    "graph": {
+      "name": "BuildShip",
+      "nodes": {
+        "review_quality": {
+          "id": "review_quality",
+          "attrs": {
+            "prompt": {
+              "String": "> Fabro context: the plan path is in prior context (`plan_path`). Review the\n> code this run built: find the run's commits with `git log --oneline` (the\n> conventional commits since the plan's `chore(build): start` commit) and\n> read that diff. Your working copy is discarded after this stage — change\n> nothing. Your final message must be ONLY the JSON verdict below.\n\n# Code Review: Code Quality Critic\n\nYou review the built code for simplicity and maintainability. You are the\nreviewer who asks \"will someone decode this at 3am?\" — find the complexity\nthat will cause pain, not nitpicks a formatter would catch.\n\n## What you check\n\n1. **Simplicity** — is there a materially shorter or more direct way to do\n   what any changed function does? Speculative abstractions, single-use\n   helpers, config for values that never change: flag them (YAGNI).\n2. **Duplication** — logic repeated across the diff, or re-implementing a\n   helper that already exists in the codebase. Read neighboring files to\n   check.\n3. **Pattern adherence** — does the new code match the conventions already\n   established around it (naming, structure, error handling, exports)?\n   Compare with 2-3 existing files in the same area.\n4. **Clarity** — misleading names, functions doing more than their name\n   says, comments explaining what instead of why, dead code left behind.\n5. **Error handling** — swallowed errors, catch-and-continue on paths where\n   data loss is possible, missing handling at trust boundaries.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"review-code-quality\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"simplicity | duplication | consistency | clarity | errors\",\n      \"description\": \"<what's wrong>\",\n      \"severity\": \"blocker | warning\",\n      \"files\": [\"<affected paths>\"],\n      \"suggestion\": \"<the simpler/cleaner alternative>\"\n    }\n  ],\n  \"summary\": \"<2-3 sentences: overall quality and the top concern>\"\n}\n```\n\n## Severity rules\n\n- Swallowed error that can lose data or corrupt state → `blocker`\n- Duplicated business logic (same rule in 2+ places that will drift) → `blocker`\n- Unjustified deviation from established codebase patterns → `warning`\n- Speculative abstraction / single-use indirection → `warning`\n- Naming or dead-code issues → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "label": {
+              "String": "Code Quality Critic"
+            }
+          }
+        },
+        "review_tests": {
+          "id": "review_tests",
+          "attrs": {
+            "prompt": {
+              "String": "> Fabro context: the plan path is in prior context (`plan_path`). Review the\n> code this run built: find the run's commits with `git log --oneline` (the\n> conventional commits since the plan's `chore(build): start` commit) and\n> read that diff. Your working copy is discarded after this stage — change\n> nothing. Your final message must be ONLY the JSON verdict below.\n\n# Code Review: Test Quality Critic\n\nYou review the tests this run wrote. Green is necessary but not sufficient —\nyour job is to judge whether these tests would actually catch the code\nbreaking.\n\n## What you check\n\n1. **Behavioral** — tests assert observable behavior (outputs, state\n   changes, side effects at boundaries), not implementation details\n   (internal calls, private structure, mock interaction counts). A test\n   that would break on a valid refactor is a finding.\n2. **Meaningful assertions** — no tautologies, no assertion-free \"it runs\"\n   tests, no asserting the mock returned what the mock was told to return.\n3. **Determinism** — no reliance on wall-clock time, ordering of\n   unordered collections, network, or shared mutable state between tests.\n4. **Coverage of the contract** — negative cases and edge cases from the\n   plan's scenarios are tested, not just happy paths.\n5. **No weakening** — no tests deleted, skipped, or loosened to get to\n   green; no broad snapshot tests replacing real assertions.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"review-tests\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"behavioral | assertions | determinism | coverage | weakening\",\n      \"description\": \"<what's wrong>\",\n      \"severity\": \"blocker | warning\",\n      \"files\": [\"<affected test paths>\"],\n      \"suggestion\": \"<the stronger test>\"\n    }\n  ],\n  \"summary\": \"<2-3 sentences: would this suite catch a regression?>\"\n}\n```\n\n## Severity rules\n\n- Test weakened/skipped/deleted to reach green → `blocker`\n- Tautological or assertion-free test standing in for a scenario → `blocker`\n- Nondeterministic test → `blocker`\n- Implementation-coupled test that a valid refactor would break → `warning`\n- Missing negative/edge coverage for a planned scenario → `warning` (the\n  spec-compliance critic owns the blocker for wholly untested scenarios)\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "label": {
+              "String": "Test Quality Critic"
+            }
+          }
+        },
+        "exit": {
+          "id": "exit",
+          "attrs": {
+            "label": {
+              "String": "Exit"
+            },
+            "shape": {
+              "String": "Msquare"
+            }
+          }
+        },
+        "prepare": {
+          "id": "prepare",
+          "attrs": {
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "# Locate the Approved Plan\n\nYou are the build orchestrator's first stage. Locate the plan, verify it is\napproved, and set up progress tracking. Do not implement anything.\n\nRequested plan: `docs/plans/2026-07-21-freeform-image-attachments-plan.md`\n\n## Steps\n\n1. If the requested plan is a path, read that file. If it is `auto`, list\n   `plans/*.md` and pick the most recently modified one whose header says\n   `**Status**: approved` (a plan the specs-plan workflow produced and a\n   human approved at its plan gate; `reviewed` does not count).\n2. If the plan has no `## Build Progress` section, append one: a checkbox\n   per slice, with a nested checkbox per step, mirroring `## Slices` —\n   this section on disk is the build's durable state across stages.\n3. Change `**Status**: approved` to `**Status**: in-progress` and commit the\n   plan file (`chore(build): start <slug>`).\n\n## Output\n\nFound and prepared a plan — final message states the plan path, the slice\ncount, and the wave order, ending with exactly this JSON on its own line:\n\n```json\n{\"preferred_next_label\": \"Plan ready\", \"context_updates\": {\"plan_ready\": \"true\", \"plan_path\": \"plans/<slug>.md\"}}\n```\n\nNo approved plan found — say so, list what `plans/` contains and each file's\nstatus, tell the human to run the specs-plan workflow (or approve a draft\nplan) first, and end with:\n\n```json\n{\"preferred_next_label\": \"No approved plan\"}\n```"
+            },
+            "goal_gate": {
+              "Boolean": true
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "label": {
+              "String": "Locate Plan"
+            }
+          }
+        },
+        "unblock": {
+          "id": "unblock",
+          "attrs": {
+            "label": {
+              "String": "Build is blocked — read the last stage message. Type guidance (or a decision) to continue building."
+            },
+            "shape": {
+              "String": "hexagon"
+            }
+          }
+        },
+        "address_findings": {
+          "id": "address_findings",
+          "attrs": {
+            "label": {
+              "String": "Address Findings"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "max_visits": {
+              "Integer": 15
+            },
+            "goal_gate": {
+              "Boolean": true
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "# Address Review Findings\n\nThe plan path is in prior context (`plan_path`).\n\nYou are entered from one of two places:\n\n1. **After the reviewer fan-out** — the merged reviewer verdicts are in prior\n   context (also available as `parallel_results.json`). Each reviewer\n   returned JSON with a `verdict` and issues carrying `severity`.\n2. **From the ship gate** — the human typed a change request\n   (`human.gate.*.answer` in context). Apply it. Reviewer verdicts from the\n   earlier pass still apply.\n\n## Steps\n\n1. Collect every `blocker` issue across reviewers (and any human change\n   request). Fix each one in the code. Warnings are judgment calls: apply\n   the cheap ones, record the rest.\n2. Fixes follow the same discipline as the build: behavior changes get a\n   test, refactors keep tests frozen, and the FULL suite must be green\n   after every fix — paste the final suite output as evidence.\n3. Append (or replace) a `## Ship Review Summary` section in the plan file:\n   reviewer verdicts, blockers fixed, warnings applied or deliberately kept.\n4. Commit everything with conventional messages.\n\n## Output\n\nYour final message: a short summary of what each reviewer found, what you\nchanged, what you deliberately did not change and why, and the final suite\nevidence. A human reads this message at the ship gate to decide whether the\nPR opens — make it decision-ready, not a transcript.\n"
+            }
+          }
+        },
+        "build_slice": {
+          "id": "build_slice",
+          "attrs": {
+            "goal_gate": {
+              "Boolean": true
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "max_visits": {
+              "Integer": 30
+            },
+            "prompt": {
+              "String": "> Fabro context: the plan path is in prior context (`plan_path`, emitted by\n> the Locate Plan stage). You are one iteration of a loop — each visit builds\n> exactly ONE slice, then routes back for the next. If you arrive from the\n> Blocked gate, the human's guidance is in prior context\n> (`human.gate.*.answer`): apply it before anything else.\n\n# Build One Slice\n\nYou are the implementer. Execute the next unfinished slice of the plan —\nexactly one slice per visit. Follow the plan exactly; if the plan is wrong or\ncontradictory, route to Blocked rather than deviating silently.\n\n## Pick the slice\n\nRead the plan's `## Build Progress`. Pick the first unchecked slice whose\n`Depends-on` slices are all checked, respecting the `## Parallelization` wave\norder. If every slice is already checked, skip to **Finishing** below.\n\n## Small-batch cadence (non-negotiable)\n\nWork the slice's steps in order. Every step is one behavior, built as\nIMPLEMENT → TEST → REFACTOR:\n\n1. **IMPLEMENT** exactly one behavior — nothing beyond what the step\n   requires, no cleanup.\n2. **TEST** — write the test for that behavior (from the slice's Gherkin\n   scenarios), immediately after the code. Run the full test suite. Hard\n   gate: all green before moving on. On failure, state a one-line cause\n   hypothesis before correcting — never re-run a failed command unmodified.\n   If two consecutive fix attempts leave the same tests failing with the\n   same errors, stop patching: commit a `wip: dead-end checkpoint` and route\n   to Blocked with the diagnosis.\n3. **REFACTOR** on every green — structure, naming, duplication; never\n   behavior, never tests (a test change means going back to TEST). Re-run\n   the suite; still green. A one-line \"nothing worth changing\" satisfies the\n   phase; skipping the check does not.\n\nProhibited shapes: all the code then all the tests, all the tests then all\nthe code, refactors deferred to the end of the build.\n\nEach step must leave the codebase committable; commit as you go with\nconventional messages.\n\n## After the slice's steps\n\n1. Run the FULL suite once more — the whole suite, not just this slice's\n   tests, and it must be green. A pre-existing failure is still a failure:\n   fix it or route to Blocked, never wave it past as someone else's.\n2. Check the slice and its steps off in `## Build Progress` and commit.\n\n## Routing\n\nEnd your final message with exactly one JSON object on its own line:\n\n- Unchecked slices remain → a one-line slice status report, then\n  `{\"preferred_next_label\": \"Next slice\"}`\n- **Finishing** — every slice checked, full suite green → change\n  `**Status**: in-progress` to `**Status**: implemented`, commit, paste the\n  final suite output as evidence, then\n  `{\"preferred_next_label\": \"Build complete\", \"context_updates\": {\"build_done\": \"true\"}}`\n- Blocked — dead-end failure, contradictory/incomplete plan, or a decision\n  above your authority (spec or architecture change) → describe the blocker,\n  your root-cause diagnosis, and the options a human should choose between,\n  then\n  `{\"preferred_next_label\": \"Blocked\"}`\n"
+            },
+            "label": {
+              "String": "Build Slice"
+            },
+            "backend": {
+              "String": "acp"
+            }
+          }
+        },
+        "ship_gate": {
+          "id": "ship_gate",
+          "attrs": {
+            "label": {
+              "String": "Approve and ship? The PR opens when the run completes. Anything else you type is treated as a change request."
+            },
+            "shape": {
+              "String": "hexagon"
+            }
+          }
+        },
+        "review_spec": {
+          "id": "review_spec",
+          "attrs": {
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "> Fabro context: the plan path is in prior context (`plan_path`). Review the\n> code this run built: find the run's commits with `git log --oneline` (the\n> conventional commits since the plan's `chore(build): start` commit) and\n> read that diff. Your working copy is discarded after this stage — change\n> nothing. Your final message must be ONLY the JSON verdict below.\n\n# Code Review: Spec Compliance Critic\n\nYou verify that what was built is what was planned — no more, no less. You\nare not reviewing style or design; only the contract.\n\n## What you check\n\n1. **Acceptance criteria** — every criterion in the plan's\n   `## Acceptance Criteria` is implemented and covered by at least one\n   passing test. Run the suite if you need proof.\n2. **Scenarios** — each slice's Gherkin scenarios map to real tests:\n   happy path, negative cases, edge cases, error behavior. Name any\n   scenario with no corresponding test.\n3. **Completeness** — every slice checked off in `## Build Progress` is\n   actually present in the diff; no silently skipped steps.\n4. **Scope** — no significant behavior beyond the plan. Unplanned code is a\n   finding, not a bonus.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"review-spec-compliance\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"criteria | scenarios | completeness | scope\",\n      \"description\": \"<what's missing or extra>\",\n      \"severity\": \"blocker | warning\",\n      \"files\": [\"<affected paths>\"],\n      \"suggestion\": \"<what would close the gap>\"\n    }\n  ],\n  \"summary\": \"<2-3 sentences: does the build satisfy the plan's contract?>\"\n}\n```\n\n## Severity rules\n\n- Acceptance criterion unimplemented or untested → `blocker`\n- Scenario with no corresponding test → `blocker`\n- Checked-off slice not actually built → `blocker`\n- Unplanned behavior added → `warning` (blocker if it changes a public contract)\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n"
+            },
+            "label": {
+              "String": "Spec Compliance Critic"
+            }
+          }
+        },
+        "merge_reviews": {
+          "id": "merge_reviews",
+          "attrs": {
+            "label": {
+              "String": "Merge Reviews"
+            },
+            "shape": {
+              "String": "tripleoctagon"
+            }
+          }
+        },
+        "reviews": {
+          "id": "reviews",
+          "attrs": {
+            "max_parallel": {
+              "Integer": 4
+            },
+            "shape": {
+              "String": "component"
+            },
+            "label": {
+              "String": "Dispatch Code Reviewers"
+            }
+          }
+        },
+        "start": {
+          "id": "start",
+          "attrs": {
+            "label": {
+              "String": "Start"
+            },
+            "shape": {
+              "String": "Mdiamond"
+            }
+          }
+        },
+        "review_security": {
+          "id": "review_security",
+          "attrs": {
+            "prompt": {
+              "String": "> Fabro context: the plan path is in prior context (`plan_path`). Review the\n> code this run built: find the run's commits with `git log --oneline` (the\n> conventional commits since the plan's `chore(build): start` commit) and\n> read that diff. Your working copy is discarded after this stage — change\n> nothing. Your final message must be ONLY the JSON verdict below.\n\n# Code Review: Security Critic\n\nYou review the built code for vulnerabilities. Scope is the changed code and\nhow it composes with what it calls — not a whole-codebase audit. Report only\nreal, reachable issues in the diff; do not pad the review with theoretical\nfindings.\n\n## What you check\n\n1. **Injection** — user-controlled input reaching SQL/shell/eval/template\n   rendering or file paths (traversal) without validation or parameterization.\n2. **Secrets** — credentials, tokens, or keys hardcoded in code, tests,\n   fixtures, or logs.\n3. **AuthZ/AuthN** — new endpoints or operations missing the authorization\n   checks equivalent code in this codebase performs; privilege checks done\n   client-side only.\n4. **Unsafe handling** — unvalidated deserialization, SSRF-able URL fetches,\n   permissive CORS, disabled TLS verification, weak crypto.\n5. **Data exposure** — sensitive data newly written to logs, error messages,\n   or responses.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"review-security\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"injection | secrets | authz | unsafe-handling | exposure\",\n      \"description\": \"<the vulnerability and how it is reached>\",\n      \"severity\": \"blocker | warning\",\n      \"files\": [\"<affected paths>\"],\n      \"suggestion\": \"<concrete fix>\"\n    }\n  ],\n  \"summary\": \"<2-3 sentences: security posture of this diff>\"\n}\n```\n\n## Severity rules\n\n- Reachable injection, hardcoded secret, or missing authz check → `blocker`\n- Sensitive data in logs/errors → `blocker`\n- Hardening gap with no demonstrated reachable path → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- Otherwise → `approve`\n"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "label": {
+              "String": "Security Critic"
+            },
+            "backend": {
+              "String": "acp"
+            }
+          }
+        }
+      },
+      "edges": [
+        {
+          "from": "start",
+          "to": "prepare",
+          "attrs": {}
+        },
+        {
+          "from": "prepare",
+          "to": "build_slice",
+          "attrs": {
+            "label": {
+              "String": "Plan ready"
+            },
+            "condition": {
+              "String": "plan_ready=true"
+            }
+          }
+        },
+        {
+          "from": "prepare",
+          "to": "exit",
+          "attrs": {
+            "label": {
+              "String": "No approved plan"
+            }
+          }
+        },
+        {
+          "from": "build_slice",
+          "to": "reviews",
+          "attrs": {
+            "condition": {
+              "String": "build_done=true"
+            },
+            "label": {
+              "String": "Build complete"
+            }
+          }
+        },
+        {
+          "from": "build_slice",
+          "to": "unblock",
+          "attrs": {
+            "label": {
+              "String": "Blocked"
+            }
+          }
+        },
+        {
+          "from": "build_slice",
+          "to": "build_slice",
+          "attrs": {
+            "label": {
+              "String": "Next slice"
+            }
+          }
+        },
+        {
+          "from": "unblock",
+          "to": "build_slice",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        },
+        {
+          "from": "reviews",
+          "to": "review_spec",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_quality",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_security",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_tests",
+          "attrs": {}
+        },
+        {
+          "from": "review_spec",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_quality",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_security",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_tests",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "merge_reviews",
+          "to": "address_findings",
+          "attrs": {}
+        },
+        {
+          "from": "address_findings",
+          "to": "ship_gate",
+          "attrs": {
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "address_findings",
+          "to": "exit",
+          "attrs": {}
+        },
+        {
+          "from": "ship_gate",
+          "to": "exit",
+          "attrs": {
+            "label": {
+              "String": "[A] Approve & ship"
+            }
+          }
+        },
+        {
+          "from": "ship_gate",
+          "to": "address_findings",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        }
+      ],
+      "attrs": {
+        "goal": {
+          "String": "Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request"
+        },
+        "rankdir": {
+          "String": "LR"
+        }
+      }
+    },
+    "graph_source": "digraph BuildShip {\n    graph [\n        goal=\"Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request\"\n    ]\n    rankdir=LR\n\n    // All agent nodes run Claude Code over ACP — auth comes from\n    // CLAUDE_CODE_OAUTH_TOKEN in the environment env, billed to the\n    // Claude subscription. No API provider credentials are used.\n    start [shape=Mdiamond, label=\"Start\"]\n    exit  [shape=Msquare, label=\"Exit\"]\n\n    // ---- Build phase (from dev-team /build) ----\n    prepare     [label=\"Locate Plan\", prompt=\"@prompts/prepare.md\", goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    // One slice per visit; the loop-back edge is how the whole plan gets built.\n    // 30 visits = slices + retries headroom; a genuinely stuck build routes to\n    // the Blocked gate instead of burning visits.\n    build_slice [label=\"Build Slice\", prompt=\"@prompts/build-slice.md\", max_visits=30, goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    unblock     [shape=hexagon, label=\"Build is blocked — read the last stage message. Type guidance (or a decision) to continue building.\"]\n\n    // ---- Ship phase (from dev-team /ship: review + PR) ----\n    // The PR itself is native: [run.pull_request] in workflow.toml opens it as a\n    // draft (no auto-merge) when the run completes — after ship_gate approval.\n    reviews         [shape=component, label=\"Dispatch Code Reviewers\", max_parallel=4]\n    review_spec     [label=\"Spec Compliance Critic\", prompt=\"@prompts/review-spec-compliance.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_quality  [label=\"Code Quality Critic\",    prompt=\"@prompts/review-code-quality.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_security [label=\"Security Critic\",        prompt=\"@prompts/review-security.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_tests    [label=\"Test Quality Critic\",    prompt=\"@prompts/review-tests.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    merge_reviews    [shape=tripleoctagon, label=\"Merge Reviews\"]\n    // Human-gated loop: every visit is a deliberate human change request, so\n    // the limit only guards against gross runaway, not normal iteration.\n    address_findings [label=\"Address Findings\", prompt=\"@prompts/address-findings.md\", max_visits=15, goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    ship_gate        [shape=hexagon, label=\"Approve and ship? The PR opens when the run completes. Anything else you type is treated as a change request.\"]\n\n    start -> prepare\n    prepare -> build_slice [label=\"Plan ready\", condition=\"plan_ready=true\"]\n    prepare -> exit        [label=\"No approved plan\"]\n\n    build_slice -> reviews     [label=\"Build complete\", condition=\"build_done=true\"]\n    build_slice -> unblock     [label=\"Blocked\"]\n    build_slice -> build_slice [label=\"Next slice\"]\n    unblock -> build_slice [freeform=true]\n\n    reviews -> review_spec\n    reviews -> review_quality\n    reviews -> review_security\n    reviews -> review_tests\n    review_spec     -> merge_reviews\n    review_quality  -> merge_reviews\n    review_security -> merge_reviews\n    review_tests    -> merge_reviews\n    merge_reviews -> address_findings\n    address_findings -> ship_gate [condition=\"outcome=succeeded\"]\n    address_findings -> exit\n    ship_gate -> exit             [label=\"[A] Approve & ship\"]\n    ship_gate -> address_findings [freeform=true]\n}\n",
+    "workflow_slug": "build-ship",
+    "source_directory": "/Users/andre/Developer/fabro-runs",
+    "provenance": {
+      "server": {
+        "version": "0.287.0-nightly.0"
+      },
+      "client": {
+        "user_agent": "fabro-cli/0.287.0-nightly.0",
+        "name": "fabro-cli",
+        "version": "0.287.0-nightly.0"
+      },
+      "subject": {
+        "kind": "user",
+        "identity": {
+          "issuer": "fabro:dev",
+          "subject": "dev"
+        },
+        "login": "dev",
+        "auth_method": "dev_token"
+      }
+    },
+    "manifest_blob": "58e9d6fbaf04cb772fbed6b122e4fc90eec03b01f30942575c85439a068b2bc1",
+    "definition_blob": "aae473ebfb2b082b4c80db7b0c0db692c3d303771c9686aa6958020a76ec6c7a",
+    "git": {
+      "origin_url": "https://github.com/andremw/fabro",
+      "branch": "plan/freeform-image-attachments",
+      "sha": "ee7532b433e5171405e0e1033b0df5847f4cb9ef",
+      "dirty": "clean",
+      "push_outcome": {
+        "type": "not_attempted"
+      }
+    }
+  },
+  "web_url": "http://127.0.0.1:32276/runs/01KY1JG5Q9Q27K6P67TTM0G3PK",
+  "start": null,
+  "status": {
+    "kind": "starting"
+  },
+  "status_updated_at": "2026-07-21T05:31:10.560314Z",
+  "last_event_at": "2026-07-21T05:31:15.394575Z",
+  "pending_control": null,
+  "checkpoints": [],
+  "conclusion": null,
+  "sandbox": {
+    "kind": "ready",
+    "plan": {
+      "provider": "docker",
+      "image": "fabro-dev-acp:latest"
+    },
+    "instance": {
+      "provider": "docker",
+      "image": "fabro-dev-acp:latest",
+      "runtime": {
+        "id": "f52a24c3924468da2c5ac67e8aa6eb34f852f061161d18ea2016dfdeb269a5c8",
+        "working_directory": "/workspace/fabro",
+        "repo_cloned": true,
+        "clone_origin_url": "https://github.com/andremw/fabro",
+        "clone_branch": "plan/freeform-image-attachments",
+        "workspace_root": "/workspace",
+        "repos_root": "/repos",
+        "primary_repo_path": "/repos/andremw/fabro",
+        "primary_repo_link": "/workspace/fabro"
+      }
+    }
+  },
+  "pull_request": null,
+  "superseded_by": null,
+  "pending_interviews": {},
+  "stages": {}
+}

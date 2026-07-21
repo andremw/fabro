@@ -1,0 +1,57 @@
+digraph BuildShip {
+    graph [
+        goal="Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request"
+    ]
+    rankdir=LR
+
+    // All agent nodes run Claude Code over ACP — auth comes from
+    // CLAUDE_CODE_OAUTH_TOKEN in the environment env, billed to the
+    // Claude subscription. No API provider credentials are used.
+    start [shape=Mdiamond, label="Start"]
+    exit  [shape=Msquare, label="Exit"]
+
+    // ---- Build phase (from dev-team /build) ----
+    prepare     [label="Locate Plan", prompt="@prompts/prepare.md", goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    // One slice per visit; the loop-back edge is how the whole plan gets built.
+    // 30 visits = slices + retries headroom; a genuinely stuck build routes to
+    // the Blocked gate instead of burning visits.
+    build_slice [label="Build Slice", prompt="@prompts/build-slice.md", max_visits=30, goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    unblock     [shape=hexagon, label="Build is blocked — read the last stage message. Type guidance (or a decision) to continue building."]
+
+    // ---- Ship phase (from dev-team /ship: review + PR) ----
+    // The PR itself is native: [run.pull_request] in workflow.toml opens it as a
+    // draft (no auto-merge) when the run completes — after ship_gate approval.
+    reviews         [shape=component, label="Dispatch Code Reviewers", max_parallel=4]
+    review_spec     [label="Spec Compliance Critic", prompt="@prompts/review-spec-compliance.md", backend="acp", acp.command="claude-code-acp"]
+    review_quality  [label="Code Quality Critic",    prompt="@prompts/review-code-quality.md", backend="acp", acp.command="claude-code-acp"]
+    review_security [label="Security Critic",        prompt="@prompts/review-security.md", backend="acp", acp.command="claude-code-acp"]
+    review_tests    [label="Test Quality Critic",    prompt="@prompts/review-tests.md", backend="acp", acp.command="claude-code-acp"]
+    merge_reviews    [shape=tripleoctagon, label="Merge Reviews"]
+    // Human-gated loop: every visit is a deliberate human change request, so
+    // the limit only guards against gross runaway, not normal iteration.
+    address_findings [label="Address Findings", prompt="@prompts/address-findings.md", max_visits=15, goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    ship_gate        [shape=hexagon, label="Approve and ship? The PR opens when the run completes. Anything else you type is treated as a change request."]
+
+    start -> prepare
+    prepare -> build_slice [label="Plan ready", condition="plan_ready=true"]
+    prepare -> exit        [label="No approved plan"]
+
+    build_slice -> reviews     [label="Build complete", condition="build_done=true"]
+    build_slice -> unblock     [label="Blocked"]
+    build_slice -> build_slice [label="Next slice"]
+    unblock -> build_slice [freeform=true]
+
+    reviews -> review_spec
+    reviews -> review_quality
+    reviews -> review_security
+    reviews -> review_tests
+    review_spec     -> merge_reviews
+    review_quality  -> merge_reviews
+    review_security -> merge_reviews
+    review_tests    -> merge_reviews
+    merge_reviews -> address_findings
+    address_findings -> ship_gate [condition="outcome=succeeded"]
+    address_findings -> exit
+    ship_gate -> exit             [label="[A] Approve & ship"]
+    ship_gate -> address_findings [freeform=true]
+}
