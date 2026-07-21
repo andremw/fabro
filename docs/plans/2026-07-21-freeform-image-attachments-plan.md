@@ -1,6 +1,6 @@
 # Plan: Freeform Response Image Attachments
 
-**Status**: approved
+**Status**: in-progress
 **Spec**: docs/specs/freeform-image-attachments.md
 
 ## Goal
@@ -874,3 +874,124 @@ The following warnings from risk analysis were documented but not acted upon (ac
 **MIME type detection** (identified in Risk #7): Added explicit requirement to Slice 3, Step 6 to perform server-side MIME type detection from decoded bytes using a library like `infer` or `file-format`, and reject images where the detected type does not match the declared `media_type`. This prevents client-provided MIME spoofing.
 
 All blockers resolved. Plan is ready for implementation.
+
+## Build Progress
+
+### Slice 1: OpenAPI schema and type generation
+- [ ] Add SubmitAnswerTextWithImagesRequest schema to OpenAPI spec
+- [ ] Add text_with_images to discriminator mapping
+- [ ] Test OpenAPI spec validity
+- [ ] Generate Rust types
+- [ ] Generate TypeScript client
+- [ ] Refactor
+
+### Slice 2: fabro-interview domain types for image attachments
+- [ ] Define ImageAttachment struct
+- [ ] Test ImageAttachment serialization
+- [ ] Add TextWithImages variant to AnswerValue
+- [ ] Test TextWithImages variant in pattern matching
+- [ ] Implement Answer::text_with_images constructor
+- [ ] Test text_with_images constructor
+- [ ] Test TextWithImages serialization round-trip
+- [ ] Refactor
+
+### Slice 3: Server-side answer request mapping and validation
+- [ ] Add base64 decoding helper
+- [ ] Test base64 decoding helper with valid input
+- [ ] Test base64 decoding helper with invalid input
+- [ ] Add MIME type validation helper
+- [ ] Test MIME type validation
+- [ ] Extend answer_from_request with TextWithImagesRequest arm
+- [ ] Test answer_from_request happy path
+- [ ] Test answer_from_request rejects empty text
+- [ ] Test answer_from_request rejects empty images
+- [ ] Test answer_from_request rejects invalid base64
+- [ ] Test answer_from_request rejects oversized image
+- [ ] Test answer_from_request rejects unsupported MIME
+- [ ] Test answer_from_request rejects MIME type mismatch
+- [ ] Test Axum accepts large payloads
+- [ ] Extend validate_answer_for_question with TextWithImages
+- [ ] Test validate_answer_for_question accepts TextWithImages for Freeform
+- [ ] Test validate_answer_for_question accepts TextWithImages for allow_freeform MultipleChoice
+- [ ] Test validate_answer_for_question rejects TextWithImages for YesNo
+- [ ] Refactor
+
+### Slice 4: Image persistence in run artifact directory
+- [ ] Add image file extension mapping helper
+- [ ] Test extension mapping
+- [ ] Add image storage helper
+- [ ] Test image storage with single image
+- [ ] Test image storage with multiple images
+- [ ] Extend human handler execute method to store images
+- [ ] Add context key for image paths
+- [ ] Test context key is added for TextWithImages answer
+- [ ] Test no context key for Text answer
+- [ ] Test context key is stage-specific
+- [ ] Refactor
+
+### Slice 5: Agent stage automatic image propagation
+- [ ] Add context key constant
+- [ ] Add helper to extract human images from context
+- [ ] Test get_human_answer_images with images in context
+- [ ] Test get_human_answer_images with no images
+- [ ] Identify prior human stage
+- [ ] Test prior_human_stage_id
+- [ ] Extend agent handler to prepend images to initial message
+- [ ] Test agent message construction with images
+- [ ] Test agent message construction with multiple images
+- [ ] Test agent message construction without images
+- [ ] Verify fabro-llm attachment resolution
+- [ ] Test non-agent stage can access context variable
+- [ ] Refactor
+
+### Slice 6: Frontend UI for image attachment (file picker)
+- [ ] Add state for attached images
+- [ ] Add hidden file input element
+- [ ] Add image attachment button
+- [ ] Test button renders
+- [ ] Test button opens file picker
+- [ ] Implement handleFileSelect
+- [ ] Test handleFileSelect with valid images
+- [ ] Test handleFileSelect rejects oversized image
+- [ ] Test handleFileSelect rejects non-image
+- [ ] Test handleFileSelect enforces 4-image limit
+- [ ] Add thumbnail preview component
+- [ ] Render thumbnails
+- [ ] Implement handleRemoveImage
+- [ ] Test thumbnail removal
+- [ ] Update submit button disabled logic
+- [ ] Test submit button enabled with text and images
+- [ ] Test submit button disabled with only images
+- [ ] Refactor
+
+### Slice 7: Frontend clipboard paste for images
+- [ ] Add onPaste handler to textarea
+- [ ] Implement handlePaste
+- [ ] Test handlePaste with image clipboard item
+- [ ] Test handlePaste with text clipboard item
+- [ ] Test handlePaste enforces 4-image limit
+- [ ] Test handlePaste rejects oversized image
+- [ ] Test handlePaste with multiple images
+- [ ] Refactor
+
+### Slice 8: Frontend image encoding and submission
+- [ ] Add base64 encoding helper
+- [ ] Test base64 encoding helper
+- [ ] Update handleSubmit to encode images
+- [ ] Test handleSubmit with images
+- [ ] Test handleSubmit without images
+- [ ] Add error state for submission errors
+- [ ] Test submission error display
+- [ ] Clear form and images on success
+- [ ] Test form is cleared after success
+- [ ] Refactor
+
+### Slice 9: End-to-end integration test
+- [ ] Create test workflow with human -> agent stages
+- [ ] Test server accepts text_with_images answer
+- [ ] Test image is persisted to artifact directory
+- [ ] Test workflow context contains image paths
+- [ ] Test agent stage receives image in initial message
+- [ ] Test fabro-llm resolves image to inline data
+- [ ] Test text-only answer workflow
+- [ ] Refactor
