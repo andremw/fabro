@@ -1,6 +1,6 @@
 # Plan: Agent Session Image Input API
 
-**Status**: approved
+**Status**: in-progress
 **Spec**: docs/superpowers/specs/2026-07-21-agent-session-image-input.md
 
 ## Goal
@@ -568,3 +568,84 @@ The plan's existing "Risks & Open Questions" section already documents the key c
 - SessionMessage serialization schema impact (backend-only change, no API modification needed)
 
 These observations remain unchanged as they represent known trade-offs consistent with the codebase's existing design principles.
+
+## Build Progress
+
+### Wave 0
+- [ ] Slice 1: AgentMessage::User content type change
+  - [ ] Change Message::User content field type
+  - [ ] Test Message::User with single text part compiles
+  - [ ] Test Message::User with image and text parts
+  - [ ] Update History::convert_to_messages User arm
+  - [ ] Test history conversion with multi-part User
+  - [ ] Update all internal Message::User construction sites
+  - [ ] Test internal constructions compile
+  - [ ] Test SessionMessage round-trip
+  - [ ] Refactor
+
+### Wave 1
+- [ ] Slice 2: Session::process_message API
+  - [ ] Add Session::process_message method
+  - [ ] Implement process_message body
+  - [ ] Test process_message with single text part
+  - [ ] Test process_message with multi-part content
+  - [ ] Add Session::process_text_input convenience method
+  - [ ] Test process_text_input delegates correctly
+  - [ ] Remove process_input and process_input_with_runtime
+  - [ ] Test removal by attempting build
+  - [ ] Refactor
+- [ ] Slice 3: Update agent crate test call sites
+  - [ ] Update parity_matrix.rs call sites
+  - [ ] Test parity_matrix compiles and passes
+  - [ ] Update compaction.rs call sites
+  - [ ] Test compaction compiles and passes
+  - [ ] Update subagent.rs call site
+  - [ ] Test subagent compiles
+  - [ ] Update apply_patch.rs call site
+  - [ ] Test apply_patch compiles
+  - [ ] Update cli.rs call site
+  - [ ] Test CLI compiles
+  - [ ] Run full fabro-agent test suite
+  - [ ] Refactor
+- [ ] Slice 4: CodergenRunRequest and backend updates
+  - [ ] Change CodergenRunRequest.prompt to initial_content
+  - [ ] Test CodergenRunRequest compiles
+  - [ ] Update AgentApiBackend::run to use initial_content
+  - [ ] Test AgentApiBackend compiles
+  - [ ] Update AcpBackend::run to use initial_content
+  - [ ] Test AcpBackend compiles
+  - [ ] Update PromptHandler to extract text from initial_content
+  - [ ] Test PromptHandler compiles
+  - [ ] Run fabro-workflow tests
+  - [ ] Refactor
+
+### Wave 2
+- [ ] Slice 5: Agent handler image propagation
+  - [ ] Add HUMAN_ANSWER_IMAGES_PREFIX constant
+  - [ ] Add extract_human_images helper
+  - [ ] Test extract_human_images with images in context
+  - [ ] Test extract_human_images returns None when key absent
+  - [ ] Identify prior stage from context
+  - [ ] Construct initial_content with images
+  - [ ] Test initial_content construction with images
+  - [ ] Test initial_content construction without images
+  - [ ] Update CodergenRunRequest construction call site
+  - [ ] Test fabro-llm attachment resolution
+  - [ ] Run full fabro-workflow tests
+  - [ ] Refactor
+- [ ] Slice 6: Server handler and external call sites
+  - [ ] Update server sessions handler call site
+  - [ ] Test server compiles
+  - [ ] Check fabro-store for Message::User construction
+  - [ ] Test fabro-store compiles
+  - [ ] Run workspace build
+  - [ ] Run workspace tests
+  - [ ] Refactor
+
+### Wave 3
+- [ ] Slice 7: Documentation and plan completion
+  - [ ] Check SDK documentation for Session examples
+  - [ ] Check fabro-agent README for Session examples
+  - [ ] Verify acceptance criteria
+  - [ ] Update plan status
+  - [ ] Refactor
