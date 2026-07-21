@@ -1,8 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use fabro_llm::types::ContentPart;
-
 use crate::history::History;
 use crate::types::Message;
 
