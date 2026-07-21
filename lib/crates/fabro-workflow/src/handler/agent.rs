@@ -78,6 +78,17 @@ pub fn extract_text_from_content(content: &[ContentPart]) -> String {
         .join("")
 }
 
+/// Extract image paths from context for a given stage ID.
+///
+/// Returns `Some(vec)` if the context contains a `fabro.human_answer_images.<stage_id>` key
+/// with a JSON array of paths, otherwise `None`.
+fn extract_human_images(context: &Context, stage_id: &str) -> Option<Vec<String>> {
+    let key = format!("{}{}", keys::HUMAN_ANSWER_IMAGES_PREFIX, stage_id);
+    context
+        .get(&key)
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+}
+
 /// Emit the canonical `Event::Prompt` for a stage prompt and return the
 /// resolved [`StageScope`] so the caller can keep building events scoped to
 /// the same stage.
