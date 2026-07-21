@@ -417,6 +417,21 @@ impl Handler for AgentHandler {
     }
 }
 
+/// Extract image file paths from workflow context for a specific stage.
+///
+/// Looks for the context key `fabro.human_answer_images.{stage_id}` which
+/// contains a JSON array of absolute file paths to images attached to the
+/// human stage's answer.
+///
+/// Returns `Some(Vec<String>)` if the key exists and contains valid paths,
+/// otherwise `None`.
+fn get_human_answer_images(context: &Context, stage_id: &str) -> Option<Vec<String>> {
+    let key = format!("{}{}", keys::HUMAN_ANSWER_IMAGES_PREFIX, stage_id);
+    context
+        .get(&key)
+        .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok())
+}
+
 #[cfg(test)]
 #[expect(
     clippy::disallowed_methods,
