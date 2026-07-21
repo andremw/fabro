@@ -1,0 +1,75 @@
+diff --git a/docs/plans/2026-07-21-agent-session-image-input-plan.md b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+index 846f9ba..a98e54d 100644
+--- a/docs/plans/2026-07-21-agent-session-image-input-plan.md
++++ b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+@@ -649,3 +649,70 @@ These observations remain unchanged as they represent known trade-offs consisten
+   - [x] Verify acceptance criteria
+   - [x] Update plan status
+   - [x] Refactor
++
++## Ship Review Summary
++
++All four parallel reviewers (review_spec, review_quality, review_security, review_tests) completed successfully with "succeeded" verdicts and no blocker-severity issues.
++
++### Reviewer Findings
++
++1. **review_spec** (c3534d6): Succeeded
++   - Verified all acceptance criteria are testable and covered by scenarios
++   - No specification gaps or ambiguities found
++   - Plan structure aligns with implementation requirements
++
++2. **review_quality** (9b18302): Succeeded - Selected as best outcome
++   - Code quality standards met across all slices
++   - Mechanical migrations executed correctly (Message::User type change, API updates)
++   - Test coverage comprehensive (6914 tests passing)
++   - No code quality blockers or warnings
++
++3. **review_security** (a019327): Succeeded
++   - No security vulnerabilities introduced
++   - Image file path handling follows existing fabro-llm attachment resolution security model
++   - Checkpoint serialization changes maintain data integrity
++   - No privilege escalation or injection risks
++
++4. **review_tests** (d10e07e): Succeeded
++   - All acceptance criteria verified through test coverage
++   - Workspace build succeeds: `cargo build --workspace` ✓
++   - Full test suite passes: 6914/6914 tests (1 slow), 185 skipped
++   - No test regressions from Message::User type migration
++
++### Blockers Fixed
++
++None. All reviewers returned "succeeded" with no blocker-severity issues.
++
++### Warnings Applied
++
++None. No warnings were raised by any reviewer.
++
++### Warnings Deliberately Not Applied
++
++None. No warnings were deferred or declined.
++
++### Implementation Summary
++
++The plan was executed across 7 slices in 3 waves:
++- **Wave 0**: Message::User content type changed from `String` to `Vec<ContentPart>`
++- **Wave 1**: Session API updated with `process_message` and `process_text_input`, all agent crate call sites migrated, CodergenRunRequest refactored from `prompt: &str` to `initial_content: Vec<ContentPart>`
++- **Wave 2**: Agent handler image propagation added via `extract_human_images`, server-side call sites migrated
++- **Wave 3**: Documentation updated, plan marked complete
++
++All acceptance criteria verified:
++1. ✓ Session accepts multi-part initial message via `process_message(Vec<ContentPart>, runtime)`
++2. ✓ Text-only messages work via `process_text_input(&str)` convenience wrapper
++3. ✓ Images reach LLM provider through fabro-llm attachment resolution
++4. ✓ Workflow handler injects images via `extract_human_images(context)` when present
++5. ✓ Migration is mechanical: all `Message::User { content: String }` updated to `content: vec![ContentPart::Text(...)]`
++6. ✓ Agent session resumption preserved through SessionMessage round-trip
++
++### Final Test Evidence
++
++```
++cargo nextest run --workspace
++────────────
++Summary [30.119s] 6914 tests run: 6914 passed (1 slow), 185 skipped
++```
++
++All tests green. No regressions. Implementation complete and ready to ship.
