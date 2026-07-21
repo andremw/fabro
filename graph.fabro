@@ -1,0 +1,58 @@
+digraph AddressPr {
+    graph [
+        goal="Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+        loop_restart_signature_limit=1000
+    ]
+    rankdir=LR
+
+    start [shape=Mdiamond, label="Start"]
+    exit  [shape=Msquare, label="Exit"]
+
+    // Exit 0 = feedback to address (or PR reached a terminal state — the agent
+    // reads the verdict line and routes Done). Exit 1 = nothing new, keep waiting.
+    // Idle polls are exit-1 "failures", hence the raised signature limit above.
+    // The sandbox sits on fabro's run branch (with checkpoint commits), so the PR
+    // is discovered from the FIRST poll's HEAD sha (still the launch-branch tip)
+    // and cached in .fabro-pr-watch — checkpoints carry that file across resumes.
+    // "New" = unresolved threads, or comments/reviews newer than the REMOTE head
+    // commit (local tips are checkpoint noise).
+    check [shape=parallelogram, retry_policy="none", max_visits=150, script="set -u
+if [ -f .fabro-pr-watch ]; then
+  read repo pr head < .fabro-pr-watch
+else
+  sha=$(git rev-parse HEAD)
+  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+  parent=$(gh api repos/$origin --jq '.parent.full_name // empty')
+  repo=''; pr=''; head=''
+  for r in $parent $origin; do
+    line=$(gh api repos/$r/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|first|select(.)|[(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)
+    if [ -n \"$line\" ]; then repo=$r; pr=${line%% *}; head=${line#* }; break; fi
+  done
+  if [ -z \"$pr\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi
+  echo \"$repo $pr $head\" > .fabro-pr-watch
+fi
+state=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')
+if [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi
+if [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi
+own=${repo%%/*}; nam=${repo##*/}
+q='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'
+unresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')
+headsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)
+export TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)
+newc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')
+newrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')
+echo \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"
+if [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi
+exit 1"]
+
+    pause   [shape=insulator, duration="5m"]
+    address [label="Address Feedback", prompt="@prompts/address.md", max_visits=40, backend="acp", acp.command="claude-code-acp"]
+
+    start -> check
+    check -> address [condition="outcome=succeeded", label="Feedback found"]
+    check -> pause   [label="Nothing new"]
+    pause -> check
+    address -> check [condition="!outcome=succeeded", weight=10]
+    address -> exit  [label="Done"]
+    address -> check [label="Keep watching"]
+}

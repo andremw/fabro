@@ -1,0 +1,337 @@
+{
+  "title": "Watch the open pull request for the checked-out branch; when new review feedback arrives, impleme...",
+  "spec": {
+    "run_id": "01KY1WQMVYTJ4W07X7TG5A49PF",
+    "settings": {
+      "project": {
+        "name": null,
+        "description": null,
+        "metadata": {}
+      },
+      "workflow": {
+        "name": null,
+        "description": null,
+        "graph": "workflow.fabro",
+        "metadata": {}
+      },
+      "run": {
+        "goal": {
+          "type": "inline",
+          "value": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes"
+        },
+        "working_dir": null,
+        "metadata": {},
+        "inputs": {},
+        "model": {
+          "provider": "anthropic",
+          "name": "claude-sonnet-4-6",
+          "fallbacks": [],
+          "controls": {
+            "reasoning_effort": null,
+            "speed": null
+          }
+        },
+        "git": {
+          "author": null
+        },
+        "prepare": {
+          "steps": [],
+          "timeout_ms": 300000
+        },
+        "execution": {
+          "mode": "normal",
+          "approval": "prompt"
+        },
+        "checkpoint": {
+          "exclude_globs": [],
+          "skip_git_hooks": false
+        },
+        "clone": {
+          "enabled": true
+        },
+        "run_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "meta_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "environment": {
+          "id": "address-pr-acp",
+          "provider": "docker",
+          "image": {
+            "docker": "fabro-dev-acp:latest",
+            "dockerfile": null
+          },
+          "resources": {
+            "cpu": null,
+            "memory": null,
+            "disk": null
+          },
+          "network": {
+            "mode": "allow_all",
+            "allow": []
+          },
+          "lifecycle": {
+            "preserve": false,
+            "stop_on_terminal": true,
+            "auto_stop": null
+          },
+          "labels": {},
+          "env": {
+            "GH_TOKEN": "{{ secrets.GH_TOKEN }}",
+            "CLAUDE_CODE_OAUTH_TOKEN": "{{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+          }
+        },
+        "notifications": {},
+        "interviews": {
+          "provider": null,
+          "slack": null
+        },
+        "agent": {
+          "fabro_tools": false,
+          "permissions": null,
+          "mcps": {}
+        },
+        "hooks": [],
+        "scm": {
+          "provider": null,
+          "owner": null,
+          "repository": null,
+          "github": null
+        },
+        "pull_request": null,
+        "artifacts": {
+          "include": []
+        },
+        "integrations": {
+          "github": {
+            "permissions": {}
+          }
+        }
+      }
+    },
+    "graph": {
+      "name": "AddressPr",
+      "nodes": {
+        "start": {
+          "id": "start",
+          "attrs": {
+            "label": {
+              "String": "Start"
+            },
+            "shape": {
+              "String": "Mdiamond"
+            }
+          }
+        },
+        "check": {
+          "id": "check",
+          "attrs": {
+            "shape": {
+              "String": "parallelogram"
+            },
+            "retry_policy": {
+              "String": "none"
+            },
+            "max_visits": {
+              "Integer": 150
+            },
+            "script": {
+              "String": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  parent=$(gh api repos/$origin --jq '.parent.full_name // empty')\n  repo=''; pr=''; head=''\n  for r in $parent $origin; do\n    line=$(gh api repos/$r/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|first|select(.)|[(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n    if [ -n \"$line\" ]; then repo=$r; pr=${line%% *}; head=${line#* }; break; fi\n  done\n  if [ -z \"$pr\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1"
+            }
+          }
+        },
+        "exit": {
+          "id": "exit",
+          "attrs": {
+            "label": {
+              "String": "Exit"
+            },
+            "shape": {
+              "String": "Msquare"
+            }
+          }
+        },
+        "pause": {
+          "id": "pause",
+          "attrs": {
+            "shape": {
+              "String": "insulator"
+            },
+            "duration": {
+              "Duration": {
+                "secs": 300,
+                "nanos": 0
+              }
+            }
+          }
+        },
+        "address": {
+          "id": "address",
+          "attrs": {
+            "label": {
+              "String": "Address Feedback"
+            },
+            "prompt": {
+              "String": "# Address PR feedback\n\nThe `check` stage output (in your preamble) names the PR, its head branch, and ends with a\n`VERDICT:` line.\n\n**If the verdict says the PR is merged, closed, or left draft**: do nothing.\nReply with only this JSON: `{\"preferred_next_label\": \"Done\"}`\n\n**Otherwise**, address the feedback. IMPORTANT: the local checkout is fabro's run branch and\ncontains fabro checkpoint commits — never push it to the PR. Work on a clean branch instead:\n\n1. `git fetch origin <head-branch> && git checkout -B pr-work FETCH_HEAD`\n2. Read ALL THREE comment sources — the top-level view alone silently misses line comments:\n   - `gh pr view <n> --repo <repo> --comments` (top-level comments)\n   - `gh api repos/<repo>/pulls/<n>/comments` (line-level review comments)\n   - `gh api repos/<repo>/pulls/<n>/reviews` (review summaries — including requests on APPROVED reviews)\n3. For each unresolved thread or comment newer than the remote head commit: implement what it\n   asks. Run the checks the change touches (`cd apps/fabro-web && bun test && bun run typecheck`\n   for web code; `cargo test -p <crate>` for Rust). Skip nothing silently — if you disagree\n   with a comment, say so in the reply instead of implementing it.\n4. Commit with a message referencing the feedback. Push: `gh auth setup-git` once, then\n   `git push origin pr-work:<head-branch>`.\n5. Reply to every thread/comment you acted on, prefixed `[fabro]`, saying what you did (one or\n   two sentences). Resolve each thread you addressed:\n   `gh api graphql -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{id}}}' -f t=<thread-id>`\n   (thread ids come from the reviewThreads GraphQL query). Do NOT post new top-level comments\n   except replies; always prefix your comments `[fabro]` — the watcher filters on it.\n6. Return to the run branch: `git checkout -`\n\nWhen done, reply with only this JSON: `{\"preferred_next_label\": \"Keep watching\"}`\n"
+            },
+            "max_visits": {
+              "Integer": 40
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "backend": {
+              "String": "acp"
+            }
+          }
+        }
+      },
+      "edges": [
+        {
+          "from": "start",
+          "to": "check",
+          "attrs": {}
+        },
+        {
+          "from": "check",
+          "to": "address",
+          "attrs": {
+            "label": {
+              "String": "Feedback found"
+            },
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "check",
+          "to": "pause",
+          "attrs": {
+            "label": {
+              "String": "Nothing new"
+            }
+          }
+        },
+        {
+          "from": "pause",
+          "to": "check",
+          "attrs": {}
+        },
+        {
+          "from": "address",
+          "to": "check",
+          "attrs": {
+            "condition": {
+              "String": "!outcome=succeeded"
+            },
+            "weight": {
+              "Integer": 10
+            }
+          }
+        },
+        {
+          "from": "address",
+          "to": "exit",
+          "attrs": {
+            "label": {
+              "String": "Done"
+            }
+          }
+        },
+        {
+          "from": "address",
+          "to": "check",
+          "attrs": {
+            "label": {
+              "String": "Keep watching"
+            }
+          }
+        }
+      ],
+      "attrs": {
+        "goal": {
+          "String": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes"
+        },
+        "rankdir": {
+          "String": "LR"
+        },
+        "loop_restart_signature_limit": {
+          "Integer": 1000
+        }
+      }
+    },
+    "graph_source": "digraph AddressPr {\n    graph [\n        goal=\"Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes\",\n        loop_restart_signature_limit=1000\n    ]\n    rankdir=LR\n\n    start [shape=Mdiamond, label=\"Start\"]\n    exit  [shape=Msquare, label=\"Exit\"]\n\n    // Exit 0 = feedback to address (or PR reached a terminal state — the agent\n    // reads the verdict line and routes Done). Exit 1 = nothing new, keep waiting.\n    // Idle polls are exit-1 \"failures\", hence the raised signature limit above.\n    // The sandbox sits on fabro's run branch (with checkpoint commits), so the PR\n    // is discovered from the FIRST poll's HEAD sha (still the launch-branch tip)\n    // and cached in .fabro-pr-watch — checkpoints carry that file across resumes.\n    // \"New\" = unresolved threads, or comments/reviews newer than the REMOTE head\n    // commit (local tips are checkpoint noise).\n    check [shape=parallelogram, retry_policy=\"none\", max_visits=150, script=\"set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  parent=$(gh api repos/$origin --jq '.parent.full_name // empty')\n  repo=''; pr=''; head=''\n  for r in $parent $origin; do\n    line=$(gh api repos/$r/commits/$sha/pulls --jq 'map(select(.state==\\\"open\\\"))|first|select(.)|[(.number|tostring),.head.ref]|join(\\\" \\\")' 2>/dev/null || true)\n    if [ -n \\\"$line\\\" ]; then repo=$r; pr=${line%% *}; head=${line#* }; break; fi\n  done\n  if [ -z \\\"$pr\\\" ]; then echo \\\"no open PR contains HEAD $sha — will retry\\\"; exit 1; fi\n  echo \\\"$repo $pr $head\\\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\\\" \\\")')\nif [ \\\"${state%% *}\\\" != \\\"OPEN\\\" ]; then echo \\\"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\\\"; exit 0; fi\nif [ \\\"${state#* }\\\" != \\\"true\\\" ]; then echo \\\"VERDICT: PR $repo#$pr left draft — stop watching\\\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\\\"$q\\\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\\\"[fabro]\\\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\\\"[fabro]\\\")|not)]|length')\necho \\\"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\\\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \\\"VERDICT: feedback to address on $repo#$pr, head branch $head\\\"; exit 0; fi\nexit 1\"]\n\n    pause   [shape=insulator, duration=\"5m\"]\n    address [label=\"Address Feedback\", prompt=\"@prompts/address.md\", max_visits=40, backend=\"acp\", acp.command=\"claude-code-acp\"]\n\n    start -> check\n    check -> address [condition=\"outcome=succeeded\", label=\"Feedback found\"]\n    check -> pause   [label=\"Nothing new\"]\n    pause -> check\n    address -> check [condition=\"!outcome=succeeded\", weight=10]\n    address -> exit  [label=\"Done\"]\n    address -> check [label=\"Keep watching\"]\n}\n",
+    "workflow_slug": "address-pr",
+    "source_directory": "/Users/andre/Developer/fabro-runs",
+    "provenance": {
+      "server": {
+        "version": "0.287.0-nightly.0"
+      },
+      "client": {
+        "user_agent": "fabro-cli/0.287.0-nightly.0",
+        "name": "fabro-cli",
+        "version": "0.287.0-nightly.0"
+      },
+      "subject": {
+        "kind": "user",
+        "identity": {
+          "issuer": "fabro:dev",
+          "subject": "dev"
+        },
+        "login": "dev",
+        "auth_method": "dev_token"
+      }
+    },
+    "manifest_blob": "f4d5e6265d752681dd05eb6682c8e044e20e299c4e19dd91f74fc6f16a52128d",
+    "definition_blob": "34fd90bcfc40c036038caaa90cee10b5a77fa65c6da4723b61b67ae7c95c9a8a",
+    "git": {
+      "origin_url": "https://github.com/andremw/fabro",
+      "branch": "feat/graph-zoom-lr-increase",
+      "sha": "fbbe4ab2861583ee3d4b324c7d556e22beebbbc5",
+      "dirty": "clean",
+      "push_outcome": {
+        "type": "not_attempted"
+      }
+    }
+  },
+  "web_url": "http://127.0.0.1:32276/runs/01KY1WQMVYTJ4W07X7TG5A49PF",
+  "start": null,
+  "status": {
+    "kind": "starting"
+  },
+  "status_updated_at": "2026-07-21T08:30:01.345799Z",
+  "last_event_at": "2026-07-21T08:30:14.975288Z",
+  "pending_control": null,
+  "checkpoints": [],
+  "conclusion": null,
+  "sandbox": {
+    "kind": "ready",
+    "plan": {
+      "provider": "docker",
+      "image": "fabro-dev-acp:latest"
+    },
+    "instance": {
+      "provider": "docker",
+      "image": "fabro-dev-acp:latest",
+      "runtime": {
+        "id": "8eb211155382f8ebd83b28eeed620d4760d4e538615efc9a6f53a45483bb13a5",
+        "working_directory": "/workspace/fabro",
+        "repo_cloned": true,
+        "clone_origin_url": "https://github.com/andremw/fabro",
+        "clone_branch": "feat/graph-zoom-lr-increase",
+        "workspace_root": "/workspace",
+        "repos_root": "/repos",
+        "primary_repo_path": "/repos/andremw/fabro",
+        "primary_repo_link": "/workspace/fabro"
+      }
+    }
+  },
+  "pull_request": null,
+  "superseded_by": null,
+  "pending_interviews": {},
+  "stages": {}
+}
