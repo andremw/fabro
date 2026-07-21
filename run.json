@@ -315,7 +315,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T09:12:24.967668Z",
-  "last_event_at": "2026-07-21T10:19:59.772031Z",
+  "last_event_at": "2026-07-21T10:20:07.565204Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -3242,9 +3242,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 267,
       "checkpoint": {
-        "timestamp": "2026-07-21T10:20:03.638665Z",
+        "timestamp": "2026-07-21T10:20:07.562930Z",
         "current_node": "check",
         "completed_nodes": [
           "start",
@@ -3278,29 +3278,158 @@
         ],
         "node_retries": {},
         "context_values": {
+          "internal.retry_count.pause": 0,
+          "internal.run_id": "01KY1Z53JTYVS5NR6TF55BXVCS",
+          "internal.thread_id": "pause",
+          "response.address": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly. The reviewer is concerned that the tests are testing implementation details rather than behavior. Let me read the test file to understand what needs to be changed.I can see the issue now. The reviewer is right - the tests in lines 75-91 are testing constants directly, which are implementation details. These tests don't add value because they just verify that the constants are what they are. Similarly, many of the other tests are testing implementation details (like specific function names, state initialization, pointer event handling mechanics) rather than user-facing behavior.\n\nLet me also look at the component itself to better understand what behavior should be tested.Now I understand. I need to refactor the tests to focus on user-facing behavior rather than implementation details. The reviewer is right - tests like \"DEFAULT_DOCK_HEIGHT is 18rem\" don't add value. Instead, tests should verify that the component behaves correctly from a user's perspective.\n\nLet me refactor the tests to focus on behavior.Now let me run the tests to make sure they pass.Let me try a different approach and run all tests to see if this is a general issue.It seems dependencies are missing. Let me install them.Good, tests are passing! Now let me also run the typecheck to ensure everything is correct.Perfect! Now let me commit these changes and push them.Now let me post a reply to the review comment and resolve the thread.Let me try a different approach - I'll add a comment on the review thread directly.Now let me resolve the thread.Perfect! Now let me go back to the run branch.{\"preferred_next_label\": \"Keep watching\"}",
+          "internal.retry_count.check": 0,
+          "thread.pause.current_node": "check",
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "internal.retry_count.start": 0,
+          "outcome": "failed",
+          "current_node": "check",
+          "graph.loop_restart_signature_limit": "1000",
+          "command.output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+          "internal.node_visit_count": 14,
+          "internal.retry_count.address": 0,
+          "preferred_label": "Keep watching",
+          "thread.start.current_node": "check",
+          "internal.fidelity": "compact",
+          "failure_class": "deterministic",
+          "last_stage": "address",
+          "internal.work_dir": "/workspace/fabro",
+          "thread.check.current_node": "pause",
+          "last_response": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly",
+          "thread.address.current_node": "check",
+          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/resizable-interview-dock) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:34z: <n>,reviews: <n>",
+          "graph.rankdir": "LR"
+        },
+        "node_outcomes": {
+          "check": {
+            "status": "failed",
+            "context_updates": {
+              "command.output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4"
+            },
+            "failure": {
+              "message": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+              "category": "deterministic"
+            },
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 3835,
+              "active_time_ms": 3835
+            }
+          },
+          "pause": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "address": {
+            "status": "succeeded",
+            "preferred_label": "Keep watching",
+            "context_updates": {
+              "response.address": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly. The reviewer is concerned that the tests are testing implementation details rather than behavior. Let me read the test file to understand what needs to be changed.I can see the issue now. The reviewer is right - the tests in lines 75-91 are testing constants directly, which are implementation details. These tests don't add value because they just verify that the constants are what they are. Similarly, many of the other tests are testing implementation details (like specific function names, state initialization, pointer event handling mechanics) rather than user-facing behavior.\n\nLet me also look at the component itself to better understand what behavior should be tested.Now I understand. I need to refactor the tests to focus on user-facing behavior rather than implementation details. The reviewer is right - tests like \"DEFAULT_DOCK_HEIGHT is 18rem\" don't add value. Instead, tests should verify that the component behaves correctly from a user's perspective.\n\nLet me refactor the tests to focus on behavior.Now let me run the tests to make sure they pass.Let me try a different approach and run all tests to see if this is a general issue.It seems dependencies are missing. Let me install them.Good, tests are passing! Now let me also run the typecheck to ensure everything is correct.Perfect! Now let me commit these changes and push them.Now let me post a reply to the review comment and resolve the thread.Let me try a different approach - I'll add a comment on the review thread directly.Now let me resolve the thread.Perfect! Now let me go back to the run branch.{\"preferred_next_label\": \"Keep watching\"}",
+              "last_stage": "address",
+              "last_response": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly"
+            },
+            "notes": "Stage completed: address",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 278832,
+              "tool_time_ms": 0,
+              "active_time_ms": 278832
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "pause",
+        "git_commit_sha": "54180226e4cca131ebad1a9c08df66e4c54aad0b",
+        "loop_failure_signatures": {
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/resizable-interview-dock) draft; unresolved threads=<n>,comments since <n>-<n>-21t07:<n>:03z: <n>,reviews: <n>": 1,
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/resizable-interview-dock) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:34z: <n>,reviews: <n>": 12
+        },
+        "node_visits": {
+          "pause": 12,
+          "address": 1,
+          "start": 1,
+          "check": 14
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 1,
+          "additions": 1,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T10:25:07.577972Z",
+        "current_node": "pause",
+        "completed_nodes": [
+          "start",
+          "check",
+          "pause",
+          "check",
+          "address",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause"
+        ],
+        "node_retries": {},
+        "context_values": {
           "internal.work_dir": "/workspace/fabro",
           "internal.retry_count.check": 0,
           "thread.check.current_node": "pause",
           "internal.run_id": "01KY1Z53JTYVS5NR6TF55BXVCS",
-          "internal.node_visit_count": 14,
-          "current_node": "check",
+          "internal.node_visit_count": 13,
+          "current_node": "pause",
           "command.output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
           "thread.pause.current_node": "check",
           "response.address": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly. The reviewer is concerned that the tests are testing implementation details rather than behavior. Let me read the test file to understand what needs to be changed.I can see the issue now. The reviewer is right - the tests in lines 75-91 are testing constants directly, which are implementation details. These tests don't add value because they just verify that the constants are what they are. Similarly, many of the other tests are testing implementation details (like specific function names, state initialization, pointer event handling mechanics) rather than user-facing behavior.\n\nLet me also look at the component itself to better understand what behavior should be tested.Now I understand. I need to refactor the tests to focus on user-facing behavior rather than implementation details. The reviewer is right - tests like \"DEFAULT_DOCK_HEIGHT is 18rem\" don't add value. Instead, tests should verify that the component behaves correctly from a user's perspective.\n\nLet me refactor the tests to focus on behavior.Now let me run the tests to make sure they pass.Let me try a different approach and run all tests to see if this is a general issue.It seems dependencies are missing. Let me install them.Good, tests are passing! Now let me also run the typecheck to ensure everything is correct.Perfect! Now let me commit these changes and push them.Now let me post a reply to the review comment and resolve the thread.Let me try a different approach - I'll add a comment on the review thread directly.Now let me resolve the thread.Perfect! Now let me go back to the run branch.{\"preferred_next_label\": \"Keep watching\"}",
           "graph.rankdir": "LR",
-          "failure_class": "deterministic",
+          "failure_class": "",
           "internal.retry_count.address": 0,
           "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "internal.fidelity": "compact",
           "preferred_label": "Keep watching",
-          "outcome": "failed",
-          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/resizable-interview-dock) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:34z: <n>,reviews: <n>",
+          "outcome": "succeeded",
+          "failure_signature": "",
           "thread.address.current_node": "check",
           "thread.start.current_node": "check",
           "internal.retry_count.start": 0,
           "graph.loop_restart_signature_limit": "1000",
           "last_response": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly",
-          "internal.thread_id": "pause",
+          "internal.thread_id": "check",
           "internal.retry_count.pause": 0,
           "last_stage": "address"
         },
@@ -3348,10 +3477,10 @@
             }
           }
         },
-        "next_node_id": "pause",
+        "next_node_id": "check",
         "node_visits": {
           "check": 14,
-          "pause": 12,
+          "pause": 13,
           "start": 1,
           "address": 1
         }
@@ -3386,6 +3515,349 @@
   "superseded_by": null,
   "pending_interviews": {},
   "stages": {
+    "pause@4": {
+      "first_event_seq": 108,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:38:09.615932Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:33:09.608052Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300004,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "check@4": {
+      "first_event_seq": 80,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T09:27:51.461782Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": {
+        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+        "exit_code": 1,
+        "duration_ms": 4286,
+        "termination": "exited",
+        "output_bytes": 147,
+        "live_streaming": true
+      },
+      "parallel_results": null,
+      "output": null,
+      "output_bytes": 147,
+      "live_streaming": true,
+      "termination": "exited",
+      "started_at": "2026-07-21T09:27:47.160261Z",
+      "handler": "command",
+      "timing": {
+        "wall_time_ms": 4301,
+        "inference_time_ms": 0,
+        "tool_time_ms": 4286,
+        "active_time_ms": 4286
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "failed"
+    },
+    "pause@3": {
+      "first_event_seq": 90,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:32:55.925678Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:27:55.919212Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300003,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "address@1": {
+      "first_event_seq": 48,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: address",
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:22:29.707606Z"
+      },
+      "provider_used": {
+        "mode": "acp",
+        "provider": "acp"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": {
+        "stdout": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly. The reviewer is concerned that the tests are testing implementation details rather than behavior. Let me read the test file to understand what needs to be changed.I can see the issue now. The reviewer is right - the tests in lines 75-91 are testing constants directly, which are implementation details. These tests don't add value because they just verify that the constants are what they are. Similarly, many of the other tests are testing implementation details (like specific function names, state initialization, pointer event handling mechanics) rather than user-facing behavior.\n\nLet me also look at the component itself to better understand what behavior should be tested.Now I understand. I need to refactor the tests to focus on user-facing behavior rather than implementation details. The reviewer is right - tests like \"DEFAULT_DOCK_HEIGHT is 18rem\" don't add value. Instead, tests should verify that the component behaves correctly from a user's perspective.\n\nLet me refactor the tests to focus on behavior.Now let me run the tests to make sure they pass.Let me try a different approach and run all tests to see if this is a general issue.It seems dependencies are missing. Let me install them.Good, tests are passing! Now let me also run the typecheck to ensure everything is correct.Perfect! Now let me commit these changes and push them.Now let me post a reply to the review comment and resolve the thread.Let me try a different approach - I'll add a comment on the review thread directly.Now let me resolve the thread.Perfect! Now let me go back to the run branch.{\"preferred_next_label\": \"Keep watching\"}",
+        "stderr": "",
+        "stop_reason": "end_turn",
+        "duration_ms": 278832
+      },
+      "parallel_results": null,
+      "output": null,
+      "termination": "exited",
+      "started_at": "2026-07-21T09:17:50.770Z",
+      "handler": "agent",
+      "timing": {
+        "wall_time_ms": 278894,
+        "inference_time_ms": 278832,
+        "tool_time_ms": 0,
+        "active_time_ms": 278832
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "pause@6": {
+      "first_event_seq": 144,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:48:34.753657Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:43:34.770195Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300002,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "check@12": {
+      "first_event_seq": 224,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T10:09:36.140650Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": {
+        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+        "exit_code": 1,
+        "duration_ms": 4136,
+        "termination": "exited",
+        "output_bytes": 147,
+        "live_streaming": true
+      },
+      "parallel_results": null,
+      "output": null,
+      "output_bytes": 147,
+      "live_streaming": true,
+      "termination": "exited",
+      "started_at": "2026-07-21T10:09:31.991608Z",
+      "handler": "command",
+      "timing": {
+        "wall_time_ms": 4148,
+        "inference_time_ms": 0,
+        "tool_time_ms": 4136,
+        "active_time_ms": 4136
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "failed"
+    },
+    "pause@8": {
+      "first_event_seq": 180,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:59:01.153697Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:54:01.148566Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300003,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "pause@11": {
+      "first_event_seq": 234,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T10:14:40.643848Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T10:09:40.634351Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300008,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "start@1": {
+      "first_event_seq": 16,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:12:27.553991Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:12:27.553814Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
     "pause@12": {
       "first_event_seq": 252,
       "prompt": null,
@@ -3420,15 +3892,15 @@
       },
       "state": "succeeded"
     },
-    "pause@4": {
-      "first_event_seq": 108,
+    "pause@5": {
+      "first_event_seq": 126,
       "prompt": null,
       "response": null,
       "completion": {
         "outcome": "succeeded",
         "notes": null,
         "failure_reason": null,
-        "timestamp": "2026-07-21T09:38:09.615932Z"
+        "timestamp": "2026-07-21T09:43:22.319517Z"
       },
       "provider_used": null,
       "diff": null,
@@ -3436,7 +3908,7 @@
       "script_timing": null,
       "parallel_results": null,
       "output": null,
-      "started_at": "2026-07-21T09:33:09.608052Z",
+      "started_at": "2026-07-21T09:38:22.311347Z",
       "handler": "wait",
       "timing": {
         "wall_time_ms": 300004,
@@ -3453,6 +3925,170 @@
         "cache_write_tokens": 0
       },
       "state": "succeeded"
+    },
+    "pause@7": {
+      "first_event_seq": 162,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T09:53:47.877887Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:48:47.871629Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300004,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "pause@9": {
+      "first_event_seq": 198,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T10:04:13.972800Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T09:59:13.962048Z",
+      "handler": "wait",
+      "timing": {
+        "wall_time_ms": 300008,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "check@9": {
+      "first_event_seq": 170,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T09:53:56.459665Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": {
+        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+        "exit_code": 1,
+        "duration_ms": 4015,
+        "termination": "exited",
+        "output_bytes": 147,
+        "live_streaming": true
+      },
+      "parallel_results": null,
+      "output": null,
+      "output_bytes": 147,
+      "live_streaming": true,
+      "termination": "exited",
+      "started_at": "2026-07-21T09:53:52.423555Z",
+      "handler": "command",
+      "timing": {
+        "wall_time_ms": 4035,
+        "inference_time_ms": 0,
+        "tool_time_ms": 4015,
+        "active_time_ms": 4015
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "failed"
+    },
+    "check@13": {
+      "first_event_seq": 242,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T10:14:51.384767Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": {
+        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+        "exit_code": 1,
+        "duration_ms": 4434,
+        "termination": "exited",
+        "output_bytes": 147,
+        "live_streaming": true
+      },
+      "parallel_results": null,
+      "output": null,
+      "output_bytes": 147,
+      "live_streaming": true,
+      "termination": "exited",
+      "started_at": "2026-07-21T10:14:46.925309Z",
+      "handler": "command",
+      "timing": {
+        "wall_time_ms": 4459,
+        "inference_time_ms": 0,
+        "tool_time_ms": 4434,
+        "active_time_ms": 4434
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "failed"
     },
     "check@10": {
       "first_event_seq": 188,
@@ -3598,78 +4234,19 @@
       },
       "state": "failed"
     },
-    "check@4": {
-      "first_event_seq": 80,
+    "pause@13": {
+      "first_event_seq": 270,
       "prompt": null,
       "response": null,
-      "completion": {
-        "outcome": "failed",
-        "notes": null,
-        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
-        "timestamp": "2026-07-21T09:27:51.461782Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": {
-        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "language": "shell"
-      },
-      "script_timing": {
-        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
-        "exit_code": 1,
-        "duration_ms": 4286,
-        "termination": "exited",
-        "output_bytes": 147,
-        "live_streaming": true
-      },
-      "parallel_results": null,
-      "output": null,
-      "output_bytes": 147,
-      "live_streaming": true,
-      "termination": "exited",
-      "started_at": "2026-07-21T09:27:47.160261Z",
-      "handler": "command",
-      "timing": {
-        "wall_time_ms": 4301,
-        "inference_time_ms": 0,
-        "tool_time_ms": 4286,
-        "active_time_ms": 4286
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "failed"
-    },
-    "pause@3": {
-      "first_event_seq": 90,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:32:55.925678Z"
-      },
+      "completion": null,
       "provider_used": null,
       "diff": null,
       "script_invocation": null,
       "script_timing": null,
       "parallel_results": null,
       "output": null,
-      "started_at": "2026-07-21T09:27:55.919212Z",
+      "started_at": "2026-07-21T10:20:07.565204Z",
       "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300003,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -3678,7 +4255,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "succeeded"
+      "state": "running"
     },
     "check@2": {
       "first_event_seq": 38,
@@ -3728,38 +4305,43 @@
       },
       "state": "succeeded"
     },
-    "address@1": {
-      "first_event_seq": 48,
+    "check@14": {
+      "first_event_seq": 260,
       "prompt": null,
       "response": null,
       "completion": {
-        "outcome": "succeeded",
-        "notes": "Stage completed: address",
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:22:29.707606Z"
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T10:20:03.634200Z"
       },
-      "provider_used": {
-        "mode": "acp",
-        "provider": "acp"
-      },
+      "provider_used": null,
       "diff": null,
-      "script_invocation": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
       "script_timing": {
-        "stdout": "I'll address the PR feedback step by step.Now let me fetch all the feedback from the three sources.Let me get the review thread information to identify the thread ID.Now I can see the feedback clearly. The reviewer is concerned that the tests are testing implementation details rather than behavior. Let me read the test file to understand what needs to be changed.I can see the issue now. The reviewer is right - the tests in lines 75-91 are testing constants directly, which are implementation details. These tests don't add value because they just verify that the constants are what they are. Similarly, many of the other tests are testing implementation details (like specific function names, state initialization, pointer event handling mechanics) rather than user-facing behavior.\n\nLet me also look at the component itself to better understand what behavior should be tested.Now I understand. I need to refactor the tests to focus on user-facing behavior rather than implementation details. The reviewer is right - tests like \"DEFAULT_DOCK_HEIGHT is 18rem\" don't add value. Instead, tests should verify that the component behaves correctly from a user's perspective.\n\nLet me refactor the tests to focus on behavior.Now let me run the tests to make sure they pass.Let me try a different approach and run all tests to see if this is a general issue.It seems dependencies are missing. Let me install them.Good, tests are passing! Now let me also run the typecheck to ensure everything is correct.Perfect! Now let me commit these changes and push them.Now let me post a reply to the review comment and resolve the thread.Let me try a different approach - I'll add a comment on the review thread directly.Now let me resolve the thread.Perfect! Now let me go back to the run branch.{\"preferred_next_label\": \"Keep watching\"}",
-        "stderr": "",
-        "stop_reason": "end_turn",
-        "duration_ms": 278832
+        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
+        "exit_code": 1,
+        "duration_ms": 3835,
+        "termination": "exited",
+        "output_bytes": 147,
+        "live_streaming": true
       },
       "parallel_results": null,
       "output": null,
+      "output_bytes": 147,
+      "live_streaming": true,
       "termination": "exited",
-      "started_at": "2026-07-21T09:17:50.770Z",
-      "handler": "agent",
+      "started_at": "2026-07-21T10:19:59.769958Z",
+      "handler": "command",
       "timing": {
-        "wall_time_ms": 278894,
-        "inference_time_ms": 278832,
-        "tool_time_ms": 0,
-        "active_time_ms": 278832
+        "wall_time_ms": 3864,
+        "inference_time_ms": 0,
+        "tool_time_ms": 3835,
+        "active_time_ms": 3835
       },
       "usage": {
         "input_tokens": 0,
@@ -3769,7 +4351,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "succeeded"
+      "state": "failed"
     },
     "check@6": {
       "first_event_seq": 116,
@@ -3901,74 +4483,6 @@
       },
       "state": "succeeded"
     },
-    "pause@6": {
-      "first_event_seq": 144,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:48:34.753657Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:43:34.770195Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300002,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
-    "pause@8": {
-      "first_event_seq": 180,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:59:01.153697Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:54:01.148566Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300003,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
     "check@8": {
       "first_event_seq": 152,
       "prompt": null,
@@ -4017,88 +4531,6 @@
       },
       "state": "failed"
     },
-    "check@12": {
-      "first_event_seq": 224,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "failed",
-        "notes": null,
-        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
-        "timestamp": "2026-07-21T10:09:36.140650Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": {
-        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "language": "shell"
-      },
-      "script_timing": {
-        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
-        "exit_code": 1,
-        "duration_ms": 4136,
-        "termination": "exited",
-        "output_bytes": 147,
-        "live_streaming": true
-      },
-      "parallel_results": null,
-      "output": null,
-      "output_bytes": 147,
-      "live_streaming": true,
-      "termination": "exited",
-      "started_at": "2026-07-21T10:09:31.991608Z",
-      "handler": "command",
-      "timing": {
-        "wall_time_ms": 4148,
-        "inference_time_ms": 0,
-        "tool_time_ms": 4136,
-        "active_time_ms": 4136
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "failed"
-    },
-    "pause@11": {
-      "first_event_seq": 234,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T10:14:40.643848Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T10:09:40.634351Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300008,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
     "pause@10": {
       "first_event_seq": 216,
       "prompt": null,
@@ -4119,67 +4551,6 @@
       "handler": "wait",
       "timing": {
         "wall_time_ms": 300002,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
-    "check@14": {
-      "first_event_seq": 260,
-      "prompt": null,
-      "response": null,
-      "completion": null,
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": {
-        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "language": "shell"
-      },
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T10:19:59.769958Z",
-      "handler": "command",
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "running"
-    },
-    "start@1": {
-      "first_event_seq": 16,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:12:27.553991Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:12:27.553814Z",
-      "handler": "start",
-      "timing": {
-        "wall_time_ms": 0,
         "inference_time_ms": 0,
         "tool_time_ms": 0,
         "active_time_ms": 0
@@ -4290,40 +4661,6 @@
       },
       "state": "failed"
     },
-    "pause@5": {
-      "first_event_seq": 126,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:43:22.319517Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:38:22.311347Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300004,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
     "pause@1": {
       "first_event_seq": 30,
       "prompt": null,
@@ -4357,170 +4694,6 @@
         "cache_write_tokens": 0
       },
       "state": "succeeded"
-    },
-    "pause@7": {
-      "first_event_seq": 162,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T09:53:47.877887Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:48:47.871629Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300004,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
-    "check@9": {
-      "first_event_seq": 170,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "failed",
-        "notes": null,
-        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
-        "timestamp": "2026-07-21T09:53:56.459665Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": {
-        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "language": "shell"
-      },
-      "script_timing": {
-        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
-        "exit_code": 1,
-        "duration_ms": 4015,
-        "termination": "exited",
-        "output_bytes": 147,
-        "live_streaming": true
-      },
-      "parallel_results": null,
-      "output": null,
-      "output_bytes": 147,
-      "live_streaming": true,
-      "termination": "exited",
-      "started_at": "2026-07-21T09:53:52.423555Z",
-      "handler": "command",
-      "timing": {
-        "wall_time_ms": 4035,
-        "inference_time_ms": 0,
-        "tool_time_ms": 4015,
-        "active_time_ms": 4015
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "failed"
-    },
-    "pause@9": {
-      "first_event_seq": 198,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-07-21T10:04:13.972800Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-07-21T09:59:13.962048Z",
-      "handler": "wait",
-      "timing": {
-        "wall_time_ms": 300008,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
-    "check@13": {
-      "first_event_seq": 242,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "failed",
-        "notes": null,
-        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T09:21:34Z: 0, reviews: 0\n",
-        "timestamp": "2026-07-21T10:14:51.384767Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": {
-        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
-        "language": "shell"
-      },
-      "script_timing": {
-        "output": "blob://sha256/5d5c12ea3d2ce36da604b986a93b0f4986edaddc1a28aab2f19c9f52f0f134e4",
-        "exit_code": 1,
-        "duration_ms": 4434,
-        "termination": "exited",
-        "output_bytes": 147,
-        "live_streaming": true
-      },
-      "parallel_results": null,
-      "output": null,
-      "output_bytes": 147,
-      "live_streaming": true,
-      "termination": "exited",
-      "started_at": "2026-07-21T10:14:46.925309Z",
-      "handler": "command",
-      "timing": {
-        "wall_time_ms": 4459,
-        "inference_time_ms": 0,
-        "tool_time_ms": 4434,
-        "active_time_ms": 4434
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "failed"
     }
   }
 }
