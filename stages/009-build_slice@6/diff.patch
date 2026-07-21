@@ -1,0 +1,124 @@
+diff --git a/lib/crates/fabro-workflow/src/context.rs b/lib/crates/fabro-workflow/src/context.rs
+index 5fbf09b..333916e 100644
+--- a/lib/crates/fabro-workflow/src/context.rs
++++ b/lib/crates/fabro-workflow/src/context.rs
+@@ -77,6 +77,11 @@ pub mod keys {
+         format!("{INTERNAL_RETRY_COUNT_PREFIX}{node_id}")
+     }
+ 
++    #[must_use]
++    pub fn human_answer_images_key(stage_id: &str) -> String {
++        format!("{HUMAN_ANSWER_IMAGES_PREFIX}{stage_id}")
++    }
++
+     /// Returns `true` for engine-internal keys that should not propagate from
+     /// child to parent workflow contexts.
+     #[must_use]
+@@ -153,6 +158,8 @@ pub trait WorkflowContext {
+     /// its accumulated visit count. Returns `None` for run-level emissions
+     /// where no stage is active (i.e., `CURRENT_NODE` is unset).
+     fn current_stage_scope(&self) -> Option<StageScope>;
++    /// Returns image file paths from a human stage answer, if present in context.
++    fn get_human_answer_images(&self, stage_id: &str) -> Option<Vec<String>>;
+ }
+ 
+ impl WorkflowContext for Context {
+@@ -191,6 +198,12 @@ impl WorkflowContext for Context {
+             .and_then(|value| value.as_str().map(String::from))?;
+         Some(StageScope::from_context(self, node_id))
+     }
++
++    fn get_human_answer_images(&self, stage_id: &str) -> Option<Vec<String>> {
++        let key = keys::human_answer_images_key(stage_id);
++        self.get(&key)
++            .and_then(|value| serde_json::from_value(value).ok())
++    }
+ }
+ 
+ #[cfg(test)]
+@@ -391,4 +404,28 @@ mod tests {
+         ctx.set(keys::CURRENT_NODE, serde_json::json!("plan"));
+         assert_eq!(ctx.current_node_id(), "plan");
+     }
++
++    #[test]
++    fn get_human_answer_images_with_images() {
++        let ctx = Context::new();
++        ctx.set(
++            keys::human_answer_images_key("review"),
++            serde_json::json!(["/tmp/image.png", "/tmp/image2.jpg"]),
++        );
++        let images = ctx.get_human_answer_images("review");
++        assert_eq!(
++            images,
++            Some(vec![
++                "/tmp/image.png".to_string(),
++                "/tmp/image2.jpg".to_string()
++            ])
++        );
++    }
++
++    #[test]
++    fn get_human_answer_images_with_no_images() {
++        let ctx = Context::new();
++        let images = ctx.get_human_answer_images("review");
++        assert_eq!(images, None);
++    }
+ }
+diff --git a/lib/crates/fabro-workflow/src/handler/agent.rs b/lib/crates/fabro-workflow/src/handler/agent.rs
+index 17ea967..0690451 100644
+--- a/lib/crates/fabro-workflow/src/handler/agent.rs
++++ b/lib/crates/fabro-workflow/src/handler/agent.rs
+@@ -47,6 +47,7 @@ pub struct CodergenRunRequest<'a> {
+     pub tool_hooks:         Option<Arc<dyn fabro_agent::ToolHookCallback>>,
+     pub cancel_token:       CancellationToken,
+     pub agent_tool_runtime: fabro_agent::AgentToolRuntime,
++    pub initial_images:     Vec<String>,
+ }
+ 
+ pub struct OneShotRequest<'a> {
+@@ -283,6 +284,12 @@ impl Handler for AgentHandler {
+                     node_id: node.id.clone(),
+                 }) as Arc<dyn fabro_agent::ToolHookCallback>
+             });
++
++        // Extract images from prior human stage if present
++        let initial_images = prior_human_stage_id(context)
++            .and_then(|stage_id| get_human_answer_images(context, &stage_id))
++            .unwrap_or_default();
++
+         let (response_text, stage_usage, backend_files_touched, last_file_touched, timing) =
+             if let Some(backend) = &self.backend {
+                 let result = backend
+@@ -296,6 +303,7 @@ impl Handler for AgentHandler {
+                         tool_hooks,
+                         cancel_token: services.run.cancel_token(),
+                         agent_tool_runtime: agent_tool_runtime.clone(),
++                        initial_images,
+                     })
+                     .await;
+                 match result {
+@@ -426,10 +434,7 @@ impl Handler for AgentHandler {
+ /// Returns `Some(Vec<String>)` if the key exists and contains valid paths,
+ /// otherwise `None`.
+ fn get_human_answer_images(context: &Context, stage_id: &str) -> Option<Vec<String>> {
+-    let key = format!("{}{}", keys::HUMAN_ANSWER_IMAGES_PREFIX, stage_id);
+-    context
+-        .get(&key)
+-        .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok())
++    context.get_human_answer_images(stage_id)
+ }
+ 
+ /// Identify the immediately prior human stage from workflow context.
+diff --git a/lib/crates/fabro-workflow/src/handler/fan_in.rs b/lib/crates/fabro-workflow/src/handler/fan_in.rs
+index aa03d8f..79b9767 100644
+--- a/lib/crates/fabro-workflow/src/handler/fan_in.rs
++++ b/lib/crates/fabro-workflow/src/handler/fan_in.rs
+@@ -280,6 +280,7 @@ async fn llm_evaluate(
+             tool_hooks: None,
+             cancel_token,
+             agent_tool_runtime: fabro_agent::AgentToolRuntime::default(),
++            initial_images: Vec::new(),
+         })
+         .await
+     {
