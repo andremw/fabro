@@ -315,7 +315,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T09:16:58.987586Z",
-  "last_event_at": "2026-07-21T12:47:04.997169Z",
+  "last_event_at": "2026-07-21T12:47:09.686032Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -12079,9 +12079,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 791,
       "checkpoint": {
-        "timestamp": "2026-07-21T12:47:05.227259Z",
+        "timestamp": "2026-07-21T12:47:09.685831Z",
         "current_node": "address",
         "completed_nodes": [
           "start",
@@ -12172,37 +12172,33 @@
         ],
         "node_retries": {},
         "context_values": {
-          "preferred_label": "Done",
-          "internal.node_visit_count": 3,
-          "graph.rankdir": "LR",
-          "internal.work_dir": "/workspace/fabro",
-          "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
-          "thread.start.current_node": "check",
-          "current_node": "address",
-          "thread.check.current_node": "address",
-          "last_stage": "address",
-          "response.address": "I'll check the PR status and address any feedback.The PR has left draft status, so according to the instructions, I should do nothing.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
-          "internal.retry_count.address": 0,
-          "failure_signature": "",
-          "graph.loop_restart_signature_limit": "1000",
-          "command.output": "blob://sha256/7d3b27c073ca67dcdd2ecd192fe5ba75a001494a65100d2f25d2dde617fa47e8",
-          "thread.address.current_node": "check",
-          "internal.fidelity": "compact",
-          "last_response": "I'll check the PR status and address any feedback.The PR has left draft status, so according to the instructions, I should do nothing.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
-          "internal.retry_count.check": 0,
-          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "internal.thread_id": "check",
+          "internal.retry_count.address": 0,
+          "command.output": "blob://sha256/7d3b27c073ca67dcdd2ecd192fe5ba75a001494a65100d2f25d2dde617fa47e8",
+          "last_stage": "address",
+          "preferred_label": "Done",
+          "thread.address.current_node": "check",
+          "thread.start.current_node": "check",
+          "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
+          "internal.fidelity": "compact",
+          "internal.node_visit_count": 3,
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "internal.retry_count.pause": 0,
+          "graph.loop_restart_signature_limit": "1000",
+          "internal.retry_count.start": 0,
           "outcome": "succeeded",
           "thread.pause.current_node": "check",
-          "internal.retry_count.start": 0,
-          "failure_class": ""
+          "failure_class": "",
+          "failure_signature": "",
+          "internal.work_dir": "/workspace/fabro",
+          "response.address": "I'll check the PR status and address any feedback.The PR has left draft status, so according to the instructions, I should do nothing.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+          "last_response": "I'll check the PR status and address any feedback.The PR has left draft status, so according to the instructions, I should do nothing.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+          "thread.check.current_node": "address",
+          "internal.retry_count.check": 0,
+          "graph.rankdir": "LR",
+          "current_node": "address"
         },
         "node_outcomes": {
-          "pause": {
-            "status": "succeeded",
-            "usage": null
-          },
           "address": {
             "status": "succeeded",
             "preferred_label": "Done",
@@ -12220,6 +12216,14 @@
               "active_time_ms": 13324
             }
           },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "pause": {
+            "status": "succeeded",
+            "usage": null
+          },
           "check": {
             "status": "succeeded",
             "context_updates": {
@@ -12233,24 +12237,89 @@
               "tool_time_ms": 768,
               "active_time_ms": 768
             }
-          },
-          "start": {
-            "status": "succeeded",
-            "usage": null
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "dc41fa0654e051d944ee4c149f06b9abc3426387",
+        "loop_failure_signatures": {
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t12:<n>:35z: <n>,reviews: <n>": 2,
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:22z: <n>,reviews: <n>": 37
+        },
         "node_visits": {
-          "start": 1,
-          "check": 42,
           "pause": 39,
-          "address": 3
+          "check": 42,
+          "address": 3,
+          "start": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 1,
+          "additions": 1,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-07-21T12:47:09.811794Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 12610631,
+      "inference_time_ms": 356036,
+      "tool_time_ms": 163142,
+      "active_time_ms": 519178
+    },
+    "final_git_commit_sha": "dc41fa0654e051d944ee4c149f06b9abc3426387",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "check",
+        "stage_label": "check",
+        "timing": {
+          "wall_time_ms": 164307,
+          "inference_time_ms": 0,
+          "tool_time_ms": 163142,
+          "active_time_ms": 163142
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "address",
+        "stage_label": "address",
+        "timing": {
+          "wall_time_ms": 356416,
+          "inference_time_ms": 356036,
+          "tool_time_ms": 0,
+          "active_time_ms": 356036
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "pause",
+        "stage_label": "pause",
+        "timing": {
+          "wall_time_ms": 11700151,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      }
+    ],
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -14254,6 +14323,40 @@
       },
       "state": "failed"
     },
+    "exit@1": {
+      "first_event_seq": 794,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T12:47:09.686032Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T12:47:09.685990Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
     "check@8": {
       "first_event_seq": 152,
       "prompt": null,
@@ -14977,7 +15080,12 @@
       "first_event_seq": 780,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: address",
+        "failure_reason": null,
+        "timestamp": "2026-07-21T12:47:05.225689Z"
+      },
       "provider_used": {
         "mode": "acp",
         "provider": "acp"
@@ -14995,6 +15103,12 @@
       "termination": "exited",
       "started_at": "2026-07-21T12:46:51.641794Z",
       "handler": "agent",
+      "timing": {
+        "wall_time_ms": 13582,
+        "inference_time_ms": 13324,
+        "tool_time_ms": 0,
+        "active_time_ms": 13324
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -15003,7 +15117,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "running"
+      "state": "succeeded"
     },
     "pause@22": {
       "first_event_seq": 432,
