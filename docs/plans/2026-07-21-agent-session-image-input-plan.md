@@ -607,17 +607,17 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Test CLI compiles
   - [x] Run full fabro-agent test suite
   - [x] Refactor
-- [ ] Slice 4: CodergenRunRequest and backend updates
-  - [ ] Change CodergenRunRequest.prompt to initial_content
-  - [ ] Test CodergenRunRequest compiles
-  - [ ] Update AgentApiBackend::run to use initial_content
-  - [ ] Test AgentApiBackend compiles
-  - [ ] Update AcpBackend::run to use initial_content
-  - [ ] Test AcpBackend compiles
-  - [ ] Update PromptHandler to extract text from initial_content
-  - [ ] Test PromptHandler compiles
-  - [ ] Run fabro-workflow tests
-  - [ ] Refactor
+- [x] Slice 4: CodergenRunRequest and backend updates
+  - [x] Change CodergenRunRequest.prompt to initial_content
+  - [x] Test CodergenRunRequest compiles
+  - [x] Update AgentApiBackend::run to use initial_content
+  - [x] Test AgentApiBackend compiles
+  - [x] Update AcpBackend::run to use initial_content
+  - [x] Test AcpBackend compiles
+  - [x] Update PromptHandler to extract text from initial_content
+  - [x] Test PromptHandler compiles
+  - [x] Run fabro-workflow tests
+  - [x] Refactor
 
 ### Wave 2
 - [ ] Slice 5: Agent handler image propagation

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use fabro_agent::Sandbox;
 use fabro_graphviz::graph::{Graph, Node};
+use fabro_llm::types::ContentPart;
 use fabro_types::{RunId, StageModelUsage, StageTiming};
 pub(crate) use structured_output::extract_status_fields;
 use tokio_util::sync::CancellationToken;
@@ -39,7 +40,7 @@ pub enum CodergenResult {
 
 pub struct CodergenRunRequest<'a> {
     pub node:               &'a Node,
-    pub prompt:             &'a str,
+    pub initial_content:    Vec<ContentPart>,
     pub context:            &'a Context,
     pub thread_id:          Option<&'a str>,
     pub emitter:            &'a Arc<Emitter>,
@@ -57,6 +58,24 @@ pub struct OneShotRequest<'a> {
     pub stage_scope:   &'a StageScope,
     pub sandbox:       &'a Arc<dyn Sandbox>,
     pub cancel_token:  CancellationToken,
+}
+
+/// Extract text from content parts, ignoring images.
+///
+/// This is a convenience helper for backends that don't support images
+/// (like ACP) or for test code that needs to inspect prompt text.
+pub fn extract_text_from_content(content: &[ContentPart]) -> String {
+    content
+        .iter()
+        .filter_map(|part| {
+            if let ContentPart::Text(text) = part {
+                Some(text.as_str())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 /// Emit the canonical `Event::Prompt` for a stage prompt and return the
@@ -288,7 +307,7 @@ impl Handler for AgentHandler {
                 let result = backend
                     .run(CodergenRunRequest {
                         node,
-                        prompt: &prompt,
+                        initial_content: vec![ContentPart::Text(prompt.clone())],
                         context,
                         thread_id: thread_id.as_deref(),
                         emitter: &services.run.emitter,
@@ -1250,7 +1269,8 @@ Some text in between.
         #[async_trait]
         impl CodergenBackend for PromptCapturingBackend {
             async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
-                *self.captured_prompt.lock().unwrap() = Some(request.prompt.to_string());
+                let prompt_text = extract_text_from_content(&request.initial_content);
+                *self.captured_prompt.lock().unwrap() = Some(prompt_text);
                 Ok(CodergenResult::Text {
                     text:              "ok".to_string(),
                     usage:             None,
@@ -1311,7 +1331,8 @@ Some text in between.
         #[async_trait]
         impl CodergenBackend for PromptCapturingBackend {
             async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
-                *self.captured_prompt.lock().unwrap() = Some(request.prompt.to_string());
+                let prompt_text = extract_text_from_content(&request.initial_content);
+                *self.captured_prompt.lock().unwrap() = Some(prompt_text);
                 Ok(CodergenResult::Text {
                     text:              "ok".to_string(),
                     usage:             None,

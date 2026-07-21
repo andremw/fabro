@@ -1775,11 +1775,13 @@ struct MockCodergenBackend;
 #[async_trait::async_trait]
 impl CodergenBackend for MockCodergenBackend {
     async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
+        let prompt_text = fabro_workflow::handler::agent::extract_text_from_content(&request.initial_content);
+        let truncated = &prompt_text[..prompt_text.len().min(50)];
         Ok(CodergenResult::Text {
             text:              format!(
                 "Response for {}: processed prompt '{}'",
                 request.node.id,
-                &request.prompt[..request.prompt.len().min(50)]
+                truncated
             ),
             usage:             None,
             files_touched:     Vec::new(),
@@ -6694,7 +6696,8 @@ mod real_llm {
     #[async_trait]
     impl CodergenBackend for LlmCodergenBackend {
         async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
-            self.complete(request.prompt).await
+            let prompt_text = fabro_workflow::handler::agent::extract_text_from_content(&request.initial_content);
+            self.complete(&prompt_text).await
         }
 
         async fn one_shot(&self, request: OneShotRequest<'_>) -> Result<CodergenResult, Error> {
