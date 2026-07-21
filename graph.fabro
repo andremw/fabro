@@ -1,0 +1,48 @@
+digraph AddressPr {
+    graph [
+        goal="Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+        loop_restart_signature_limit=1000
+    ]
+    rankdir=LR
+
+    start [shape=Mdiamond, label="Start"]
+    exit  [shape=Msquare, label="Exit"]
+
+    // Exit 0 = feedback to address (or PR reached a terminal state — the agent
+    // reads the verdict line and routes Done). Exit 1 = nothing new, keep waiting.
+    // Idle polls are exit-1 "failures", hence the raised signature limit above.
+    // Stateless on purpose: "new" = unresolved threads, or comments/reviews newer
+    // than the head commit — re-derivable after any resume, no /tmp state.
+    check [shape=parallelogram, retry_policy="none", max_visits=150, script="set -u
+branch=$(git rev-parse --abbrev-ref HEAD)
+origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+parent=$(gh api repos/$origin --jq '.parent.full_name // empty')
+pr=''; repo=''
+for r in $parent $origin; do
+  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')
+  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi
+done
+if [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi
+draft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)
+if [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi
+own=${repo%%/*}; nam=${repo##*/}
+q='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'
+unresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')
+export TIP=$(git log -1 --format=%cI)
+newc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')
+newrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')
+echo \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"
+if [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi
+exit 1"]
+
+    pause   [shape=insulator, duration="5m"]
+    address [label="Address Feedback", prompt="@prompts/address.md", max_visits=40, backend="acp", acp.command="claude-code-acp"]
+
+    start -> check
+    check -> address [condition="outcome=succeeded", label="Feedback found"]
+    check -> pause   [label="Nothing new"]
+    pause -> check
+    address -> check [condition="!outcome=succeeded", weight=10]
+    address -> exit  [label="Done"]
+    address -> check [label="Keep watching"]
+}
