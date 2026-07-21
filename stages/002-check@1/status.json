@@ -1,0 +1,6 @@
+{
+  "outcome": "failed",
+  "notes": null,
+  "failure_reason": "Script failed with exit code: 1\n\n## output\nPR andremw/fabro#2 (head branch: fabro/run/01KY1MQ4W8ZZK1S9FESKJZ8B2Y) draft; unresolved threads=0, comments since 2026-07-21T06:41:31Z: 0, reviews: 0\n",
+  "timestamp": "2026-07-21T08:30:27.537509Z"
+}
