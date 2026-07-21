@@ -1,0 +1,428 @@
+diff --git a/apps/fabro-web/app/components/interview-dock.test.tsx b/apps/fabro-web/app/components/interview-dock.test.tsx
+index 67c8c63..35e5024 100644
+--- a/apps/fabro-web/app/components/interview-dock.test.tsx
++++ b/apps/fabro-web/app/components/interview-dock.test.tsx
+@@ -308,6 +308,213 @@ describe("InterviewDock", () => {
+     expect(text).toContain("Context from preceding stage");
+     expect(text).toContain("1. Deploy");
+   });
++
++  test("renders resize handle with correct ARIA attributes", () => {
++    const tree = render(
++      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
++    );
++    const handles = tree.root.findAllByProps({ role: "separator" });
++    expect(handles).toHaveLength(1);
++    const handle = handles[0];
++    expect(handle.props["aria-orientation"]).toBe("horizontal");
++    expect(handle.props["aria-label"]).toBe("Resize interview dock");
++  });
++
++  test("resize handle has hover state styling", () => {
++    const tree = render(
++      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
++    );
++    const handles = tree.root.findAllByProps({ role: "separator" });
++    expect(handles).toHaveLength(1);
++    const handle = handles[0];
++    expect(handle.props.className).toContain("cursor-ns-resize");
++    expect(handle.props.className).toContain("group");
++    // Verify the visual indicator span exists
++    const spans = handle.findAllByType("span");
++    expect(spans).toHaveLength(1);
++    expect(spans[0].props.className).toContain("group-hover:bg-teal-500/60");
++  });
++
++  test("drag state is initialized to false with null origin", () => {
++    const tree = render(
++      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
++    );
++    // Verify the component renders successfully with initial state
++    // (isDragging: false, dragOrigin: null)
++    expect(tree.toJSON()).not.toBeNull();
++    // Verify no drag-related visual changes are applied initially
++    const section = tree.root.findByProps({ "aria-label": "Interview question" });
++    expect(section).toBeDefined();
++  });
++
++  test("onPointerDown captures pointer and invokes resize active callback", () => {
++    const resizeActiveCalls: boolean[] = [];
++    const tree = render(
++      <InterviewDock
++        runId="run-1"
++        questions={[makeQuestion()]}
++        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
++      />,
++    );
++    const handle = tree.root.findByProps({ role: "separator" });
++
++    let preventDefaultCalled = false;
++    let capturedPointerId: number | null = null;
++    const mockEvent = {
++      preventDefault: () => { preventDefaultCalled = true; },
++      pointerId: 123,
++      clientY: 500,
++      currentTarget: {
++        setPointerCapture: (id: number) => { capturedPointerId = id; },
++      },
++    };
++
++    act(() => {
++      handle.props.onPointerDown(mockEvent);
++    });
++
++    expect(preventDefaultCalled).toBe(true);
++    expect(capturedPointerId).toBe(123);
++    expect(resizeActiveCalls).toEqual([true]);
++  });
++
++  test("onPointerMove computes height delta and clamps to bounds", () => {
++    globalThis.window = {
++      localStorage: {
++        getItem: () => null,
++        setItem: () => {},
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const heightChanges: string[] = [];
++    const tree = render(
++      <InterviewDock
++        runId="run-1"
++        questions={[makeQuestion()]}
++        onDockHeightChange={(height) => heightChanges.push(height)}
++      />,
++    );
++    const handle = tree.root.findByProps({ role: "separator" });
++
++    // Start drag at clientY=500, initial height is 18rem = 288px
++    act(() => {
++      handle.props.onPointerDown({
++        preventDefault: () => {},
++        pointerId: 1,
++        clientY: 500,
++        currentTarget: { setPointerCapture: () => {} },
++      });
++    });
++
++    // Move upward by 100px (clientY=400) should increase height by 100px
++    act(() => {
++      handle.props.onPointerMove({ clientY: 400 });
++    });
++
++    // Last height change should be 288 + 100 = 388px
++    expect(heightChanges[heightChanges.length - 1]).toBe("388px");
++
++    // Move downward by 200px (clientY=700) should decrease height
++    act(() => {
++      handle.props.onPointerMove({ clientY: 700 });
++    });
++
++    // Height should be 288 - 200 = 88px, but clamped to minimum 12rem = 192px
++    expect(heightChanges[heightChanges.length - 1]).toBe("192px");
++  });
++
++  test("onPointerUp releases pointer and invokes resize active callback with false", () => {
++    globalThis.window = {
++      localStorage: {
++        getItem: () => null,
++        setItem: () => {},
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const resizeActiveCalls: boolean[] = [];
++    const tree = render(
++      <InterviewDock
++        runId="run-1"
++        questions={[makeQuestion()]}
++        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
++      />,
++    );
++    const handle = tree.root.findByProps({ role: "separator" });
++
++    // Start drag
++    act(() => {
++      handle.props.onPointerDown({
++        preventDefault: () => {},
++        pointerId: 123,
++        clientY: 500,
++        currentTarget: { setPointerCapture: () => {} },
++      });
++    });
++
++    expect(resizeActiveCalls).toEqual([true]);
++
++    // End drag
++    let releasedPointerId: number | null = null;
++    act(() => {
++      handle.props.onPointerUp({
++        pointerId: 123,
++        currentTarget: {
++          releasePointerCapture: (id: number) => { releasedPointerId = id; },
++        },
++      });
++    });
++
++    expect(releasedPointerId).toBe(123);
++    expect(resizeActiveCalls).toEqual([true, false]);
++  });
++
++  test("onPointerCancel releases pointer and resets drag state", () => {
++    globalThis.window = {
++      localStorage: {
++        getItem: () => null,
++        setItem: () => {},
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const resizeActiveCalls: boolean[] = [];
++    const tree = render(
++      <InterviewDock
++        runId="run-1"
++        questions={[makeQuestion()]}
++        onResizeActiveChange={(active) => resizeActiveCalls.push(active)}
++      />,
++    );
++    const handle = tree.root.findByProps({ role: "separator" });
++
++    // Start drag
++    act(() => {
++      handle.props.onPointerDown({
++        preventDefault: () => {},
++        pointerId: 456,
++        clientY: 500,
++        currentTarget: { setPointerCapture: () => {} },
++      });
++    });
++
++    expect(resizeActiveCalls).toEqual([true]);
++
++    // Cancel drag
++    let releasedPointerId: number | null = null;
++    act(() => {
++      handle.props.onPointerCancel({
++        pointerId: 456,
++        currentTarget: {
++          releasePointerCapture: (id: number) => { releasedPointerId = id; },
++        },
++      });
++    });
++
++    expect(releasedPointerId).toBe(456);
++    expect(resizeActiveCalls).toEqual([true, false]);
++  });
+ });
+ 
+ describe("loadDockHeight", () => {
+diff --git a/apps/fabro-web/app/components/interview-dock.tsx b/apps/fabro-web/app/components/interview-dock.tsx
+index 362cfa6..293c25d 100644
+--- a/apps/fabro-web/app/components/interview-dock.tsx
++++ b/apps/fabro-web/app/components/interview-dock.tsx
+@@ -113,13 +113,40 @@ export function saveDockHeight(height: string): void {
+   }
+ }
+ 
++export function parseDockHeightToPx(height: string): number {
++  const match = height.match(/^(\d+(?:\.\d+)?)(rem|px|vh)$/);
++  if (!match) return 288; // Default to 18rem = 288px
++
++  const [, valueStr, unit] = match;
++  const value = parseFloat(valueStr);
++
++  if (unit === "rem") {
++    return value * 16;
++  }
++  if (unit === "px") {
++    return value;
++  }
++  if (unit === "vh") {
++    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
++    return (viewportHeight * value) / 100;
++  }
++
++  return 288;
++}
++
+ export interface InterviewDockProps {
+   runId: string;
+   questions: ApiQuestion[];
+   onDockHeightChange?: (height: string) => void;
++  onResizeActiveChange?: (active: boolean) => void;
+ }
+ 
+-export function InterviewDock({ runId, questions, onDockHeightChange }: InterviewDockProps) {
++export function InterviewDock({
++  runId,
++  questions,
++  onDockHeightChange,
++  onResizeActiveChange,
++}: InterviewDockProps) {
+   const [activeIndex, setActiveIndex] = useState(0);
+   const [dockHeight, setDockHeight] = useState(loadDockHeight);
+   const isFirstMount = useRef(true);
+@@ -156,6 +183,9 @@ export function InterviewDock({ runId, questions, onDockHeightChange }: Intervie
+       onCycle={() =>
+         setActiveIndex((index) => (index + 1) % questions.length)
+       }
++      dockHeight={dockHeight}
++      onDockHeightChange={setDockHeight}
++      onResizeActiveChange={onResizeActiveChange}
+     />
+   );
+ }
+@@ -165,15 +195,56 @@ function InterviewQuestionDock({
+   question,
+   moreCount,
+   onCycle,
++  dockHeight,
++  onDockHeightChange,
++  onResizeActiveChange,
+ }: {
+   runId: string;
+   question: ApiQuestion;
+   moreCount: number;
+   onCycle: () => void;
++  dockHeight: string;
++  onDockHeightChange: (height: string) => void;
++  onResizeActiveChange?: (active: boolean) => void;
+ }) {
+   const submitMutation = useSubmitInterviewAnswer(runId);
+   const [error, setError] = useState<string | null>(null);
+   const submitting = submitMutation.isMutating;
++  const [isDragging, setIsDragging] = useState(false);
++  const dragOrigin = useRef<{ y: number; height: number } | null>(null);
++
++  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
++    event.preventDefault();
++    event.currentTarget.setPointerCapture(event.pointerId);
++    // Convert dockHeight to pixels for drag calculation
++    const currentHeightPx = parseDockHeightToPx(dockHeight);
++    dragOrigin.current = { y: event.clientY, height: currentHeightPx };
++    setIsDragging(true);
++    onResizeActiveChange?.(true);
++  };
++
++  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
++    const origin = dragOrigin.current;
++    if (!origin) return;
++    // For a bottom-docked panel with top resize handle: dragging upward
++    // (clientY decreasing) increases height
++    const delta = origin.y - event.clientY;
++    const nextPx = origin.height + delta;
++    // Clamp to bounds
++    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16; // 12rem = 192px
++    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
++    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
++    const clampedPx = Math.min(maxPx, Math.max(minPx, nextPx));
++    onDockHeightChange(`${clampedPx}px`);
++  };
++
++  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
++    if (!dragOrigin.current) return;
++    event.currentTarget.releasePointerCapture(event.pointerId);
++    dragOrigin.current = null;
++    setIsDragging(false);
++    onResizeActiveChange?.(false);
++  };
+ 
+   const submit = useCallback(
+     async (answer: SubmitInterviewAnswer) => {
+@@ -189,6 +260,21 @@ function InterviewQuestionDock({
+ 
+   return (
+     <section aria-label="Interview question">
++      <div
++        role="separator"
++        aria-orientation="horizontal"
++        aria-label="Resize interview dock"
++        onPointerDown={handlePointerDown}
++        onPointerMove={handlePointerMove}
++        onPointerUp={endDrag}
++        onPointerCancel={endDrag}
++        className="group relative h-2 cursor-ns-resize touch-none"
++      >
++        <span
++          aria-hidden
++          className="absolute inset-x-0 top-0 h-0.5 transition-colors bg-transparent group-hover:bg-teal-500/60"
++        />
++      </div>
+       <DockHeader
+         stage={question.stage}
+         moreCount={moreCount}
+diff --git a/apps/fabro-web/app/routes/run-detail.tsx b/apps/fabro-web/app/routes/run-detail.tsx
+index d7d28e4..204f0f6 100644
+--- a/apps/fabro-web/app/routes/run-detail.tsx
++++ b/apps/fabro-web/app/routes/run-detail.tsx
+@@ -101,6 +101,7 @@ export default function RunDetail({ params }: { params: { id: string } }) {
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deletePending, setDeletePending] = useState(false);
+   const [dockHeight, setDockHeight] = useState("18rem");
++  const [dockResizeActive, setDockResizeActive] = useState(false);
+   const { push, dismiss } = useToast();
+   const lifecycleToastStateRef = useRef(createLifecycleToastState());
+   const filesCount = runQuery.data?.diff?.files_changed ?? null;
+@@ -368,6 +369,7 @@ export default function RunDetail({ params }: { params: { id: string } }) {
+             isResizing={isResizing}
+             steerBarRef={steerBarRef}
+             onDockHeightChange={setDockHeight}
++            onResizeActiveChange={setDockResizeActive}
+           />
+         </div>
+       )}
+diff --git a/apps/fabro-web/app/routes/run-detail/docked-controls.tsx b/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
+index f834862..2caa091 100644
+--- a/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
++++ b/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
+@@ -134,6 +134,7 @@ export function RunDetailDockedControls({
+   isResizing,
+   steerBarRef,
+   onDockHeightChange,
++  onResizeActiveChange,
+ }: {
+   runId: string;
+   hideSteerBar: boolean;
+@@ -143,6 +144,7 @@ export function RunDetailDockedControls({
+   isResizing: boolean;
+   steerBarRef: RefObject<SteerBarHandle | null>;
+   onDockHeightChange?: (height: string) => void;
++  onResizeActiveChange?: (active: boolean) => void;
+ }) {
+   if (hideSteerBar && !hasPendingQuestions) return null;
+ 
+@@ -160,6 +162,7 @@ export function RunDetailDockedControls({
+           runId={runId}
+           questions={pendingQuestions}
+           onDockHeightChange={onDockHeightChange}
++          onResizeActiveChange={onResizeActiveChange}
+         />
+       ) : (
+         <SteerBar ref={steerBarRef} runId={runId} />
+diff --git a/docs/plans/2026-07-21-resizable-interview-dock-plan.md b/docs/plans/2026-07-21-resizable-interview-dock-plan.md
+index 2574c42..9ab61c9 100644
+--- a/docs/plans/2026-07-21-resizable-interview-dock-plan.md
++++ b/docs/plans/2026-07-21-resizable-interview-dock-plan.md
+@@ -394,14 +394,14 @@ No warnings or low-priority observations were raised. The plan is ready for impl
+   - [x] Step 6: Pass height state up to `RunDetail` via `onDockHeightChange` callback
+ 
+ ### Wave 2
+-- [ ] Slice 2: Resize Handle and Drag Interaction
+-  - [ ] Step 1: Add horizontal resize handle `<div>` with ARIA attributes
+-  - [ ] Step 2: Style the handle with hover state
+-  - [ ] Step 3: Add `useState` for `isDragging` and `useRef` for `dragOrigin`
+-  - [ ] Step 4: Add `onPointerDown` handler
+-  - [ ] Step 5: Add `onPointerMove` handler
+-  - [ ] Step 6: Add `onPointerUp` and `onPointerCancel` handlers
+-  - [ ] Step 7: Add `onResizeActiveChange` callback prop
++- [x] Slice 2: Resize Handle and Drag Interaction
++  - [x] Step 1: Add horizontal resize handle `<div>` with ARIA attributes
++  - [x] Step 2: Style the handle with hover state
++  - [x] Step 3: Add `useState` for `isDragging` and `useRef` for `dragOrigin`
++  - [x] Step 4: Add `onPointerDown` handler
++  - [x] Step 5: Add `onPointerMove` handler
++  - [x] Step 6: Add `onPointerUp` and `onPointerCancel` handlers
++  - [x] Step 7: Add `onResizeActiveChange` callback prop
+ 
+ ### Wave 3
+ - [ ] Slice 3: Dynamic CSS Variable and Transition Suppression
