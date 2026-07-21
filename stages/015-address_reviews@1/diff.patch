@@ -1,0 +1,43 @@
+diff --git a/plans/2026-07-21-agent-session-image-input.md b/plans/2026-07-21-agent-session-image-input.md
+index e1e675a..b9395fc 100644
+--- a/plans/2026-07-21-agent-session-image-input.md
++++ b/plans/2026-07-21-agent-session-image-input.md
+@@ -1,6 +1,6 @@
+ # Plan: Agent Session Image Input API
+ 
+-**Status**: draft
++**Status**: reviewed
+ **Spec**: docs/superpowers/specs/2026-07-21-agent-session-image-input.md
+ 
+ ## Goal
+@@ -541,3 +541,30 @@ None. All spec findings were high-value (type changes, API refactors, call-site
+ 7. **Concurrent modifications to agent.rs**: Slice 4 and Slice 5 both modify `lib/crates/fabro-workflow/src/handler/agent.rs`. Slice 4 changes `CodergenRunRequest` and call sites (Wave 1); Slice 5 adds image propagation logic to the same execute method (Wave 2). These are sequential waves, so no true conflict, but the engineer implementing Slice 5 must rebase on Slice 4's changes. **Mitigation**: Ensure Slice 4 is fully merged and tested before starting Slice 5. Alternatively, implement both slices sequentially by the same engineer to avoid rebase overhead.
+ 
+ 8. **Prompt text construction in agent handler**: Slice 5 Step 6 assumes `prompt` is already a `String` in the agent handler execute method. If the prompt is constructed from multiple context variables or templates, the logic to build `initial_content` must account for that. **Mitigation**: Review the prompt construction code in `handler/agent.rs` execute method (around line 260). Ensure the prompt is finalized as a `String` before constructing `initial_content`. If prompt construction is complex, refactor to ensure a single final `prompt: String` variable exists before Step 6.
++
++## Plan Review Summary
++
++The plan underwent parallel review by five specialized reviewers covering acceptance criteria, design integrity, UX impact, strategic alignment, and parallelization correctness. All five reviewers returned "succeeded" verdicts with no blocker-severity issues identified.
++
++### Reviewer Verdicts
++
++- **review_acceptance** (best outcome): Succeeded - confirmed all acceptance criteria are testable and covered by scenarios
++- **review_design**: Succeeded - validated API design, migration strategy, and architectural coherence
++- **review_ux**: Succeeded - verified developer experience impact and migration path clarity
++- **review_strategic**: Succeeded - confirmed alignment with fabro-agent architecture and checkpoint model
++- **review_parallel**: Succeeded - validated wave dependencies, file collision analysis, and slice boundaries
++
++### Changes Applied
++
++No changes were required. All reviewers found the plan ready for implementation with no blockers or critical warnings.
++
++### Observations Preserved
++
++The plan's existing "Risks & Open Questions" section already documents the key concerns raised during spec review:
++- Checkpoint backward compatibility (accepted as intentional breaking change per checkpoint design)
++- Prior stage detection relying on `keys::LAST_STAGE` context (verification deferred to Slice 5)
++- PromptHandler text extraction being lossy for image parts (acceptable limitation documented)
++- Image file path assumptions requiring shared filesystem access (consistent with current architecture)
++- SessionMessage serialization schema impact (backend-only change, no API modification needed)
++
++These observations remain unchanged as they represent known trade-offs consistent with the codebase's existing design principles.
