@@ -3836,6 +3836,10 @@ fn answer_from_request(
             Ok(Answer::multi_selected(req.option_keys))
         }
         SubmitAnswerRequest::TextRequest(req) => Ok(Answer::text(req.text)),
+        // TODO(slice-3): Implement TextWithImagesRequest handling in Slice 3
+        SubmitAnswerRequest::TextWithImagesRequest(_) => {
+            Err(ApiError::bad_request("Image attachments not yet implemented.").into_response())
+        }
     }
 }
 
