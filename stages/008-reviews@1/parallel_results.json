@@ -1,0 +1,27 @@
+[
+  {
+    "id": "review_acceptance",
+    "status": "succeeded",
+    "head_sha": "9ec28fbafbbf3e62068130130e9a4bb3f7ab4b3e"
+  },
+  {
+    "id": "review_design",
+    "status": "succeeded",
+    "head_sha": "c585c79c5c74c2bd38bc235b38c00b802fbd0371"
+  },
+  {
+    "id": "review_ux",
+    "status": "succeeded",
+    "head_sha": "2b54e70c0996526208b220e154c43be2ab663cee"
+  },
+  {
+    "id": "review_strategic",
+    "status": "succeeded",
+    "head_sha": "5b743721f5312925f51531d9d26a9f3ddfdc4bb2"
+  },
+  {
+    "id": "review_parallel",
+    "status": "succeeded",
+    "head_sha": "63c9435d6c797ac036a8998b38abc6d8ae8a78d4"
+  }
+]
