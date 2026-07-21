@@ -16,7 +16,7 @@ The crate is organized around a central `Session` that drives an agentic loop:
 User Input
     |
     v
-[Session::process_input]
+[Session::process_text_input / process_message]
     |
     v
 +-------------------+
@@ -152,8 +152,23 @@ tokio::spawn(async move {
     }
 });
 
-// 7. Process user input
-session.process_input("Fix the failing test in src/lib.rs").await?;
+// 7. Process user input (text-only)
+session.process_text_input("Fix the failing test in src/lib.rs").await?;
+
+// Or with multi-part content (images + text)
+use fabro_llm::types::{ContentPart, ImageData};
+session.process_message(
+    vec![
+        ContentPart::Image(ImageData {
+            url: Some("/path/to/screenshot.png".into()),
+            data: None,
+            media_type: None,
+            detail: None,
+        }),
+        ContentPart::Text("What's in this image?".into()),
+    ],
+    Default::default(),  // AgentToolRuntime
+).await?;
 ```
 
 ### Steering and Follow-ups
