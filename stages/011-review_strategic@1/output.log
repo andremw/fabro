@@ -1,0 +1,21 @@
+```json
+{
+  "reviewer": "plan-review-strategic",
+  "verdict": "approve",
+  "issues": [],
+  "strategic_observations": [
+    "The plan correctly identifies this as infrastructure work unblocking a larger feature (freeform image attachments) rather than attempting to implement end-to-end value in isolation.",
+    "The scope is tightly bounded to the Session API surface and explicitly defers broader agent-loop multimodal concerns to future work, preventing scope creep.",
+    "The plan acknowledges the existing CodergenRunRequest.initial_images field and treats this as removing a known API gap rather than speculative design, which reduces risk.",
+    "The choice to make AgentMessage an enum-of-structs instead of adding Vec<ContentPart> to the existing String field shows deliberate consideration of migration path and type safety.",
+    "The plan's incremental delivery structure (6 distinct steps with clear intermediate states) allows for partial progress validation without requiring all-or-nothing completion."
+  ],
+  "scope_assessment": {
+    "current_scope": "small",
+    "recommended_scope": "small",
+    "could_split": false,
+    "minimum_viable_subset": "Steps 1-4 form the minimal viable subset: they establish the new AgentMessage enum, add process_input_multimodal, update fabro-workflow's handler/agent.rs to thread initial_images, and migrate existing tests. Step 5 (migration of other call sites) and Step 6 (human answer image support) are enhancements that could technically be deferred, but they're low-cost and prevent leaving the API half-migrated."
+  },
+  "summary": "This plan solves a clear, well-scoped problem (unblocking Slice 5 of the image attachments roadmap) with a proportional solution (6 steps, no new abstractions, minimal API surface change). The decision to use an enum-of-structs for AgentMessage instead of Vec<ContentPart> is architecturally sound and reversible. No strategic concerns; the plan is ready for implementation."
+}
+```

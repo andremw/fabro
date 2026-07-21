@@ -1,0 +1,6 @@
+{
+  "stdout": "I'll review the implementation plan from a UX perspective. Let me first read the plan and spec documents.```json\n{\n  \"reviewer\": \"plan-review-ux\",\n  \"verdict\": \"approve\",\n  \"issues\": [],\n  \"ux_observations\": [\n    \"No user-facing changes in this plan — UX review not applicable. This is a purely internal API refactoring that changes the fabro-agent Session API and workflow handler plumbing to support multi-part content (images + text). All changes are backend-only and affect internal data structures, method signatures, and serialization format.\"\n  ],\n  \"summary\": \"Plan has no user-facing surface. The changes are confined to internal agent session APIs, workflow handler construction logic, backend implementations, and message type structure. End users of Fabro workflows will see no difference in CLI output, UI, error messages, or interaction patterns. UX review skipped.\"\n}\n```",
+  "stderr": "",
+  "stop_reason": "end_turn",
+  "duration_ms": 18006
+}
