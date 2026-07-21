@@ -56,7 +56,8 @@ use fabro_config::{RunLayer, Storage, WorkflowSettingsBuilder};
 use fabro_db::DbPool;
 use fabro_environment::EnvironmentStore;
 use fabro_interview::{
-    Answer, AnswerSubmission, ControlInterviewer, Interviewer, Question, WorkerControlEnvelope,
+    Answer, AnswerSubmission, ControlInterviewer, ImageAttachment, Interviewer, Question,
+    WorkerControlEnvelope,
 };
 use fabro_llm::client::Client as LlmClient;
 use fabro_llm::generate::{GenerateParams, generate_object};
@@ -3851,9 +3852,67 @@ fn answer_from_request(
             Ok(Answer::multi_selected(req.option_keys))
         }
         SubmitAnswerRequest::TextRequest(req) => Ok(Answer::text(req.text)),
-        // TODO(slice-3): Implement TextWithImagesRequest handling in Slice 3
-        SubmitAnswerRequest::TextWithImagesRequest(_) => {
-            Err(ApiError::bad_request("Image attachments not yet implemented.").into_response())
+        SubmitAnswerRequest::TextWithImagesRequest(req) => {
+            // Validate text is non-empty
+            if req.text.trim().is_empty() {
+                return Err(
+                    ApiError::bad_request("Text is required when submitting images.").into_response()
+                );
+            }
+
+            // Validate images array is non-empty
+            if req.images.is_empty() {
+                return Err(ApiError::bad_request(
+                    "At least one image is required for text_with_images answer.",
+                )
+                .into_response());
+            }
+
+            // Process and validate each image
+            const MAX_IMAGE_SIZE_BYTES: usize = 5 * 1024 * 1024; // 5 MB
+            let mut validated_images = Vec::new();
+
+            for img_req in &req.images {
+                let media_type_str = img_req.media_type.to_string();
+
+                // Decode base64
+                let decoded = decode_base64_image(&img_req.data).map_err(|err| {
+                    ApiError::bad_request(err).into_response()
+                })?;
+
+                // Check decoded size
+                if decoded.len() > MAX_IMAGE_SIZE_BYTES {
+                    return Err(
+                        ApiError::bad_request("Image exceeds 5 MB limit.").into_response()
+                    );
+                }
+
+                // Detect actual MIME type from decoded bytes
+                if let Some(detected_type) = infer::get(&decoded) {
+                    let detected_mime = detected_type.mime_type();
+                    // Verify declared MIME matches detected MIME
+                    if detected_mime != media_type_str {
+                        return Err(ApiError::bad_request(&format!(
+                            "Image MIME type mismatch: declared {} but detected {}",
+                            media_type_str, detected_mime
+                        ))
+                        .into_response());
+                    }
+                } else {
+                    // If infer can't detect the type, reject it
+                    return Err(
+                        ApiError::bad_request("Could not detect image type from file content.")
+                            .into_response(),
+                    );
+                }
+
+                validated_images.push(ImageAttachment {
+                    data: decoded,
+                    media_type: media_type_str,
+                });
+            }
+
+            Ok(Answer::text_with_images(req.text.clone(), validated_images))
         }
     }
 }

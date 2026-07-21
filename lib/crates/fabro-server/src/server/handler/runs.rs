@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::ErrorKind;
 use std::sync::Arc;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{DefaultBodyLimit, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, put};
@@ -68,7 +68,10 @@ pub(super) fn routes() -> Router<Arc<AppState>> {
             put(link_run_parent).delete(unlink_run_parent),
         )
         .route("/runs/{id}/questions", get(get_questions))
-        .route("/runs/{id}/questions/{qid}/answer", post(submit_answer))
+        .route(
+            "/runs/{id}/questions/{qid}/answer",
+            post(submit_answer).layer(DefaultBodyLimit::max(50 * 1024 * 1024)), // 50 MB for image attachments
+        )
         .route("/runs/{id}/state", get(get_run_state))
         .route("/runs/{id}/logs", get(get_run_logs))
         .route(
