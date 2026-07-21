@@ -38,7 +38,7 @@ mod system_time_iso8601 {
 #[derive(Debug, Clone)]
 pub enum Message {
     User {
-        content:   String,
+        content:   Vec<ContentPart>,
         timestamp: SystemTime,
     },
     Assistant {
@@ -94,7 +94,7 @@ impl Message {
     pub fn to_session_message(&self) -> SessionMessage {
         match self {
             Self::User { content, timestamp } => SessionMessage::User {
-                content:   content.clone(),
+                content:   serde_json::to_string(content).unwrap_or_default(),
                 timestamp: system_time_to_utc(*timestamp),
             },
             Self::Assistant {
@@ -130,7 +130,9 @@ impl Message {
     pub fn from_session_message(message: &SessionMessage) -> Result<Self, serde_json::Error> {
         Ok(match message {
             SessionMessage::User { content, timestamp } => Self::User {
-                content:   content.clone(),
+                content:   serde_json::from_str(content).unwrap_or_else(|_| {
+                    vec![ContentPart::Text(content.clone())]
+                }),
                 timestamp: utc_to_system_time(*timestamp),
             },
             SessionMessage::Assistant {

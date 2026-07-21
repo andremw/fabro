@@ -5,6 +5,28 @@ use fabro_types::SessionMessage;
 
 use crate::types::Message;
 
+/// Helper to create a text-only content vector for testing
+#[cfg(test)]
+fn text_content(s: &str) -> Vec<ContentPart> {
+    vec![ContentPart::Text(s.to_string())]
+}
+
+/// Helper to extract text from content vector for testing
+#[cfg(test)]
+fn extract_text(content: &[ContentPart]) -> String {
+    content
+        .iter()
+        .filter_map(|p| {
+            if let ContentPart::Text(t) = p {
+                Some(t.as_str())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct History {
     turns: Vec<Message>,
@@ -97,7 +119,12 @@ impl History {
         self.turns
             .iter()
             .map(|turn| match turn {
-                Message::User { content, .. } => LlmMessage::user(content),
+                Message::User { content, .. } => LlmMessage {
+                    role:         Role::User,
+                    content:      content.clone(),
+                    name:         None,
+                    tool_call_id: None,
+                },
                 Message::Assistant {
                     content,
                     tool_calls,
@@ -258,14 +285,14 @@ mod tests {
         let turns = history.turns();
         // Layout: summary, extracted user msgs (0..3), preserved (4..7)
         assert!(matches!(&turns[0], Message::System { .. }));
-        assert!(matches!(&turns[1], Message::User { content, .. } if content == "msg 0"));
-        assert!(matches!(&turns[2], Message::User { content, .. } if content == "msg 1"));
-        assert!(matches!(&turns[3], Message::User { content, .. } if content == "msg 2"));
-        assert!(matches!(&turns[4], Message::User { content, .. } if content == "msg 3"));
-        assert!(matches!(&turns[5], Message::User { content, .. } if content == "msg 4"));
-        assert!(matches!(&turns[6], Message::User { content, .. } if content == "msg 5"));
-        assert!(matches!(&turns[7], Message::User { content, .. } if content == "msg 6"));
-        assert!(matches!(&turns[8], Message::User { content, .. } if content == "msg 7"));
+        assert!(matches!(&turns[1], Message::User { content, .. } if extract_text(content) == "msg 0"));
+        assert!(matches!(&turns[2], Message::User { content, .. } if extract_text(content) == "msg 1"));
+        assert!(matches!(&turns[3], Message::User { content, .. } if extract_text(content) == "msg 2"));
+        assert!(matches!(&turns[4], Message::User { content, .. } if extract_text(content) == "msg 3"));
+        assert!(matches!(&turns[5], Message::User { content, .. } if extract_text(content) == "msg 4"));
+        assert!(matches!(&turns[6], Message::User { content, .. } if extract_text(content) == "msg 5"));
+        assert!(matches!(&turns[7], Message::User { content, .. } if extract_text(content) == "msg 6"));
+        assert!(matches!(&turns[8], Message::User { content, .. } if extract_text(content) == "msg 7"));
     }
 
     #[test]
@@ -574,7 +601,7 @@ mod tests {
 
         assert_eq!(restored.turns().len(), 3);
         assert!(
-            matches!(&restored.turns()[0], Message::User { content, .. } if content == "Read a file")
+            matches!(&restored.turns()[0], Message::User { content, .. } if extract_text(content) == "Read a file")
         );
         assert!(
             matches!(&restored.turns()[1], Message::Assistant { content, tool_calls, usage, .. }
@@ -847,8 +874,8 @@ mod tests {
         ];
         let extracted = extract_recent_user_messages(turns, 20_000);
         assert_eq!(extracted.len(), 2);
-        assert!(matches!(&extracted[0], Message::User { content, .. } if content == "first"));
-        assert!(matches!(&extracted[1], Message::User { content, .. } if content == "second"));
+        assert!(matches!(&extracted[0], Message::User { content, .. } if extract_text(content) == "first"));
+        assert!(matches!(&extracted[1], Message::User { content, .. } if extract_text(content) == "second"));
     }
 
     #[test]
@@ -867,7 +894,7 @@ mod tests {
         // exceed
         let extracted = extract_recent_user_messages(turns, 30);
         assert_eq!(extracted.len(), 1);
-        assert!(matches!(&extracted[0], Message::User { content, .. } if content.starts_with('b')));
+        assert!(matches!(&extracted[0], Message::User { content, .. } if extract_text(content).starts_with('b')));
     }
 
     #[test]
@@ -896,10 +923,10 @@ mod tests {
         assert_eq!(history.turns().len(), 3);
         assert!(matches!(&history.turns()[0], Message::System { .. }));
         assert!(
-            matches!(&history.turns()[1], Message::User { content, .. } if content == "user msg")
+            matches!(&history.turns()[1], Message::User { content, .. } if extract_text(content) == "user msg")
         );
         assert!(
-            matches!(&history.turns()[2], Message::User { content, .. } if content == "preserved")
+            matches!(&history.turns()[2], Message::User { content, .. } if extract_text(content) == "preserved")
         );
     }
 }

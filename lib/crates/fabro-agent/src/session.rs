@@ -1329,7 +1329,7 @@ impl Session {
 
         // Append user turn and emit event
         self.history.push(Message::User {
-            content:   expanded_input.clone(),
+            content:   vec![ContentPart::Text(expanded_input.clone())],
             timestamp: SystemTime::now(),
         });
         self.event_emitter
@@ -1892,7 +1892,7 @@ impl Session {
                 }
                 SteeringItem::User { text } => {
                     self.history.push(Message::User {
-                        content:   text.clone(),
+                        content:   vec![ContentPart::Text(text.clone())],
                         timestamp: SystemTime::now(),
                     });
                 }
@@ -2239,7 +2239,7 @@ mod tests {
         let turns = session.history().turns();
         // UserTurn + AssistantTurn = 2
         assert_eq!(turns.len(), 2);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "Hi"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "Hi")));
         assert!(
             matches!(&turns[1], Message::Assistant { content, .. } if content == "Hello there!")
         );
@@ -2605,12 +2605,12 @@ mod tests {
         // Second cycle: User + Assistant = 2
         // Total = 4
         assert_eq!(turns.len(), 4);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "initial message"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "initial message")));
         assert!(
             matches!(&turns[1], Message::Assistant { content, .. } if content == "First response")
         );
         assert!(
-            matches!(&turns[2], Message::User { content, .. } if content == "followup message")
+            matches!(&turns[2], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "followup message"))
         );
         assert!(
             matches!(&turns[3], Message::Assistant { content, .. } if content == "Followup response")
@@ -2930,9 +2930,9 @@ mod tests {
 
         let turns = session.history().turns();
         assert_eq!(turns.len(), 4);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "one"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "one")));
         assert!(matches!(&turns[1], Message::Assistant { content, .. } if content == "First"));
-        assert!(matches!(&turns[2], Message::User { content, .. } if content == "two"));
+        assert!(matches!(&turns[2], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "two")));
         assert!(matches!(&turns[3], Message::Assistant { content, .. } if content == "Second"));
     }
 

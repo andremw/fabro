@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use fabro_llm::client::Client;
-use fabro_llm::types::{Message as LlmMessage, Request};
+use fabro_llm::types::{ContentPart, Message as LlmMessage, Request};
 use tracing::debug;
 
 use crate::agent_profile::AgentProfile;
@@ -10,6 +10,21 @@ use crate::event::Emitter;
 use crate::file_tracker::FileTracker;
 use crate::history::History;
 use crate::types::{AgentEvent, Message};
+
+/// Extract text content from a Vec<ContentPart>, joining all text parts
+fn extract_text_content(content: &[ContentPart]) -> String {
+    content
+        .iter()
+        .filter_map(|p| {
+            if let ContentPart::Text(t) = p {
+                Some(t.as_str())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
+}
 
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 
@@ -223,9 +238,8 @@ fn estimate_chars_local_tokens(chars: usize) -> usize {
 
 fn estimate_turn_chars(turn: &Message) -> usize {
     match turn {
-        Message::User { content, .. }
-        | Message::System { content, .. }
-        | Message::Steering { content, .. } => content.len(),
+        Message::User { content, .. } => extract_text_content(content).len(),
+        Message::System { content, .. } | Message::Steering { content, .. } => content.len(),
         Message::Assistant {
             content,
             tool_calls,
@@ -251,7 +265,8 @@ pub fn render_turns_for_summary(turns: &[Message]) -> String {
     for turn in turns {
         match turn {
             Message::User { content, .. } => {
-                let _ = writeln!(out, "User: {content}");
+                let text = extract_text_content(content);
+                let _ = writeln!(out, "User: {text}");
             }
             Message::Assistant {
                 content,
