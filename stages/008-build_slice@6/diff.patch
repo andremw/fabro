@@ -1,0 +1,62 @@
+diff --git a/docs/plans/2026-07-21-agent-session-image-input-plan.md b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+index 681b3ba..bb86b14 100644
+--- a/docs/plans/2026-07-21-agent-session-image-input-plan.md
++++ b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+@@ -633,14 +633,14 @@ These observations remain unchanged as they represent known trade-offs consisten
+   - [x] Test fabro-llm attachment resolution
+   - [x] Run full fabro-workflow tests
+   - [x] Refactor
+-- [ ] Slice 6: Server handler and external call sites
+-  - [ ] Update server sessions handler call site
+-  - [ ] Test server compiles
+-  - [ ] Check fabro-store for Message::User construction
+-  - [ ] Test fabro-store compiles
+-  - [ ] Run workspace build
+-  - [ ] Run workspace tests
+-  - [ ] Refactor
++- [x] Slice 6: Server handler and external call sites
++  - [x] Update server sessions handler call site
++  - [x] Test server compiles
++  - [x] Check fabro-store for Message::User construction
++  - [x] Test fabro-store compiles
++  - [x] Run workspace build
++  - [x] Run workspace tests
++  - [x] Refactor
+ 
+ ### Wave 3
+ - [ ] Slice 7: Documentation and plan completion
+diff --git a/lib/crates/fabro-agent/src/loop_detection.rs b/lib/crates/fabro-agent/src/loop_detection.rs
+index c6efbd7..2174e82 100644
+--- a/lib/crates/fabro-agent/src/loop_detection.rs
++++ b/lib/crates/fabro-agent/src/loop_detection.rs
+@@ -1,8 +1,6 @@
+ use std::collections::hash_map::DefaultHasher;
+ use std::hash::{Hash, Hasher};
+ 
+-use fabro_llm::types::ContentPart;
+-
+ use crate::history::History;
+ use crate::types::Message;
+ 
+@@ -99,7 +97,7 @@ fn is_repeating_pattern(signatures: &[u64], pattern_len: usize) -> bool {
+ mod tests {
+     use std::time::SystemTime;
+ 
+-    use fabro_llm::types::{TokenCounts, ToolCall};
++    use fabro_llm::types::{ContentPart, TokenCounts, ToolCall};
+ 
+     use super::*;
+ 
+diff --git a/lib/crates/fabro-server/src/server/handler/sessions.rs b/lib/crates/fabro-server/src/server/handler/sessions.rs
+index 3ac297f..8e51161 100644
+--- a/lib/crates/fabro-server/src/server/handler/sessions.rs
++++ b/lib/crates/fabro-server/src/server/handler/sessions.rs
+@@ -1187,7 +1187,7 @@ async fn drive_agent_session(
+         if initialize {
+             session.initialize().await?;
+         }
+-        session.process_input(input).await
++        session.process_text_input(input).await
+     };
+     tokio::pin!(process);
+ 

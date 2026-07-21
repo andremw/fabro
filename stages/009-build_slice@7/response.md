@@ -1,0 +1,102 @@
+I'll execute the next slice of the implementation plan. Let me first read the plan to understand the current progress and identify the next slice to work on.I can see that Slice 7 (Documentation and plan completion) is the next unfinished slice. All previous slices are complete, and I now need to:
+
+1. Update documentation to reflect the new API
+2. Verify acceptance criteria
+3. Mark the plan as complete
+
+Let me start working through this slice step by step.## IMPLEMENT: Check SDK documentation for Session examplesI found references to `process_input` in the SDK documentation. Let me read the file to understand the full context:Now I need to update the documentation to reflect the new API. The documentation references `process_input` which has been replaced with `process_text_input` and `process_message`. Let me update it:Now let me commit these documentation changes:## TEST: Verify SDK documentation changes compile
+
+Since these are markdown documentation files, there's no compilation test needed. The changes are correct.
+
+## REFACTOR: Nothing to refactor for documentation changes
+
+Moving to the next step.## IMPLEMENT: Check fabro-agent README for Session examplesLet me read the fabro-agent README to see the context:Now I need to update the references in the README:Now let me commit these changes:## TEST: Verify README changes are correct
+
+The README is markdown, no compilation needed. Changes are accurate.
+
+## REFACTOR: Nothing to refactor for documentation changes## IMPLEMENT: Verify acceptance criteria
+
+Let me verify each acceptance criterion from the plan:
+
+**AC1: Session accepts multi-part initial message**
+- `Session::process_message(vec![ContentPart::Image(...), ContentPart::Text(...)], runtime)` was implemented in Slice 2
+- Test coverage in Slice 2, Step 4
+
+**AC2: Text-only messages still work**
+- `Session::process_text_input("hello")` was implemented in Slice 2
+- Test coverage in Slice 2, Step 6
+- All existing test cases updated in Slice 3
+
+**AC3: Images reach the LLM provider**
+- `Message::User` content is `Vec<ContentPart>` (Slice 1)
+- `History::convert_to_messages` preserves multi-part content (Slice 1, Step 4)
+- fabro-llm attachment resolver handles `ContentPart::Image` (verified in Slice 5, Step 10)
+
+**AC4: Workflow handler can inject images**
+- `extract_human_images` helper implemented (Slice 5, Step 2)
+- `CodergenRunRequest` accepts `initial_content: Vec<ContentPart>` (Slice 4)
+- Backend's `run()` methods pass to `session.process_message` (Slice 4, Steps 3 & 5)
+- Agent handler prepends images to initial_content (Slice 5, Steps 6 & 9)
+
+**AC5: Migration is mechanical**
+- All Message::User construction sites updated (Slice 1, Step 6)
+- All session method call sites updated (Slices 3 & 6)
+- Workspace compiles and tests pass (Slice 6, Steps 5 & 6)
+
+**AC6: Agent session continues resumption support**
+- SessionMessage round-trip preserves multi-part content (Slice 1, Step 8)
+- ContentPart serde is automatic (no custom serialization needed)
+
+Let me run the full test suite to verify all criteria are met:Perfect! All 6914 tests pass. Let me verify the workspace builds cleanly:Excellent! The workspace builds successfully. Now let me create a summary of acceptance criteria verification:
+
+## TEST: Verify acceptance criteria
+
+All acceptance criteria are met:
+
+1. ✅ **Session accepts multi-part initial message**: `process_message` API implemented and tested (Slice 2)
+2. ✅ **Text-only messages still work**: `process_text_input` wrapper implemented and all existing tests pass (Slices 2 & 3)
+3. ✅ **Images reach the LLM provider**: Multi-part content preserved through history conversion and fabro-llm attachment resolution (Slices 1 & 5)
+4. ✅ **Workflow handler can inject images**: `extract_human_images` and `initial_content` propagation implemented (Slices 4 & 5)
+5. ✅ **Migration is mechanical**: All call sites updated, workspace builds, all 6914 tests pass (Slices 1-6)
+6. ✅ **Agent session continues resumption support**: SessionMessage round-trip preserves multi-part content (Slice 1)
+
+## REFACTOR: Nothing to refactor
+
+The verification is complete.## IMPLEMENT: Update plan status## TEST: Verify plan status update is correct
+
+The plan is now marked as implemented. Let me run the full test suite one final time to confirm everything is green:Perfect! All 6914 tests pass.
+
+## REFACTOR: Nothing to refactor for plan status update## Finishing
+
+All slices are now complete! Let me verify the final state:
+
+- ✅ Slice 1: AgentMessage::User content type change - COMPLETE
+- ✅ Slice 2: Session::process_message API - COMPLETE
+- ✅ Slice 3: Update agent crate test call sites - COMPLETE
+- ✅ Slice 4: CodergenRunRequest and backend updates - COMPLETE
+- ✅ Slice 5: Agent handler image propagation - COMPLETE
+- ✅ Slice 6: Server handler and external call sites - COMPLETE
+- ✅ Slice 7: Documentation and plan completion - COMPLETE
+
+**Plan status**: `implemented`
+
+**Full test suite results**:
+```
+Summary [  26.658s] 6914 tests run: 6914 passed (1 slow), 185 skipped
+```
+
+All acceptance criteria verified:
+1. Session accepts multi-part initial message ✅
+2. Text-only messages still work ✅
+3. Images reach the LLM provider ✅
+4. Workflow handler can inject images ✅
+5. Migration is mechanical ✅
+6. Agent session continues resumption support ✅
+
+The implementation is complete with:
+- Documentation updated (SDK reference and fabro-agent README)
+- All tests passing (6914/6914)
+- Workspace building cleanly
+- Plan marked as implemented
+
+{"preferred_next_label": "Build complete", "context_updates": {"build_done": "true"}}
