@@ -1,0 +1,107 @@
+diff --git a/lib/crates/fabro-workflow/src/context.rs b/lib/crates/fabro-workflow/src/context.rs
+index af12335..5fbf09b 100644
+--- a/lib/crates/fabro-workflow/src/context.rs
++++ b/lib/crates/fabro-workflow/src/context.rs
+@@ -37,6 +37,9 @@ pub mod keys {
+     pub const HUMAN_GATE_LABEL: &str = "human.gate.label";
+     pub const HUMAN_GATE_TEXT: &str = "human.gate.text";
+ 
++    // --- fabro.human_answer_images.* keys ---
++    pub const HUMAN_ANSWER_IMAGES_PREFIX: &str = "fabro.human_answer_images.";
++
+     // --- parallel.* keys ---
+     pub const PARALLEL_RESULTS: &str = "parallel.results";
+     pub const PARALLEL_BRANCH_COUNT: &str = "parallel.branch_count";
+diff --git a/lib/crates/fabro-workflow/src/handler/agent.rs b/lib/crates/fabro-workflow/src/handler/agent.rs
+index 16dbe02..17ea967 100644
+--- a/lib/crates/fabro-workflow/src/handler/agent.rs
++++ b/lib/crates/fabro-workflow/src/handler/agent.rs
+@@ -417,6 +417,43 @@ impl Handler for AgentHandler {
+     }
+ }
+ 
++/// Extract image file paths from workflow context for a specific stage.
++///
++/// Looks for the context key `fabro.human_answer_images.{stage_id}` which
++/// contains a JSON array of absolute file paths to images attached to the
++/// human stage's answer.
++///
++/// Returns `Some(Vec<String>)` if the key exists and contains valid paths,
++/// otherwise `None`.
++fn get_human_answer_images(context: &Context, stage_id: &str) -> Option<Vec<String>> {
++    let key = format!("{}{}", keys::HUMAN_ANSWER_IMAGES_PREFIX, stage_id);
++    context
++        .get(&key)
++        .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok())
++}
++
++/// Identify the immediately prior human stage from workflow context.
++///
++/// Checks if the last executed stage (from `last_stage` context key) provided
++/// human answer images. Returns the stage ID if images are present, otherwise
++/// `None`.
++///
++/// This allows agent stages to automatically detect and consume images from
++/// the preceding human stage without explicit wiring.
++fn prior_human_stage_id(context: &Context) -> Option<String> {
++    let last_stage = context.get_string(keys::LAST_STAGE, "");
++    if last_stage.is_empty() {
++        return None;
++    }
++
++    // Check if this stage has human answer images in the context
++    if get_human_answer_images(context, &last_stage).is_some() {
++        Some(last_stage)
++    } else {
++        None
++    }
++}
++
+ #[cfg(test)]
+ #[expect(
+     clippy::disallowed_methods,
+@@ -1382,4 +1419,44 @@ Some text in between.
+             "prompt.md should contain original prompt"
+         );
+     }
++
++    #[test]
++    fn get_human_answer_images_with_images_in_context() {
++        let context = test_context();
++        context.set(
++            format!("{}review", keys::HUMAN_ANSWER_IMAGES_PREFIX),
++            serde_json::json!(["/tmp/image1.png", "/tmp/image2.jpg"]),
++        );
++
++        let images = get_human_answer_images(&context, "review");
++        assert_eq!(
++            images,
++            Some(vec![
++                "/tmp/image1.png".to_string(),
++                "/tmp/image2.jpg".to_string()
++            ])
++        );
++    }
++
++    #[test]
++    fn get_human_answer_images_with_no_images() {
++        let context = test_context();
++        // No human_answer_images key set
++
++        let images = get_human_answer_images(&context, "review");
++        assert_eq!(images, None);
++    }
++
++    #[test]
++    fn prior_human_stage_id_returns_stage_with_images() {
++        let context = test_context();
++        context.set(keys::LAST_STAGE, serde_json::json!("review"));
++        context.set(
++            format!("{}review", keys::HUMAN_ANSWER_IMAGES_PREFIX),
++            serde_json::json!(["/tmp/image.png"]),
++        );
++
++        let prior_stage = prior_human_stage_id(&context);
++        assert_eq!(prior_stage, Some("review".to_string()));
++    }
+ }
