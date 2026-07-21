@@ -315,7 +315,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T09:16:58.987586Z",
-  "last_event_at": "2026-07-21T10:28:13.611254Z",
+  "last_event_at": "2026-07-21T10:28:21.828418Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -3503,9 +3503,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 285,
       "checkpoint": {
-        "timestamp": "2026-07-21T10:28:17.580756Z",
+        "timestamp": "2026-07-21T10:28:21.826585Z",
         "current_node": "check",
         "completed_nodes": [
           "start",
@@ -3541,18 +3541,148 @@
         ],
         "node_retries": {},
         "context_values": {
+          "response.address": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep the same zoom applied to both modes.\" This means the zoom persistence implementation is not working correctly. Let me investigate the code to understand the problem.Let me check the web source directory structure:I can see the problem! The zoom persistence code has a logic bug. On lines 77-91, when switching direction, the code tries to save the \"old\" zoom, but it's reading `v.zoom` which is the current value at the time of the effect, not the zoom from the previous direction. The effect needs to save the current zoom to `zoomByDirection.current` *before* reading from it.\n\nThe issue is that when you switch from TB to LR:\n1. The effect runs with `activeDirection = \"LR\"`\n2. It reads `v.zoom` (which is still the TB zoom)\n3. It tries to get `zoomByDirection.current[\"LR\"]` which is undefined on first switch\n4. It falls back to `oldZoom` (which is the TB zoom it just read)\n5. So both TB and LR end up with the same value\n\nLet me fix this:Now I need to test this fix. Let me run the TypeScript checks:Good! Now let me run the tests:Perfect! All tests pass. Now let me commit and push the fix:Now I need to reply to the comment. Let me get the comment timestamp to reply properly:Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}",
+          "thread.start.current_node": "check",
+          "thread.pause.current_node": "check",
+          "internal.retry_count.check": 0,
+          "current_node": "check",
+          "internal.retry_count.address": 0,
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "preferred_label": "Keep watching",
+          "graph.loop_restart_signature_limit": "1000",
+          "internal.fidelity": "compact",
+          "last_stage": "address",
+          "internal.retry_count.start": 0,
+          "graph.rankdir": "LR",
           "internal.node_visit_count": 15,
+          "last_response": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep ",
+          "internal.retry_count.pause": 0,
+          "outcome": "failed",
+          "thread.address.current_node": "check",
+          "internal.work_dir": "/workspace/fabro",
+          "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
+          "command.output": "blob://sha256/378e8638e1434356568d4a7fecfb6c41264f5d46d22e26e1d3857a93b377f559",
+          "internal.thread_id": "pause",
+          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:22z: <n>,reviews: <n>",
+          "thread.check.current_node": "pause",
+          "failure_class": "deterministic"
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "check": {
+            "status": "failed",
+            "context_updates": {
+              "command.output": "blob://sha256/378e8638e1434356568d4a7fecfb6c41264f5d46d22e26e1d3857a93b377f559"
+            },
+            "failure": {
+              "message": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#581 (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=0, comments since 2026-07-21T09:19:22Z: 0, reviews: 0\n",
+              "category": "deterministic"
+            },
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 3935,
+              "active_time_ms": 3935
+            }
+          },
+          "address": {
+            "status": "succeeded",
+            "preferred_label": "Keep watching",
+            "context_updates": {
+              "last_stage": "address",
+              "response.address": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep the same zoom applied to both modes.\" This means the zoom persistence implementation is not working correctly. Let me investigate the code to understand the problem.Let me check the web source directory structure:I can see the problem! The zoom persistence code has a logic bug. On lines 77-91, when switching direction, the code tries to save the \"old\" zoom, but it's reading `v.zoom` which is the current value at the time of the effect, not the zoom from the previous direction. The effect needs to save the current zoom to `zoomByDirection.current` *before* reading from it.\n\nThe issue is that when you switch from TB to LR:\n1. The effect runs with `activeDirection = \"LR\"`\n2. It reads `v.zoom` (which is still the TB zoom)\n3. It tries to get `zoomByDirection.current[\"LR\"]` which is undefined on first switch\n4. It falls back to `oldZoom` (which is the TB zoom it just read)\n5. So both TB and LR end up with the same value\n\nLet me fix this:Now I need to test this fix. Let me run the TypeScript checks:Good! Now let me run the tests:Perfect! All tests pass. Now let me commit and push the fix:Now I need to reply to the comment. Let me get the comment timestamp to reply properly:Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}",
+              "last_response": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep "
+            },
+            "notes": "Stage completed: address",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 182120,
+              "tool_time_ms": 0,
+              "active_time_ms": 182120
+            }
+          },
+          "pause": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "pause",
+        "git_commit_sha": "6f2eee867be22da4d6b408971cb25b37b30b2480",
+        "loop_failure_signatures": {
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:22z: <n>,reviews: <n>": 14
+        },
+        "node_visits": {
+          "check": 15,
+          "address": 1,
+          "start": 1,
+          "pause": 13
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 1,
+          "additions": 1,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T10:33:21.842631Z",
+        "current_node": "pause",
+        "completed_nodes": [
+          "start",
+          "check",
+          "address",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "preferred_label": "Keep watching",
+          "internal.node_visit_count": 14,
           "graph.rankdir": "LR",
           "internal.work_dir": "/workspace/fabro",
           "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
           "thread.start.current_node": "check",
-          "current_node": "check",
+          "current_node": "pause",
           "thread.check.current_node": "pause",
           "last_stage": "address",
           "response.address": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep the same zoom applied to both modes.\" This means the zoom persistence implementation is not working correctly. Let me investigate the code to understand the problem.Let me check the web source directory structure:I can see the problem! The zoom persistence code has a logic bug. On lines 77-91, when switching direction, the code tries to save the \"old\" zoom, but it's reading `v.zoom` which is the current value at the time of the effect, not the zoom from the previous direction. The effect needs to save the current zoom to `zoomByDirection.current` *before* reading from it.\n\nThe issue is that when you switch from TB to LR:\n1. The effect runs with `activeDirection = \"LR\"`\n2. It reads `v.zoom` (which is still the TB zoom)\n3. It tries to get `zoomByDirection.current[\"LR\"]` which is undefined on first switch\n4. It falls back to `oldZoom` (which is the TB zoom it just read)\n5. So both TB and LR end up with the same value\n\nLet me fix this:Now I need to test this fix. Let me run the TypeScript checks:Good! Now let me run the tests:Perfect! All tests pass. Now let me commit and push the fix:Now I need to reply to the comment. Let me get the comment timestamp to reply properly:Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}",
           "internal.retry_count.address": 0,
-          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:22z: <n>,reviews: <n>",
+          "failure_signature": "",
           "graph.loop_restart_signature_limit": "1000",
           "command.output": "blob://sha256/378e8638e1434356568d4a7fecfb6c41264f5d46d22e26e1d3857a93b377f559",
           "thread.address.current_node": "check",
@@ -3560,12 +3690,12 @@
           "last_response": "I'll address the PR feedback. Let me start by checking out the PR branch and reading all the comments.I can see the issue - the most recent comment says \"This doesn't work - switching view modes keep ",
           "internal.retry_count.check": 0,
           "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
-          "internal.thread_id": "pause",
+          "internal.thread_id": "check",
           "internal.retry_count.pause": 0,
-          "outcome": "failed",
+          "outcome": "succeeded",
           "thread.pause.current_node": "check",
           "internal.retry_count.start": 0,
-          "failure_class": "deterministic"
+          "failure_class": ""
         },
         "node_outcomes": {
           "pause": {
@@ -3611,11 +3741,11 @@
             "usage": null
           }
         },
-        "next_node_id": "pause",
+        "next_node_id": "check",
         "node_visits": {
           "start": 1,
           "check": 15,
-          "pause": 13,
+          "pause": 14,
           "address": 1
         }
       },
@@ -4482,7 +4612,12 @@
       "first_event_seq": 278,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#581 (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=0, comments since 2026-07-21T09:19:22Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T10:28:17.579835Z"
+      },
       "provider_used": null,
       "diff": null,
       "script_invocation": {
@@ -4490,11 +4625,27 @@
         "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
         "language": "shell"
       },
-      "script_timing": null,
+      "script_timing": {
+        "output": "blob://sha256/378e8638e1434356568d4a7fecfb6c41264f5d46d22e26e1d3857a93b377f559",
+        "exit_code": 1,
+        "duration_ms": 3935,
+        "termination": "exited",
+        "output_bytes": 145,
+        "live_streaming": true
+      },
       "parallel_results": null,
       "output": null,
+      "output_bytes": 145,
+      "live_streaming": true,
+      "termination": "exited",
       "started_at": "2026-07-21T10:28:13.610047Z",
       "handler": "command",
+      "timing": {
+        "wall_time_ms": 3969,
+        "inference_time_ms": 0,
+        "tool_time_ms": 3935,
+        "active_time_ms": 3935
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -4503,7 +4654,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "running"
+      "state": "failed"
     },
     "pause@13": {
       "first_event_seq": 270,
@@ -4784,6 +4935,29 @@
         "cache_write_tokens": 0
       },
       "state": "succeeded"
+    },
+    "pause@14": {
+      "first_event_seq": 288,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T10:28:21.828418Z",
+      "handler": "wait",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
     },
     "check@6": {
       "first_event_seq": 116,
