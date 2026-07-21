@@ -594,19 +594,19 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Remove process_input and process_input_with_runtime
   - [x] Test removal by attempting build
   - [x] Refactor
-- [ ] Slice 3: Update agent crate test call sites
-  - [ ] Update parity_matrix.rs call sites
-  - [ ] Test parity_matrix compiles and passes
-  - [ ] Update compaction.rs call sites
-  - [ ] Test compaction compiles and passes
-  - [ ] Update subagent.rs call site
-  - [ ] Test subagent compiles
-  - [ ] Update apply_patch.rs call site
-  - [ ] Test apply_patch compiles
-  - [ ] Update cli.rs call site
-  - [ ] Test CLI compiles
-  - [ ] Run full fabro-agent test suite
-  - [ ] Refactor
+- [x] Slice 3: Update agent crate test call sites
+  - [x] Update parity_matrix.rs call sites
+  - [x] Test parity_matrix compiles and passes
+  - [x] Update compaction.rs call sites
+  - [x] Test compaction compiles and passes
+  - [x] Update subagent.rs call site
+  - [x] Test subagent compiles
+  - [x] Update apply_patch.rs call site
+  - [x] Test apply_patch compiles
+  - [x] Update cli.rs call site
+  - [x] Test CLI compiles
+  - [x] Run full fabro-agent test suite
+  - [x] Refactor
 - [ ] Slice 4: CodergenRunRequest and backend updates
   - [ ] Change CodergenRunRequest.prompt to initial_content
   - [ ] Test CodergenRunRequest compiles
