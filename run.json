@@ -1,0 +1,658 @@
+{
+  "title": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial us...",
+  "spec": {
+    "run_id": "01KY1FXR4971FJHTZNDNT0G6RB",
+    "settings": {
+      "project": {
+        "name": null,
+        "description": null,
+        "metadata": {}
+      },
+      "workflow": {
+        "name": null,
+        "description": null,
+        "graph": "workflow.fabro",
+        "metadata": {}
+      },
+      "run": {
+        "goal": {
+          "type": "inline",
+          "value": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself."
+        },
+        "working_dir": null,
+        "metadata": {},
+        "inputs": {},
+        "model": {
+          "provider": "anthropic",
+          "name": "claude-sonnet-4-6",
+          "fallbacks": [],
+          "controls": {
+            "reasoning_effort": null,
+            "speed": null
+          }
+        },
+        "git": {
+          "author": null
+        },
+        "prepare": {
+          "steps": [],
+          "timeout_ms": 300000
+        },
+        "execution": {
+          "mode": "normal",
+          "approval": "prompt"
+        },
+        "checkpoint": {
+          "exclude_globs": [],
+          "skip_git_hooks": false
+        },
+        "clone": {
+          "enabled": true
+        },
+        "run_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "meta_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "environment": {
+          "id": "specs-plan-acp",
+          "provider": "docker",
+          "image": {
+            "docker": "fabro-acp:latest",
+            "dockerfile": null
+          },
+          "resources": {
+            "cpu": null,
+            "memory": null,
+            "disk": null
+          },
+          "network": {
+            "mode": "allow_all",
+            "allow": []
+          },
+          "lifecycle": {
+            "preserve": false,
+            "stop_on_terminal": true,
+            "auto_stop": null
+          },
+          "labels": {},
+          "env": {
+            "CLAUDE_CODE_OAUTH_TOKEN": "{{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+          }
+        },
+        "notifications": {},
+        "interviews": {
+          "provider": null,
+          "slack": null
+        },
+        "agent": {
+          "fabro_tools": true,
+          "permissions": null,
+          "mcps": {}
+        },
+        "hooks": [],
+        "scm": {
+          "provider": null,
+          "owner": null,
+          "repository": null,
+          "github": null
+        },
+        "pull_request": {
+          "enabled": true,
+          "draft": false,
+          "auto_merge": false,
+          "merge_strategy": "squash"
+        },
+        "artifacts": {
+          "include": []
+        },
+        "integrations": {
+          "github": {
+            "permissions": {
+              "pull_requests": "write",
+              "contents": "write"
+            }
+          }
+        }
+      }
+    },
+    "graph": {
+      "name": "SpecsPlan",
+      "nodes": {
+        "draft_spec": {
+          "id": "draft_spec",
+          "attrs": {
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "# Draft Specification\n\nYou are the spec author. The feature to specify is the text the human entered\nat the Describe Feature gate (`human.gate.describe.answer` in prior context).\nIf that answer is empty or just \"goal\", use the run goal instead: Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself.\n\nProduce specification artifacts only — no implementation code, no tests, no\nscaffolding. One feature per spec.\n\n## Steps\n\n1. Explore the repository enough to understand where this change fits. Focused\n   reading, not research.\n2. If a spec already exists under `docs/specs/` for this feature, use it as the\n   base and say so.\n3. Draft the three artifacts:\n   - **Intent Description** — what the change achieves and why. Plain language,\n     1–3 paragraphs.\n   - **Architecture Specification** — components, interfaces, dependencies,\n     constraints. Constrain to what the intent requires; no over-engineering.\n   - **Acceptance Criteria** — observable outcomes with pass/fail conditions.\n     No Gherkin — scenarios are authored per slice in the plan phase.\n4. Self-critique the draft. Categorize every finding as **gap**, **ambiguity**,\n   **conflict**, or **scope violation**, each with a specific reference to the\n   artifact text.\n5. Run the Ambiguity Resolution Protocol on every gap and ambiguity:\n   - `inferable` — a reasonable developer working from the codebase and domain\n     would reliably make the same choice. Document the inference and rationale.\n   - `requires-stakeholder-input` — product/business intent not evident from\n     context; two reasonable developers would choose differently. Naturalness\n     or simplicity does NOT make a decision inferable. When in doubt, classify\n     as requires-stakeholder-input.\n6. Scope check: if the request bundles genuinely unrelated features (not just\n   multiple slices of one feature), flag it and propose a split as one of the\n   open questions. Do not split on your own.\n\n## Output\n\nWrite the draft to `docs/specs/<slug>.md` (slugified feature name; create\n`docs/specs/` if missing) with sections: Intent Description, Architecture\nSpecification, Acceptance Criteria, and an `## Ambiguity Log` table\n(| Decision | Classification | Resolved By | Rationale / Answer |) containing\nevery finding from step 5.\n\nEnd your final message with exactly one of:\n\n- A numbered list titled **Open questions** containing every\n  `requires-stakeholder-input` item, phrased so a stakeholder can answer each\n  in one sentence.\n- The line **No open questions — all findings were inferable.**\n\nThe next step shows this message to a human who will answer the questions."
+            },
+            "label": {
+              "String": "Draft Spec"
+            },
+            "goal_gate": {
+              "Boolean": true
+            }
+          }
+        },
+        "dispatch_build": {
+          "id": "dispatch_build",
+          "attrs": {
+            "prompt": {
+              "String": "# Dispatch Build\n\nThe human just approved the implementation plan. Your only job is to spawn the\nbuild-ship workflow as a child run and report what you did. Do not implement\nanything and do not wait for the child to finish.\n\n1. Identify the approved plan file: the most recently updated `plans/*.md`\n   (its path was also stated in the prior stage's output).\n2. Call the `fabro_run_create` tool:\n\n   ```json\n   {\n     \"runs\": [\n       {\n         \"workflow\": \"build-ship\",\n         \"goal\": \"Implement <plan path> slice by slice and ship it as a draft PR.\",\n         \"labels\": { \"source\": \"specs-plan\" },\n         \"start\": true\n       }\n     ]\n   }\n   ```\n\n3. Report the child run id and its status. If the child was created in a\n   `pending` approval state, say so — the operator approves it from the Fabro\n   UI.\n\nIf the tool is unavailable or creation fails, say exactly that and stop — the\nspec/plan PR still opens when this run completes, and the operator can run\nbuild-ship manually. Never claim the build was dispatched when it wasn't.\n"
+            },
+            "reasoning_effort": {
+              "String": "low"
+            },
+            "label": {
+              "String": "Dispatch Build"
+            }
+          }
+        },
+        "exit": {
+          "id": "exit",
+          "attrs": {
+            "label": {
+              "String": "Exit"
+            },
+            "shape": {
+              "String": "Msquare"
+            }
+          }
+        },
+        "refine_spec": {
+          "id": "refine_spec",
+          "attrs": {
+            "backend": {
+              "String": "acp"
+            },
+            "prompt": {
+              "String": "# Refine Specification\n\nYou are refining the spec drafted earlier in this run (see prior context for\nits path under `docs/specs/`).\n\nThe human has just responded. Their text is in the prior context\n(`human.gate.*.answer` keys). It is either:\n\n- **Answers to the open questions** — record each answer in the\n  `## Ambiguity Log` (Classification `requires-stakeholder-input`,\n  Resolved By `human`, the answer verbatim in the Rationale/Answer column) and\n  update the artifacts accordingly. Preserve the human's language; improve\n  precision only.\n- **\"proceed\"** — no open questions remained or the human accepted the\n  documented inferences. Continue.\n- **A change request** (when re-entered from the approval gate) — apply it,\n  updating the Ambiguity Log if it resolves or adds a decision.\n\nThen validate the Cross-Artifact Consistency Gate and append it to the spec\nfile as a checklist:\n\n- [ ] Intent is unambiguous — two developers would interpret it the same way.\n- [ ] Every behavior/goal in the intent maps to at least one acceptance criterion.\n- [ ] Architecture constrains implementation without over-engineering.\n- [ ] Same concepts named consistently across all three artifacts.\n- [ ] No artifact contradicts another.\n- [ ] Every gap/ambiguity finding is logged — inferable with rationale, or resolved by the human.\n\nIf any item fails, fix the artifacts until it passes; if you cannot, say\nexactly which item fails and why — do not claim the gate passed.\n\n## Output\n\nUpdate `docs/specs/<slug>.md` in place. Your final message: the complete spec\nfile content, then its path. A human reviews this message to approve the spec.\n"
+            },
+            "label": {
+              "String": "Refine Spec"
+            },
+            "goal_gate": {
+              "Boolean": true
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "max_visits": {
+              "Integer": 15
+            }
+          }
+        },
+        "review_strategic": {
+          "id": "review_strategic",
+          "attrs": {
+            "label": {
+              "String": "Strategic Critic"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "> Fabro context: read the implementation plan from the `plans/*.md` path named\n> in the prior stage context, and the spec under `docs/specs/` if present.\n> There is no `scripts/plan-waves.sh` output here — derive wave/collision facts\n> from the plan's own `Depends-on` and `Files` lines. Your final message must\n> be ONLY the JSON verdict described below.\n\n# Plan Review: Strategic Critic\n\nYou are reviewing an implementation plan as a **Strategic Critic**. Your job is to challenge whether the plan solves the right problem, at the right scope, with the right tradeoffs. You are the voice that asks \"should we even build this?\" and \"are we building too much or too little?\"\n\nYou are not reviewing code, design, or test quality — other reviewers handle those. You challenge the plan's strategic soundness: scope, value, risk, and opportunity cost.\n\n## What you receive\n\n- The implementation plan (goal, acceptance criteria, steps)\n- Any spec artifacts (intent description, architecture notes) if they exist\n\n## What you check\n\n### Problem-Solution Fit\n\n1. **Problem clarity** — Is the problem statement in the goal section specific enough to evaluate? \"Improve performance\" is not a problem statement. \"Page load time exceeds 3s on the dashboard, causing 15% bounce rate\" is.\n2. **Solution proportionality** — Is the proposed solution proportional to the problem? A 10-step plan to fix a config issue is over-engineered. A 2-step plan for a security vulnerability may be under-engineered.\n3. **Alternative solutions** — Has the plan considered simpler alternatives? Could this be solved with configuration instead of code? With a library instead of custom implementation? With a process change instead of a feature?\n4. **Root cause vs. symptom** — Does the plan address the root cause, or does it patch a symptom? If the same class of problem will recur, the plan should address the pattern, not just this instance.\n\n### Scope Assessment\n\n1. **Scope creep indicators** — Count the acceptance criteria and steps. More than 8 criteria or 10 steps for a single feature suggests scope creep. Could this be split into smaller, independently shippable increments?\n2. **Minimum viable scope** — Which criteria are essential for the feature to be useful, and which are enhancements? Could the plan ship with fewer criteria and iterate?\n3. **Scope boundaries** — Does the plan explicitly state what it does NOT do? Missing scope boundaries invite creep during implementation.\n4. **Incremental delivery** — Can the plan deliver value after step 3 instead of only after step 10? Plans that require all-or-nothing delivery are risky.\n\n### Risk Assessment\n\n1. **Technical risk** — Does the plan depend on technology the team hasn't used before? Does it modify critical paths (auth, payments, data pipelines) where bugs have outsized impact?\n2. **Integration risk** — Does the plan touch shared interfaces, APIs, or data models that other features depend on? What breaks if this plan ships with a bug?\n3. **Rollback feasibility** — If this ships and causes problems, can it be reverted cleanly? Database migrations, API contract changes, and state format changes are hard to roll back.\n4. **Dependencies** — Does the plan depend on external teams, services, or decisions that aren't yet resolved? Unresolved dependencies are schedule bombs.\n\n### Opportunity Cost\n\n1. **Time investment** — Given the plan's complexity, what else could be built with the same effort? Is this the highest-value use of engineering time?\n2. **Maintenance burden** — What ongoing maintenance does this plan create? New services need monitoring. New abstractions need documentation. New features need support.\n3. **Reversibility** — Is this decision easy to reverse later, or does it create lock-in? Irreversible decisions deserve more scrutiny.\n\n### Consistency with Context\n\n1. **Existing work alignment** — Does this plan align with or conflict with other active work? Flag if the plan duplicates or contradicts recent changes.\n2. **Convention respect** — Does the plan follow the project's established patterns for similar features? Departures should be deliberate and justified.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"plan-review-strategic\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"problem-fit | scope | risk | opportunity-cost | consistency\",\n      \"description\": \"<the strategic concern>\",\n      \"severity\": \"blocker | warning\",\n      \"question\": \"<the question the plan author should answer before proceeding>\",\n      \"suggestion\": \"<alternative approach or scope adjustment>\"\n    }\n  ],\n  \"strategic_observations\": [\n    \"<Positive observation about the plan's strategic thinking>\"\n  ],\n  \"scope_assessment\": {\n    \"current_scope\": \"<small | medium | large>\",\n    \"recommended_scope\": \"<small | medium | large>\",\n    \"could_split\": true,\n    \"minimum_viable_subset\": \"<which criteria/steps form the smallest useful increment>\"\n  },\n  \"summary\": \"<2-3 sentences: overall strategic assessment and top concern>\"\n}\n```\n\n## Severity rules\n\n- No clear problem statement → `blocker`\n- Plan addresses symptom, not root cause, for a recurring issue → `blocker`\n- Irreversible change (migration, API contract) with no rollback plan → `blocker`\n- Scope exceeds 10 steps with no incremental delivery points → `warning`\n- Missing scope boundaries → `warning`\n- Simpler alternative not considered → `warning`\n- Unresolved external dependency → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n\n"
+            },
+            "backend": {
+              "String": "acp"
+            }
+          }
+        },
+        "clarify": {
+          "id": "clarify",
+          "attrs": {
+            "label": {
+              "String": "Answer the open questions above. Type 'proceed' to accept all documented inferences."
+            },
+            "shape": {
+              "String": "hexagon"
+            }
+          }
+        },
+        "describe": {
+          "id": "describe",
+          "attrs": {
+            "label": {
+              "String": "Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead."
+            },
+            "shape": {
+              "String": "hexagon"
+            }
+          }
+        },
+        "review_parallel": {
+          "id": "review_parallel",
+          "attrs": {
+            "prompt": {
+              "String": "> Fabro context: read the implementation plan from the `plans/*.md` path named\n> in the prior stage context, and the spec under `docs/specs/` if present.\n> There is no `scripts/plan-waves.sh` output here — derive wave/collision facts\n> from the plan's own `Depends-on` and `Files` lines. Your final message must\n> be ONLY the JSON verdict described below.\n\n# Plan Review: Parallelization Critic\n\nYou are reviewing an implementation plan as a **Parallelization Critic**. Your job is to verify that the plan's declared concurrency is *real* — that slices the plan places in the same build wave can actually be built at the same time without colliding. A wave that is wrong here corrupts work silently: two agents editing the same file, or one slice quietly depending on another's runtime output.\n\nYou are not reviewing code, design, scope, or test quality — other reviewers handle those. You check exactly one thing: **is same-wave independence genuine?**\n\n## What you receive\n\n- The implementation plan, including each slice's `Depends-on` and `Files`, the `## Parallelization` section (Mermaid DAG + wave table), and any `collisions` reported by `scripts/plan-waves.sh`.\n- Any spec artifacts (intent, architecture notes) if they exist.\n\n## What you check\n\n### Same-wave file overlap (the deterministic signal)\n\n1. **Honor the collisions array.** `plan-waves.sh` already intersects the `Files` of every same-wave slice pair. **Any** entry in its `collisions` output is a blocker — two slices scheduled to run together declare the same file, so concurrent worktrees would clobber each other on reconcile. Name the colliding slices and the file.\n2. **Under-declared file surfaces.** A slice whose `Files` list looks incomplete for what its steps describe (e.g. steps clearly touch a shared config or barrel/index file that is not listed) hides a future collision. Flag it: the declared surface must be honest, because the wave schedule trusts it.\n\n### Disjoint-file behavioral coupling (the judgment signal)\n\n3. **Runtime dependence despite disjoint files.** Two same-wave slices can touch different files yet still be coupled — slice B's behavior consumes an interface, data contract, event, or output that slice A introduces in the same wave. Disjoint `Files` does **not** prove independence. If B's scenarios only make sense once A exists, B depends on A and belongs in a later wave. Cite the coupling and the direction.\n4. **Shared mutable state / ordering.** Same-wave slices that both write the same migration, fixture, registry, or generated artifact — even via different source files — are ordering-coupled. Flag it.\n\n### Residual graph integrity\n\n5. **Cycle / mis-layering.** If `plan-waves.sh` rejected the plan (cycle, missing `Depends-on`, unknown reference) the plan must not reach you green — if you see evidence of it, return `needs-revision`. Also flag a slice placed in an *earlier or equal* wave than something it actually depends on.\n\n### Nothing to validate\n\n6. **Fully sequential plans approve trivially.** If every wave has exactly one slice, there is no concurrency to validate — return `approve` with an empty issues list.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"plan-review-parallelization\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"file-overlap | under-declared-files | behavioral-coupling | shared-state | graph-integrity\",\n      \"description\": \"<the concurrency hazard>\",\n      \"severity\": \"blocker | warning\",\n      \"slices\": [\"<slice id>\", \"<slice id>\"],\n      \"evidence\": \"<the file, contract, or output that couples them>\",\n      \"suggestion\": \"<re-wave: move one slice to a later wave / split the surface / declare the file>\"\n    }\n  ],\n  \"wave_assessment\": {\n    \"waves\": \"<number of waves>\",\n    \"max_wave_width\": \"<largest count of concurrent slices>\",\n    \"has_real_parallelism\": true\n  },\n  \"summary\": \"<2-3 sentences: is the declared concurrency safe, and the top hazard if not>\"\n}\n```\n\n## Severity rules\n\n- Any `collisions` entry from `plan-waves.sh` (same-wave same file) → `blocker`\n- Same-wave slice whose behavior depends on another same-wave slice's output → `blocker`\n- Two same-wave slices writing the same migration/fixture/registry/generated artifact → `blocker`\n- A slice layered no later than a slice it depends on → `blocker`\n- Under-declared `Files` surface that likely hides a same-wave overlap → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 2+ warnings with no blockers → `needs-revision`\n- Otherwise (including a fully sequential plan with no same-wave pairs) → `approve`\n\n"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "label": {
+              "String": "Parallelization Critic"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            }
+          }
+        },
+        "plan_gate": {
+          "id": "plan_gate",
+          "attrs": {
+            "shape": {
+              "String": "hexagon"
+            },
+            "label": {
+              "String": "Approve this plan? Approval dispatches the build-ship child run. Anything else you type is treated as a change request."
+            }
+          }
+        },
+        "spec_gate": {
+          "id": "spec_gate",
+          "attrs": {
+            "shape": {
+              "String": "hexagon"
+            },
+            "label": {
+              "String": "Approve this spec and continue to planning? Anything else you type is treated as a change request."
+            }
+          }
+        },
+        "plan_feature": {
+          "id": "plan_feature",
+          "attrs": {
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "# Write Implementation Plan\n\nYou are the planner. Create a structured implementation plan — do not\nimplement anything. No code, no scaffolding, no file edits beyond the plan\nfile.\n\nThe approved spec for this feature is under `docs/specs/` (path in prior\ncontext). Read it: it is the primary source for goals, constraints, and\nacceptance criteria. Read whatever code you need to plan confidently — focused\nexploration, not research.\n\n## Decompose into vertical slices\n\nA slice is a vertically deliverable increment — independently testable and,\nideally, independently shippable. Sequence slices so trunk stays releasable at\nevery step (feature toggle or abstraction for incomplete behavior;\nexpand-before-contract for data changes).\n\n**A slice is also the review unit: it ships as its own PR.** Size each slice\nto roughly 300 changed lines or less where practical. When a slice can't stay\nnear that budget (a generated file, a mechanical rename), say so in the slice\nand keep the hand-written portion small.\n\nFor each slice, author the **Gherkin scenarios** that define its observable\nbehavior — this is where the behavioral contract is written. Cover:\n\n- **Happy path** — the primary success behavior.\n- **Negative cases** — invalid, unauthorized, missing, malformed input.\n- **Edge cases** — empty collections, boundary values, concurrency, idempotency.\n- **Error scenarios** — observable error behavior, not just \"should fail\".\n\nScenarios must be implementation-independent (no databases, selectors, or\ninternal data structures in step text) and deterministic. Every acceptance\ncriterion in the spec must be covered by at least one scenario.\n\nFor each slice, list **TDD steps**: one behavior per step, each an\nIMPLEMENT → TEST → REFACTOR cycle, each leaving the codebase committable, each\ntraceable to one or more of the slice's scenarios.\n\nFindings the spec's Ambiguity Log classified as low-value (no branching logic,\nno observable outcome, already covered by a higher-layer test) go in a\n`## Skipped (low value)` section with one-line rationale — never into a slice.\n\n## Plan file structure\n\nWrite to `plans/<slug>.md` (create `plans/` if missing):\n\n```markdown\n# Plan: <Feature Name>\n\n**Status**: draft\n**Spec**: docs/specs/<slug>.md\n\n## Goal\n## Acceptance Criteria     (from the spec — PR-checklist material)\n## Slices\n### Slice N: <name>\n**Depends-on**: <slice refs or none>\n**Files**: <files this slice touches>\n#### Scenarios              (the slice's Gherkin)\n#### Steps                  (TDD steps)\n## Parallelization          (wave table: slices grouped by dependency depth;\n                             flag any same-wave slices whose Files overlap)\n## Skipped (low value)\n## Risks & Open Questions\n```\n\nDerive the waves from the Depends-on graph yourself and double-check that no\ntwo same-wave slices touch the same file — a collision there corrupts\nconcurrent builds.\n\n## Output\n\nYour final message: the plan path, the slice list with one line each, the wave\ntable, and any risks. Reviewer agents will read the plan file next.\n"
+            },
+            "label": {
+              "String": "Write Plan"
+            },
+            "goal_gate": {
+              "Boolean": true
+            }
+          }
+        },
+        "address_reviews": {
+          "id": "address_reviews",
+          "attrs": {
+            "prompt": {
+              "String": "# Address Plan Reviews\n\nThe plan file path is in prior context (`plans/<slug>.md`).\n\nYou are entered from one of two places:\n\n1. **After the reviewer fan-out** — the merged reviewer verdicts are in prior\n   context (also available as `parallel_results.json`). Each reviewer returned\n   JSON with a `verdict` and issues carrying `severity`.\n2. **From the approval gate** — the human typed a change request\n   (`human.gate.*.answer` in context). Apply it. Reviewer verdicts from the\n   earlier pass still apply.\n\n## Steps\n\n1. Collect every `blocker` issue across reviewers (and any human change\n   request). Revise the plan file to resolve each one. Warnings are judgment\n   calls: apply the cheap ones, record the rest.\n2. Keep the plan's invariants intact after revision: every acceptance\n   criterion still covered by a scenario, waves still consistent with\n   Depends-on, no same-wave file collisions, no low-value work in a slice.\n3. Append (or replace) a `## Plan Review Summary` section in the plan file:\n   reviewer verdicts, blockers fixed, warnings and observations kept.\n4. Set `**Status**: reviewed`.\n\n## Output\n\nYour final message: the plan path, a short summary of what each reviewer\nfound, what you changed, and anything you deliberately did not change and why.\nA human reads this message to approve the plan — make it decision-ready, not a\ntranscript.\n"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "goal_gate": {
+              "Boolean": true
+            },
+            "max_visits": {
+              "Integer": 15
+            },
+            "label": {
+              "String": "Address Reviews"
+            }
+          }
+        },
+        "reviews": {
+          "id": "reviews",
+          "attrs": {
+            "max_parallel": {
+              "Integer": 5
+            },
+            "shape": {
+              "String": "component"
+            },
+            "label": {
+              "String": "Dispatch Plan Reviewers"
+            }
+          }
+        },
+        "review_acceptance": {
+          "id": "review_acceptance",
+          "attrs": {
+            "label": {
+              "String": "Acceptance Critic"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "prompt": {
+              "String": "> Fabro context: read the implementation plan from the `plans/*.md` path named\n> in the prior stage context, and the spec under `docs/specs/` if present.\n> There is no `scripts/plan-waves.sh` output here — derive wave/collision facts\n> from the plan's own `Depends-on` and `Files` lines. Your final message must\n> be ONLY the JSON verdict described below.\n\n# Plan Review: Acceptance Test Critic\n\nYou are reviewing an implementation plan as an **Acceptance Test Critic**. Your job is to find gaps, ambiguities, and weaknesses in the plan's acceptance criteria and test strategy — before a single line of code is written.\n\nYou are deliberately adversarial. A plan that passes your review will not produce untestable code.\n\n## What you receive\n\n- The implementation plan (goal, acceptance criteria, and slices — each slice carrying its Gherkin scenarios and TDD steps). The Gherkin was authored in this plan, not inherited from the spec; you are its quality gate.\n- Any spec artifacts (intent, architecture notes, acceptance criteria) if they exist\n\n## What you check\n\n### Acceptance Criteria Quality\n\nFor each acceptance criterion, evaluate:\n\n1. **Binary verifiability** — Can two people independently check this criterion and agree on pass/fail? Flag criteria that use weasel words: \"appropriate\", \"reasonable\", \"properly\", \"should handle\", \"as expected\". Replace with concrete observable outcomes.\n2. **Boundary completeness** — Does the criterion address edge cases? What happens at zero, one, many? What happens at the boundary between valid and invalid? If the criterion says \"supports multiple items\", how many is too many?\n3. **Error path coverage** — For every happy-path criterion, is there a corresponding error-path criterion? What happens when the network is down, the input is malformed, the user is unauthorized, the dependency is unavailable?\n4. **Negative testing** — Are there criteria for what the system should NOT do? Missing negative criteria are where bugs hide.\n5. **State transitions** — If the feature involves state changes, are all transitions covered? What about illegal transitions?\n\n### BDD Scenario Quality\n\nFor each Gherkin scenario, evaluate:\n\n1. **Implementation independence** — Does the scenario describe behavior from the user's perspective, or does it leak implementation details? Scenarios that mention databases, API calls, or internal data structures are implementation-coupled.\n2. **Given completeness** — Does the Given clause establish ALL preconditions? A missing precondition means the scenario is ambiguous.\n3. **Determinism** — Will this scenario produce the same result every time? Flag scenarios that depend on time, randomness, external state, or ordering.\n4. **Scenario isolation** — Can this scenario run independently of other scenarios? Flag shared state or ordering dependencies.\n5. **Missing scenarios** — Based on the acceptance criteria, what scenarios are NOT written but should be? List them explicitly.\n\n### TDD Step Traceability\n\nFor each TDD step, evaluate:\n\n1. **Criterion linkage** — Does this step trace back to at least one acceptance criterion? Flag orphan steps that implement behavior not in the criteria.\n2. **Test specificity** — Is the RED phase test specific enough to fail for the right reason? A vague test description (\"test that it works\") will produce a vague test.\n3. **Incremental coverage** — After all steps are complete, are all acceptance criteria covered? Flag any criterion that no step addresses.\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"plan-review-acceptance\",\n  \"verdict\": \"approve | needs-revision\",\n  \"criteria_issues\": [\n    {\n      \"criterion\": \"<the criterion text>\",\n      \"issue\": \"<what's wrong>\",\n      \"severity\": \"blocker | warning\",\n      \"suggestion\": \"<concrete rewrite or addition>\"\n    }\n  ],\n  \"scenario_issues\": [\n    {\n      \"scenario\": \"<scenario name>\",\n      \"issue\": \"<what's wrong>\",\n      \"severity\": \"blocker | warning\",\n      \"suggestion\": \"<concrete fix>\"\n    }\n  ],\n  \"missing_scenarios\": [\n    {\n      \"description\": \"<what scenario is missing>\",\n      \"criterion\": \"<which criterion it would cover>\",\n      \"draft\": \"<draft Gherkin for the missing scenario>\"\n    }\n  ],\n  \"step_issues\": [\n    {\n      \"step\": \"<step number and name>\",\n      \"issue\": \"<what's wrong>\",\n      \"suggestion\": \"<fix>\"\n    }\n  ],\n  \"summary\": \"<2-3 sentences: overall assessment and top concern>\"\n}\n```\n\n## Severity rules\n\n- Criterion that cannot be verified → `blocker`\n- Missing error-path criterion for a user-facing feature → `blocker`\n- Missing scenario for an acceptance criterion → `blocker`\n- Scenario that leaks implementation details → `warning`\n- Vague test description in a TDD step → `warning`\n- Missing negative test → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n\n"
+            },
+            "backend": {
+              "String": "acp"
+            }
+          }
+        },
+        "review_design": {
+          "id": "review_design",
+          "attrs": {
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "prompt": {
+              "String": "> Fabro context: read the implementation plan from the `plans/*.md` path named\n> in the prior stage context, and the spec under `docs/specs/` if present.\n> There is no `scripts/plan-waves.sh` output here — derive wave/collision facts\n> from the plan's own `Depends-on` and `Files` lines. Your final message must\n> be ONLY the JSON verdict described below.\n\n# Plan Review: Design & Architecture Critic\n\nYou are reviewing an implementation plan as a **Design & Architecture Critic**. Your job is to challenge the plan's technical design decisions — coupling, cohesion, dependency direction, abstraction boundaries, and structural soundness — before implementation begins.\n\nYou are the reviewer who asks \"will we regret this in 6 months?\" You are not here to validate — you are here to find the design decisions that will cause pain later.\n\n## What you receive\n\n- The implementation plan (goal, acceptance criteria, steps with file paths)\n- Any spec artifacts (architecture notes, design doc) if they exist\n- The existing codebase (you may read files referenced in the plan)\n\n## What you check\n\n### Dependency Direction\n\n1. **Dependency inversion** — Do the planned changes have high-level modules depending on low-level modules? Business logic should not import infrastructure (databases, HTTP clients, file systems) directly. Flag direct coupling.\n2. **Dependency cycles** — Will the planned file changes create circular dependencies? Trace the import graph implied by the plan.\n3. **Coupling surface** — How many files does each new component touch? A single change that modifies 10+ files suggests missing abstractions.\n\n### Abstraction Quality\n\n1. **Responsibility clarity** — For each new file or module in the plan, can you state its single responsibility in one sentence? If not, it's doing too much.\n2. **Interface stability** — Are the interfaces between components likely to change when requirements change? Interfaces that expose implementation details will break downstream.\n3. **Premature abstraction** — Is the plan introducing abstractions for one use case? A helper class used once is complexity, not design. Flag YAGNI violations.\n4. **Missing abstraction** — Conversely, does the plan duplicate logic across steps that should share an abstraction?\n\n### Structural Risks\n\n1. **God objects** — Does the plan add significant logic to an already-large file? Read the target file and check its size and responsibility count.\n2. **Shotgun surgery** — If a future requirement changes, how many files in this plan would need to change again? High fan-out changes suggest poor encapsulation.\n3. **Feature envy** — Does any planned code reach deeply into another module's data? This suggests the behavior belongs in the other module.\n4. **Data flow clarity** — Can you trace data from entry point to output through the planned changes? Unclear data flows produce unclear bugs.\n\n### Architectural Consistency\n\n1. **Pattern adherence** — Does the plan follow the patterns already established in the codebase? Read 2-3 existing files in the same area and compare. Deviations from established patterns need justification.\n2. **Layer violations** — If the project has architectural layers (e.g., routes → services → repositories), does the plan respect them? Flag any planned cross-layer calls.\n3. **Convention breaks** — File naming, directory structure, export patterns, error handling conventions. Does the plan match what exists?\n\n### Testability\n\n1. **Dependency injection** — Can the planned components be tested in isolation? If a component creates its own dependencies internally, it cannot be unit tested.\n2. **Side effect isolation** — Are side effects (I/O, state mutation, external calls) concentrated at the boundaries, or spread throughout the logic?\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"plan-review-design\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"dependency | abstraction | structure | consistency | testability\",\n      \"description\": \"<what's wrong>\",\n      \"severity\": \"blocker | warning\",\n      \"files\": [\"<affected file paths>\"],\n      \"suggestion\": \"<concrete alternative design>\"\n    }\n  ],\n  \"design_observations\": [\n    \"<Positive observation about the plan's design — keep the review balanced>\"\n  ],\n  \"summary\": \"<2-3 sentences: overall design assessment and top structural concern>\"\n}\n```\n\n## Severity rules\n\n- Circular dependency introduced → `blocker`\n- Business logic directly coupled to infrastructure with no interface → `blocker`\n- God object growing beyond 400 lines with mixed responsibilities → `blocker`\n- Pattern deviation without justification → `warning`\n- Missing abstraction where duplication is < 3 occurrences → `warning`\n- Premature abstraction for single use case → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n\n"
+            },
+            "label": {
+              "String": "Design Critic"
+            }
+          }
+        },
+        "review_ux": {
+          "id": "review_ux",
+          "attrs": {
+            "prompt": {
+              "String": "> Fabro context: read the implementation plan from the `plans/*.md` path named\n> in the prior stage context, and the spec under `docs/specs/` if present.\n> There is no `scripts/plan-waves.sh` output here — derive wave/collision facts\n> from the plan's own `Depends-on` and `Files` lines. Your final message must\n> be ONLY the JSON verdict described below.\n\n# Plan Review: UX Critic\n\nYou are reviewing an implementation plan as a **UX Critic**. Your job is to challenge the plan from the end user's perspective — usability, accessibility, error experience, cognitive load, and interaction quality — before any code is written.\n\nYou represent the user who will actually use this feature. You are not reviewing code quality or architecture — you are reviewing whether the planned behavior will be pleasant, intuitive, and inclusive to use.\n\n## What you receive\n\n- The implementation plan (goal, acceptance criteria, BDD scenarios, steps)\n- Any spec artifacts (intent description, design notes) if they exist\n\n## What you check\n\n### User Journey Completeness\n\n1. **Entry points** — How does the user discover this feature? Is the entry point obvious, or buried? If the plan doesn't address discoverability, flag it.\n2. **Happy path clarity** — Walk through the primary user flow step by step. At each step, ask: does the user know what to do next? Is there a clear call to action?\n3. **Exit points** — How does the user know they're done? Is there confirmation? Can they undo?\n4. **Interruption recovery** — What happens if the user leaves mid-flow and comes back? Is state preserved? Does the flow resume gracefully?\n\n### Error Experience\n\n1. **Error messaging** — When something goes wrong, does the plan describe what the user sees? \"Show an error\" is not a UX plan. What does the error say? Does it tell the user what to do next?\n2. **Validation timing** — When does the user learn their input is invalid? Immediate inline validation is better than submit-and-fail. Does the plan specify?\n3. **Recovery paths** — After an error, can the user fix it without starting over? Flag flows where errors require re-entering all data.\n4. **Edge case experience** — Empty states (no data yet), loading states (data coming), partial failure (some things worked, some didn't). Are these addressed?\n\n### Cognitive Load\n\n1. **Information density** — Does the plan introduce too many new concepts, options, or fields at once? More than 5-7 items on a single screen is a red flag.\n2. **Progressive disclosure** — Are advanced options hidden until needed? Or does the plan front-load complexity?\n3. **Terminology consistency** — Does the plan use the same term for the same concept throughout? Flag terminology drift between criteria, scenarios, and steps.\n4. **Mental model alignment** — Does the feature work the way users expect based on similar tools they've used? Surprising behavior requires strong justification.\n\n### Accessibility\n\n1. **Keyboard navigation** — Can the entire flow be completed without a mouse? Does the plan mention keyboard support for custom components?\n2. **Screen reader experience** — For UI changes, are semantic HTML elements specified? Are ARIA labels planned for custom widgets?\n3. **Color independence** — Does any planned behavior rely on color alone to convey meaning? (Error states, status indicators, required fields)\n4. **Focus management** — When the UI changes (modals, dynamic content, navigation), where does keyboard focus go? Unmanaged focus is a common a11y failure.\n5. **Responsive behavior** — Does the plan address how the feature behaves at different viewport sizes?\n\n### Interaction Quality\n\n1. **Feedback latency** — For actions that take time, does the plan describe loading indicators or optimistic updates? Users perceive > 100ms delays.\n2. **Destructive actions** — Are destructive actions (delete, remove, overwrite) protected by confirmation? Can they be undone?\n3. **Batch operations** — If the feature involves multiple items, can the user act on several at once? Or must they repeat the same action N times?\n4. **State visibility** — At any point in the flow, can the user see what state they're in? (Which step, what's selected, what's pending)\n\n## Output format\n\n```json\n{\n  \"reviewer\": \"plan-review-ux\",\n  \"verdict\": \"approve | needs-revision\",\n  \"issues\": [\n    {\n      \"category\": \"journey | error-experience | cognitive-load | accessibility | interaction\",\n      \"description\": \"<what's wrong from the user's perspective>\",\n      \"severity\": \"blocker | warning\",\n      \"user_impact\": \"<what the user will experience if this isn't fixed>\",\n      \"suggestion\": \"<concrete UX improvement>\"\n    }\n  ],\n  \"ux_observations\": [\n    \"<Positive observation about the plan's UX — acknowledge what's good>\"\n  ],\n  \"summary\": \"<2-3 sentences: overall UX assessment from the user's perspective>\"\n}\n```\n\n## Severity rules\n\n- No error recovery path for a common failure → `blocker`\n- Destructive action without confirmation or undo → `blocker`\n- Custom interactive component with no keyboard plan → `blocker`\n- Missing loading/feedback state for async operation → `warning`\n- Information-dense screen without progressive disclosure → `warning`\n- Missing empty state design → `warning`\n- Terminology inconsistency → `warning`\n\n## Verdict rules\n\n- Any `blocker` → `needs-revision`\n- 3+ warnings with no blockers → `needs-revision`\n- Otherwise → `approve`\n\n## Scope\n\nThis review applies to plans that include user-facing changes (UI, CLI output, API responses, error messages). For purely internal/infrastructure plans with no user-facing surface, return:\n\n```json\n{\n  \"reviewer\": \"plan-review-ux\",\n  \"verdict\": \"approve\",\n  \"issues\": [],\n  \"ux_observations\": [\"No user-facing changes in this plan — UX review not applicable.\"],\n  \"summary\": \"Plan has no user-facing surface. UX review skipped.\"\n}\n```\n\n"
+            },
+            "backend": {
+              "String": "acp"
+            },
+            "acp.command": {
+              "String": "claude-code-acp"
+            },
+            "label": {
+              "String": "UX Critic"
+            }
+          }
+        },
+        "start": {
+          "id": "start",
+          "attrs": {
+            "shape": {
+              "String": "Mdiamond"
+            },
+            "label": {
+              "String": "Start"
+            }
+          }
+        },
+        "merge_reviews": {
+          "id": "merge_reviews",
+          "attrs": {
+            "label": {
+              "String": "Merge Reviews"
+            },
+            "shape": {
+              "String": "tripleoctagon"
+            }
+          }
+        }
+      },
+      "edges": [
+        {
+          "from": "start",
+          "to": "describe",
+          "attrs": {}
+        },
+        {
+          "from": "describe",
+          "to": "draft_spec",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        },
+        {
+          "from": "draft_spec",
+          "to": "clarify",
+          "attrs": {
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "draft_spec",
+          "to": "exit",
+          "attrs": {}
+        },
+        {
+          "from": "clarify",
+          "to": "refine_spec",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        },
+        {
+          "from": "refine_spec",
+          "to": "spec_gate",
+          "attrs": {
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "refine_spec",
+          "to": "exit",
+          "attrs": {}
+        },
+        {
+          "from": "spec_gate",
+          "to": "plan_feature",
+          "attrs": {
+            "label": {
+              "String": "[A] Approve spec"
+            }
+          }
+        },
+        {
+          "from": "spec_gate",
+          "to": "refine_spec",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        },
+        {
+          "from": "plan_feature",
+          "to": "reviews",
+          "attrs": {
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "plan_feature",
+          "to": "exit",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_acceptance",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_design",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_ux",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_strategic",
+          "attrs": {}
+        },
+        {
+          "from": "reviews",
+          "to": "review_parallel",
+          "attrs": {}
+        },
+        {
+          "from": "review_acceptance",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_design",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_ux",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_strategic",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "review_parallel",
+          "to": "merge_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "merge_reviews",
+          "to": "address_reviews",
+          "attrs": {}
+        },
+        {
+          "from": "address_reviews",
+          "to": "plan_gate",
+          "attrs": {
+            "condition": {
+              "String": "outcome=succeeded"
+            }
+          }
+        },
+        {
+          "from": "address_reviews",
+          "to": "exit",
+          "attrs": {}
+        },
+        {
+          "from": "plan_gate",
+          "to": "dispatch_build",
+          "attrs": {
+            "label": {
+              "String": "[A] Approve plan"
+            }
+          }
+        },
+        {
+          "from": "plan_gate",
+          "to": "address_reviews",
+          "attrs": {
+            "freeform": {
+              "Boolean": true
+            }
+          }
+        },
+        {
+          "from": "dispatch_build",
+          "to": "exit",
+          "attrs": {}
+        }
+      ],
+      "attrs": {
+        "goal": {
+          "String": "Spec and plan the fabro-agent Session API change needed to pass images into an agent's initial user message. Today Session::process_input/process_input_with_runtime take input: &str and internally build Message::User { content: String }, so CodergenRunRequest.initial_images (already added) has no path through the backend into the message. Design the least-invasive API that lets fabro-workflow's handler/agent.rs prepend ContentPart::Image entries ahead of the text content, covering: the Session method signature and how it threads to the llm/api.rs backend, whether AgentMessage::User needs Vec<ContentPart> instead of String, migration of existing CodergenRunRequest call sites and tests, and how image paths from fabro.human_answer_images.* context keys reach the LLM providers. This unblocks Slice 5 of docs/plans/2026-07-21-freeform-image-attachments-plan.md, which stalled because it assumed the workflow handler could construct the message itself."
+        },
+        "rankdir": {
+          "String": "LR"
+        }
+      }
+    },
+    "graph_source": "digraph SpecsPlan {\n    graph [\n        goal=\"Produce an approved specification and implementation plan (no code) for the feature described at the Describe Feature gate\"\n    ]\n    rankdir=LR\n\n    // All agent nodes run Claude Code over ACP — auth comes from\n    // CLAUDE_CODE_OAUTH_TOKEN in the environment env, billed to the\n    // Claude subscription. No API provider credentials are used.\n    start [shape=Mdiamond, label=\"Start\"]\n    exit  [shape=Msquare, label=\"Exit\"]\n\n    // ---- Specs phase (from dev-team /specs) ----\n    describe    [shape=hexagon, label=\"Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead.\"]\n    draft_spec  [label=\"Draft Spec\", prompt=\"@prompts/draft-spec.md\", goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    clarify     [shape=hexagon, label=\"Answer the open questions above. Type 'proceed' to accept all documented inferences.\"]\n    // Human-gated loops: every visit is a deliberate human change request, so\n    // the limit only guards against gross runaway, not normal iteration.\n    refine_spec [label=\"Refine Spec\", prompt=\"@prompts/refine-spec.md\", max_visits=15, goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    spec_gate   [shape=hexagon, label=\"Approve this spec and continue to planning? Anything else you type is treated as a change request.\"]\n\n    // ---- Plan phase (from dev-team /plan) ----\n    plan_feature [label=\"Write Plan\", prompt=\"@prompts/plan.md\", goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    reviews      [shape=component, label=\"Dispatch Plan Reviewers\", max_parallel=5]\n    review_acceptance [label=\"Acceptance Critic\",      prompt=\"@prompts/plan-review-acceptance.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_design     [label=\"Design Critic\",          prompt=\"@prompts/plan-review-design.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_ux         [label=\"UX Critic\",              prompt=\"@prompts/plan-review-ux.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_strategic  [label=\"Strategic Critic\",       prompt=\"@prompts/plan-review-strategic.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    review_parallel   [label=\"Parallelization Critic\", prompt=\"@prompts/plan-review-parallelization.md\", backend=\"acp\", acp.command=\"claude-code-acp\"]\n    merge_reviews   [shape=tripleoctagon, label=\"Merge Reviews\"]\n    address_reviews [label=\"Address Reviews\", prompt=\"@prompts/address-reviews.md\", max_visits=15, goal_gate=true, backend=\"acp\", acp.command=\"claude-code-acp\"]\n    plan_gate       [shape=hexagon, label=\"Approve this plan? Approval dispatches the build-ship child run. Anything else you type is treated as a change request.\"]\n    // The one API-backed node: fabro's run tools ([run.agent] fabro_tools) are\n    // only injected into API-backend stages, not ACP ones. Needs a working\n    // ANTHROPIC_API_KEY; a failure here does not fail the run — the spec/plan\n    // PR still opens and build-ship can be run manually.\n    dispatch_build  [label=\"Dispatch Build\", prompt=\"@prompts/dispatch-build.md\", reasoning_effort=\"low\"]\n\n    start -> describe\n    describe -> draft_spec [freeform=true]\n    draft_spec -> clarify [condition=\"outcome=succeeded\"]\n    draft_spec -> exit\n    clarify -> refine_spec [freeform=true]\n    refine_spec -> spec_gate [condition=\"outcome=succeeded\"]\n    refine_spec -> exit\n    spec_gate -> plan_feature [label=\"[A] Approve spec\"]\n    spec_gate -> refine_spec  [freeform=true]\n\n    plan_feature -> reviews [condition=\"outcome=succeeded\"]\n    plan_feature -> exit\n    reviews -> review_acceptance\n    reviews -> review_design\n    reviews -> review_ux\n    reviews -> review_strategic\n    reviews -> review_parallel\n    review_acceptance -> merge_reviews\n    review_design     -> merge_reviews\n    review_ux         -> merge_reviews\n    review_strategic  -> merge_reviews\n    review_parallel   -> merge_reviews\n    merge_reviews -> address_reviews\n    address_reviews -> plan_gate [condition=\"outcome=succeeded\"]\n    address_reviews -> exit\n    plan_gate -> dispatch_build  [label=\"[A] Approve plan\"]\n    plan_gate -> address_reviews [freeform=true]\n    dispatch_build -> exit\n}\n",
+    "workflow_slug": "specs-plan",
+    "source_directory": "/Users/andre/Developer/fabro-runs",
+    "provenance": {
+      "server": {
+        "version": "0.287.0-nightly.0"
+      },
+      "client": {
+        "user_agent": "fabro-cli/0.287.0-nightly.0",
+        "name": "fabro-cli",
+        "version": "0.287.0-nightly.0"
+      },
+      "subject": {
+        "kind": "user",
+        "identity": {
+          "issuer": "fabro:dev",
+          "subject": "dev"
+        },
+        "login": "dev",
+        "auth_method": "dev_token"
+      }
+    },
+    "manifest_blob": "d90f0af5064302252bb5eb887abeac0472285e7130faed8a212128fa4e406aaa",
+    "definition_blob": "c71e7c5cea8e5a4557fc956b2ab16f97c7456b69af92e9472aacea012fa4455f",
+    "git": {
+      "origin_url": "https://github.com/andremw/fabro",
+      "branch": "plan/freeform-image-attachments",
+      "sha": "ee7532b433e5171405e0e1033b0df5847f4cb9ef",
+      "dirty": "clean",
+      "push_outcome": {
+        "type": "not_attempted"
+      }
+    }
+  },
+  "web_url": "http://127.0.0.1:32276/runs/01KY1FXR4971FJHTZNDNT0G6RB",
+  "start": null,
+  "status": {
+    "kind": "starting"
+  },
+  "status_updated_at": "2026-07-21T04:46:09.637887Z",
+  "last_event_at": "2026-07-21T04:46:16.395673Z",
+  "pending_control": null,
+  "checkpoints": [],
+  "conclusion": null,
+  "sandbox": {
+    "kind": "ready",
+    "plan": {
+      "provider": "docker",
+      "image": "fabro-acp:latest"
+    },
+    "instance": {
+      "provider": "docker",
+      "image": "fabro-acp:latest",
+      "runtime": {
+        "id": "40231e312efa62c05ff0a3a521b4ed1aa7837acc6faaefb3cdfa37f89e812b78",
+        "working_directory": "/workspace/fabro",
+        "repo_cloned": true,
+        "clone_origin_url": "https://github.com/andremw/fabro",
+        "clone_branch": "plan/freeform-image-attachments",
+        "workspace_root": "/workspace",
+        "repos_root": "/repos",
+        "primary_repo_path": "/repos/andremw/fabro",
+        "primary_repo_link": "/workspace/fabro"
+      }
+    }
+  },
+  "pull_request": null,
+  "superseded_by": null,
+  "pending_interviews": {},
+  "stages": {}
+}
