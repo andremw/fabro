@@ -1397,4 +1397,22 @@ Some text in between.
             "prompt.md should contain original prompt"
         );
     }
+
+    #[test]
+    fn get_human_answer_images_with_images_in_context() {
+        let context = test_context();
+        context.set(
+            format!("{}review", keys::HUMAN_ANSWER_IMAGES_PREFIX),
+            serde_json::json!(["/tmp/image1.png", "/tmp/image2.jpg"]),
+        );
+
+        let images = get_human_answer_images(&context, "review");
+        assert_eq!(
+            images,
+            Some(vec![
+                "/tmp/image1.png".to_string(),
+                "/tmp/image2.jpg".to_string()
+            ])
+        );
+    }
 }
