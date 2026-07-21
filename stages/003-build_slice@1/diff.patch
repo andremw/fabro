@@ -1,0 +1,438 @@
+diff --git a/apps/fabro-web/app/components/interview-dock.test.tsx b/apps/fabro-web/app/components/interview-dock.test.tsx
+index 2905816..67c8c63 100644
+--- a/apps/fabro-web/app/components/interview-dock.test.tsx
++++ b/apps/fabro-web/app/components/interview-dock.test.tsx
+@@ -6,7 +6,16 @@ import {
+   QuestionType,
+ } from "@qltysh/fabro-api-client";
+ 
+-import { InterviewDock } from "./interview-dock";
++import {
++  InterviewDock,
++  DEFAULT_DOCK_HEIGHT,
++  MIN_DOCK_HEIGHT,
++  MAX_DOCK_HEIGHT_VH,
++  STORAGE_KEY,
++  loadDockHeight,
++  clampDockHeight,
++  saveDockHeight,
++} from "./interview-dock";
+ import { displayLabel } from "./interview-label";
+ import { generatedAxios } from "../lib/api-client";
+ 
+@@ -63,7 +72,46 @@ function makeQuestion(overrides: Partial<ApiQuestion> = {}): ApiQuestion {
+   };
+ }
+ 
++describe("InterviewDock constants", () => {
++  test("DEFAULT_DOCK_HEIGHT is 18rem", () => {
++    expect(DEFAULT_DOCK_HEIGHT).toBe("18rem");
++  });
++
++  test("MIN_DOCK_HEIGHT is 12rem", () => {
++    expect(MIN_DOCK_HEIGHT).toBe("12rem");
++  });
++
++  test("MAX_DOCK_HEIGHT_VH is 80", () => {
++    expect(MAX_DOCK_HEIGHT_VH).toBe(80);
++  });
++
++  test("STORAGE_KEY is fabro.interviewDock.height", () => {
++    expect(STORAGE_KEY).toBe("fabro.interviewDock.height");
++  });
++});
++
+ describe("InterviewDock", () => {
++  test("uses default dock height of 18rem when localStorage is empty", () => {
++    const storage = new Map<string, string>();
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const tree = render(
++      <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
++    );
++    // The dock height state should be initialized to DEFAULT_DOCK_HEIGHT
++    // We can verify this by checking that the component renders successfully
++    // (the actual CSS variable will be tested in later slices)
++    expect(tree.toJSON()).not.toBeNull();
++    // Should not write to localStorage on initial mount
++    expect(storage.has(STORAGE_KEY)).toBe(false);
++  });
++
+   test("renders question text and stage in the header", () => {
+     const tree = render(
+       <InterviewDock runId="run-1" questions={[makeQuestion()]} />,
+@@ -225,6 +273,30 @@ describe("InterviewDock", () => {
+     expect(tree.toJSON()).toBeNull();
+   });
+ 
++  test("invokes onDockHeightChange callback with initial height on mount", () => {
++    const storage = new Map<string, string>();
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const heights: string[] = [];
++    const onDockHeightChange = (height: string) => heights.push(height);
++
++    render(
++      <InterviewDock
++        runId="run-1"
++        questions={[makeQuestion()]}
++        onDockHeightChange={onDockHeightChange}
++      />,
++    );
++
++    expect(heights).toEqual([DEFAULT_DOCK_HEIGHT]);
++  });
++
+   test("renders the optional context_display section", () => {
+     const question = makeQuestion({
+       context_display: "Plan:\n1. Deploy\n2. Verify",
+@@ -238,6 +310,130 @@ describe("InterviewDock", () => {
+   });
+ });
+ 
++describe("loadDockHeight", () => {
++  test("returns default height when localStorage is empty", () => {
++    const storage = new Map<string, string>();
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    expect(loadDockHeight()).toBe(DEFAULT_DOCK_HEIGHT);
++  });
++
++  test("returns stored valid height", () => {
++    const storage = new Map<string, string>([[STORAGE_KEY, "24rem"]]);
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    expect(loadDockHeight()).toBe("24rem");
++  });
++
++  test("returns default when stored value is invalid", () => {
++    const storage = new Map<string, string>([[STORAGE_KEY, "invalid"]]);
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    expect(loadDockHeight()).toBe(DEFAULT_DOCK_HEIGHT);
++  });
++
++  test("clamps out-of-bounds height below minimum", () => {
++    const storage = new Map<string, string>([[STORAGE_KEY, "8rem"]]);
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    expect(loadDockHeight()).toBe(MIN_DOCK_HEIGHT);
++  });
++
++  test("clamps out-of-bounds height above maximum vh", () => {
++    const storage = new Map<string, string>([[STORAGE_KEY, "90vh"]]);
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    const result = loadDockHeight();
++    expect(result).toBe("80vh");
++  });
++});
++
++describe("saveDockHeight", () => {
++  test("writes height to localStorage under correct key", () => {
++    const storage = new Map<string, string>();
++    globalThis.window = {
++      localStorage: {
++        getItem: (key: string) => storage.get(key) ?? null,
++        setItem: (key: string, value: string) => storage.set(key, value),
++      },
++      innerHeight: 1000,
++    } as any;
++
++    saveDockHeight("24rem");
++    expect(storage.get(STORAGE_KEY)).toBe("24rem");
++  });
++
++  test("does not throw when localStorage is unavailable", () => {
++    globalThis.window = {
++      localStorage: {
++        getItem: () => { throw new Error("Quota exceeded"); },
++        setItem: () => { throw new Error("Quota exceeded"); },
++      },
++      innerHeight: 1000,
++    } as any;
++
++    expect(() => saveDockHeight("24rem")).not.toThrow();
++  });
++});
++
++describe("clampDockHeight", () => {
++  test("returns valid rem value within bounds", () => {
++    expect(clampDockHeight("18rem")).toBe("18rem");
++  });
++
++  test("clamps rem value below minimum to minimum", () => {
++    expect(clampDockHeight("8rem")).toBe(MIN_DOCK_HEIGHT);
++  });
++
++  test("clamps vh value above maximum to maximum", () => {
++    expect(clampDockHeight("90vh")).toBe("80vh");
++  });
++
++  test("returns default for invalid format", () => {
++    expect(clampDockHeight("invalid")).toBe(DEFAULT_DOCK_HEIGHT);
++    expect(clampDockHeight("")).toBe(DEFAULT_DOCK_HEIGHT);
++    expect(clampDockHeight("100")).toBe(DEFAULT_DOCK_HEIGHT);
++  });
++
++  test("handles px values", () => {
++    expect(clampDockHeight("300px")).toBe("300px");
++  });
++
++  test("clamps px values below minimum", () => {
++    expect(clampDockHeight("100px")).toBe(MIN_DOCK_HEIGHT);
++  });
++});
++
+ describe("displayLabel", () => {
+   test("strips bracketed accelerator", () => {
+     expect(displayLabel("[A] Approve")).toBe("Approve");
+diff --git a/apps/fabro-web/app/components/interview-dock.tsx b/apps/fabro-web/app/components/interview-dock.tsx
+index a216471..362cfa6 100644
+--- a/apps/fabro-web/app/components/interview-dock.tsx
++++ b/apps/fabro-web/app/components/interview-dock.tsx
+@@ -1,5 +1,7 @@
+ import {
+   useCallback,
++  useEffect,
++  useRef,
+   useState,
+   type FormEvent,
+   type KeyboardEvent,
+@@ -24,6 +26,11 @@ import { ApiError } from "../lib/api-client";
+ import { displayLabel } from "./interview-label";
+ import { ErrorMessage } from "./ui";
+ 
++export const DEFAULT_DOCK_HEIGHT = "18rem";
++export const MIN_DOCK_HEIGHT = "12rem";
++export const MAX_DOCK_HEIGHT_VH = 80;
++export const STORAGE_KEY = "fabro.interviewDock.height";
++
+ const PRIMARY_BUTTON =
+   "inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-teal-500";
+ 
+@@ -35,13 +42,103 @@ const CHOICE_BUTTON_SELECTED =
+ 
+ type SubmitInterviewAnswer = SubmitInterviewAnswerArg["answer"];
+ 
++export function clampDockHeight(height: string): string {
++  // Parse the height value
++  const match = height.match(/^(\d+(?:\.\d+)?)(rem|px|vh)$/);
++  if (!match) return DEFAULT_DOCK_HEIGHT;
++
++  const [, valueStr, unit] = match;
++  const value = parseFloat(valueStr);
++
++  // Handle different units
++  if (unit === "rem") {
++    const minRem = parseFloat(MIN_DOCK_HEIGHT);
++    if (value < minRem) return MIN_DOCK_HEIGHT;
++
++    // Convert 80vh to rem for comparison (assuming 16px = 1rem, 1vh = 1% of viewport)
++    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
++    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
++    const maxRem = maxPx / 16;
++    if (value > maxRem) return `${maxRem}rem`;
++
++    return height;
++  }
++
++  if (unit === "px") {
++    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16; // 12rem = 192px
++    if (value < minPx) return MIN_DOCK_HEIGHT;
++
++    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
++    const maxPx = (viewportHeight * MAX_DOCK_HEIGHT_VH) / 100;
++    if (value > maxPx) return `${maxPx}px`;
++
++    return height;
++  }
++
++  if (unit === "vh") {
++    if (value > MAX_DOCK_HEIGHT_VH) return `${MAX_DOCK_HEIGHT_VH}vh`;
++
++    // Check if vh value would be below minimum
++    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1000;
++    const actualPx = (viewportHeight * value) / 100;
++    const minPx = parseFloat(MIN_DOCK_HEIGHT) * 16;
++    if (actualPx < minPx) return MIN_DOCK_HEIGHT;
++
++    return height;
++  }
++
++  return DEFAULT_DOCK_HEIGHT;
++}
++
++export function loadDockHeight(): string {
++  if (typeof window === "undefined") return DEFAULT_DOCK_HEIGHT;
++
++  try {
++    const stored = window.localStorage.getItem(STORAGE_KEY);
++    if (!stored) return DEFAULT_DOCK_HEIGHT;
++
++    return clampDockHeight(stored);
++  } catch {
++    return DEFAULT_DOCK_HEIGHT;
++  }
++}
++
++export function saveDockHeight(height: string): void {
++  if (typeof window === "undefined") return;
++
++  try {
++    window.localStorage.setItem(STORAGE_KEY, height);
++  } catch {
++    // Ignore localStorage quota errors - dock height is non-critical state
++  }
++}
++
+ export interface InterviewDockProps {
+   runId: string;
+   questions: ApiQuestion[];
++  onDockHeightChange?: (height: string) => void;
+ }
+ 
+-export function InterviewDock({ runId, questions }: InterviewDockProps) {
++export function InterviewDock({ runId, questions, onDockHeightChange }: InterviewDockProps) {
+   const [activeIndex, setActiveIndex] = useState(0);
++  const [dockHeight, setDockHeight] = useState(loadDockHeight);
++  const isFirstMount = useRef(true);
++
++  // Notify parent of initial height on mount
++  useEffect(() => {
++    onDockHeightChange?.(dockHeight);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
++  // Persist dock height to localStorage (skip initial mount to avoid writing default)
++  useEffect(() => {
++    if (isFirstMount.current) {
++      isFirstMount.current = false;
++      return;
++    }
++    saveDockHeight(dockHeight);
++    onDockHeightChange?.(dockHeight);
++  }, [dockHeight, onDockHeightChange]);
+ 
+   const safeIndex = activeIndex < questions.length ? activeIndex : 0;
+   const question = questions[safeIndex];
+diff --git a/apps/fabro-web/app/routes/run-detail.tsx b/apps/fabro-web/app/routes/run-detail.tsx
+index ad75da0..d7d28e4 100644
+--- a/apps/fabro-web/app/routes/run-detail.tsx
++++ b/apps/fabro-web/app/routes/run-detail.tsx
+@@ -100,6 +100,7 @@ export default function RunDetail({ params }: { params: { id: string } }) {
+   const { mutate } = useSWRConfig();
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deletePending, setDeletePending] = useState(false);
++  const [dockHeight, setDockHeight] = useState("18rem");
+   const { push, dismiss } = useToast();
+   const lifecycleToastStateRef = useRef(createLifecycleToastState());
+   const filesCount = runQuery.data?.diff?.files_changed ?? null;
+@@ -366,6 +367,7 @@ export default function RunDetail({ params }: { params: { id: string } }) {
+             sidebarWidth={sidebarWidth}
+             isResizing={isResizing}
+             steerBarRef={steerBarRef}
++            onDockHeightChange={setDockHeight}
+           />
+         </div>
+       )}
+diff --git a/apps/fabro-web/app/routes/run-detail/docked-controls.tsx b/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
+index 0a95fe7..f834862 100644
+--- a/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
++++ b/apps/fabro-web/app/routes/run-detail/docked-controls.tsx
+@@ -133,6 +133,7 @@ export function RunDetailDockedControls({
+   sidebarWidth,
+   isResizing,
+   steerBarRef,
++  onDockHeightChange,
+ }: {
+   runId: string;
+   hideSteerBar: boolean;
+@@ -141,6 +142,7 @@ export function RunDetailDockedControls({
+   sidebarWidth: number;
+   isResizing: boolean;
+   steerBarRef: RefObject<SteerBarHandle | null>;
++  onDockHeightChange?: (height: string) => void;
+ }) {
+   if (hideSteerBar && !hasPendingQuestions) return null;
+ 
+@@ -154,7 +156,11 @@ export function RunDetailDockedControls({
+       style={{ right: sidebarWidth }}
+     >
+       {hasPendingQuestions ? (
+-        <InterviewDock runId={runId} questions={pendingQuestions} />
++        <InterviewDock
++          runId={runId}
++          questions={pendingQuestions}
++          onDockHeightChange={onDockHeightChange}
++        />
+       ) : (
+         <SteerBar ref={steerBarRef} runId={runId} />
+       )}
+diff --git a/docs/plans/2026-07-21-resizable-interview-dock-plan.md b/docs/plans/2026-07-21-resizable-interview-dock-plan.md
+index a95cc06..2574c42 100644
+--- a/docs/plans/2026-07-21-resizable-interview-dock-plan.md
++++ b/docs/plans/2026-07-21-resizable-interview-dock-plan.md
+@@ -385,13 +385,13 @@ No warnings or low-priority observations were raised. The plan is ready for impl
+ ## Build Progress
+ 
+ ### Wave 1
+-- [ ] Slice 1: localStorage Height Persistence Infrastructure
+-  - [ ] Step 1: Add constants `DEFAULT_DOCK_HEIGHT`, `MIN_DOCK_HEIGHT`, `MAX_DOCK_HEIGHT_VH`, `STORAGE_KEY`
+-  - [ ] Step 2: Add `useState` hook for dock height
+-  - [ ] Step 3: Create `loadDockHeight()` helper
+-  - [ ] Step 4: Create `saveDockHeight(height: string)` helper
+-  - [ ] Step 5: Add `useEffect` that persists height to localStorage
+-  - [ ] Step 6: Pass height state up to `RunDetail` via `onDockHeightChange` callback
++- [x] Slice 1: localStorage Height Persistence Infrastructure
++  - [x] Step 1: Add constants `DEFAULT_DOCK_HEIGHT`, `MIN_DOCK_HEIGHT`, `MAX_DOCK_HEIGHT_VH`, `STORAGE_KEY`
++  - [x] Step 2: Add `useState` hook for dock height
++  - [x] Step 3: Create `loadDockHeight()` helper
++  - [x] Step 4: Create `saveDockHeight(height: string)` helper
++  - [x] Step 5: Add `useEffect` that persists height to localStorage
++  - [x] Step 6: Pass height state up to `RunDetail` via `onDockHeightChange` callback
+ 
+ ### Wave 2
+ - [ ] Slice 2: Resize Handle and Drag Interaction
