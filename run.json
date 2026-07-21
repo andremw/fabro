@@ -315,7 +315,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T09:16:58.987586Z",
-  "last_event_at": "2026-07-21T12:36:20.390141Z",
+  "last_event_at": "2026-07-21T12:36:28.751538Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -11172,9 +11172,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 741,
       "checkpoint": {
-        "timestamp": "2026-07-21T12:36:24.183266Z",
+        "timestamp": "2026-07-21T12:36:28.746894Z",
         "current_node": "check",
         "completed_nodes": [
           "start",
@@ -11260,18 +11260,199 @@
         ],
         "node_retries": {},
         "context_values": {
-          "preferred_label": "Keep watching",
+          "thread.start.current_node": "check",
           "internal.node_visit_count": 40,
+          "failure_class": "deterministic",
+          "internal.retry_count.check": 0,
+          "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t12:<n>:35z: <n>,reviews: <n>",
+          "current_node": "check",
+          "last_response": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current i",
+          "last_stage": "address",
+          "command.output": "blob://sha256/7b0cc8b2dd71fb3e98790430923887703acae439870b245d8d7f032ae844e6b8",
+          "thread.pause.current_node": "check",
+          "internal.retry_count.address": 0,
+          "internal.work_dir": "/workspace/fabro",
+          "graph.rankdir": "LR",
+          "internal.retry_count.start": 0,
+          "graph.loop_restart_signature_limit": "1000",
+          "outcome": "failed",
+          "response.address": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current implementation has a shared zoom value with per-direction ceiling, but what's wanted is separate zoom states for TB and LR that persist independently when switching between modes. Let me implement this fix.I can see the current implementation. The issue is that it has a shared `view` state with a single `zoom` value, and there's an effect (lines 78-90) that tries to save/restore zoom per direction but it's still updating the same `view` state. The feedback wants completely separate view states for TB and LR.\n\nLet me check the `useRememberedGraphView` hook to understand what it returns:Now I understand the structure. The feedback wants:\n1. Replace the single `view` state with separate view states for TB and LR\n2. Remove the clamping-on-direction-change effect (lines 78-90)\n3. Each direction maintains its own zoom and pan independently\n\nLet me implement this fix:Now let me verify the changes and run tests:Good. Now I need to update the callbacks that depend on `setView` to use the correct setter. Let me check the dependencies:Now let me run the tests and type check to make sure everything works:Let me check the test summary:Perfect! All tests pass. Now let me commit the change and push:Now I need to reply to the comment. Let me get the comment details so I can reply:Now let me check if there are any review threads to resolve. Let me query the GraphQL API:Good, there are no unresolved review threads. Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}",
+          "internal.thread_id": "address",
+          "internal.retry_count.pause": 0,
+          "thread.address.current_node": "check",
+          "internal.fidelity": "compact",
+          "preferred_label": "Keep watching",
+          "thread.check.current_node": "address"
+        },
+        "node_outcomes": {
+          "check": {
+            "status": "failed",
+            "context_updates": {
+              "command.output": "blob://sha256/7b0cc8b2dd71fb3e98790430923887703acae439870b245d8d7f032ae844e6b8"
+            },
+            "failure": {
+              "message": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#581 (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=0, comments since 2026-07-21T12:35:35Z: 0, reviews: 0\n",
+              "category": "deterministic"
+            },
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 3727,
+              "active_time_ms": 3727
+            }
+          },
+          "pause": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "address": {
+            "status": "succeeded",
+            "preferred_label": "Keep watching",
+            "context_updates": {
+              "last_response": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current i",
+              "last_stage": "address",
+              "response.address": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current implementation has a shared zoom value with per-direction ceiling, but what's wanted is separate zoom states for TB and LR that persist independently when switching between modes. Let me implement this fix.I can see the current implementation. The issue is that it has a shared `view` state with a single `zoom` value, and there's an effect (lines 78-90) that tries to save/restore zoom per direction but it's still updating the same `view` state. The feedback wants completely separate view states for TB and LR.\n\nLet me check the `useRememberedGraphView` hook to understand what it returns:Now I understand the structure. The feedback wants:\n1. Replace the single `view` state with separate view states for TB and LR\n2. Remove the clamping-on-direction-change effect (lines 78-90)\n3. Each direction maintains its own zoom and pan independently\n\nLet me implement this fix:Now let me verify the changes and run tests:Good. Now I need to update the callbacks that depend on `setView` to use the correct setter. Let me check the dependencies:Now let me run the tests and type check to make sure everything works:Let me check the test summary:Perfect! All tests pass. Now let me commit the change and push:Now I need to reply to the comment. Let me get the comment details so I can reply:Now let me check if there are any review threads to resolve. Let me query the GraphQL API:Good, there are no unresolved review threads. Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}"
+            },
+            "notes": "Stage completed: address",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 160592,
+              "tool_time_ms": 0,
+              "active_time_ms": 160592
+            }
+          }
+        },
+        "next_node_id": "pause",
+        "git_commit_sha": "19cf226c0c0a595af0792d05ed072f5e9792a53c",
+        "loop_failure_signatures": {
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t09:<n>:22z: <n>,reviews: <n>": 37,
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t12:<n>:35z: <n>,reviews: <n>": 1
+        },
+        "node_visits": {
+          "address": 2,
+          "check": 40,
+          "pause": 37,
+          "start": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 1,
+          "additions": 1,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T12:41:28.807118Z",
+        "current_node": "pause",
+        "completed_nodes": [
+          "start",
+          "check",
+          "address",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "pause",
+          "check",
+          "address",
+          "check",
+          "pause"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "preferred_label": "Keep watching",
+          "internal.node_visit_count": 38,
           "graph.rankdir": "LR",
           "internal.work_dir": "/workspace/fabro",
           "internal.run_id": "01KY1ZDF3RE96WDCD2XTZGNF1G",
           "thread.start.current_node": "check",
-          "current_node": "check",
-          "thread.check.current_node": "address",
+          "current_node": "pause",
+          "thread.check.current_node": "pause",
           "last_stage": "address",
           "response.address": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current implementation has a shared zoom value with per-direction ceiling, but what's wanted is separate zoom states for TB and LR that persist independently when switching between modes. Let me implement this fix.I can see the current implementation. The issue is that it has a shared `view` state with a single `zoom` value, and there's an effect (lines 78-90) that tries to save/restore zoom per direction but it's still updating the same `view` state. The feedback wants completely separate view states for TB and LR.\n\nLet me check the `useRememberedGraphView` hook to understand what it returns:Now I understand the structure. The feedback wants:\n1. Replace the single `view` state with separate view states for TB and LR\n2. Remove the clamping-on-direction-change effect (lines 78-90)\n3. Each direction maintains its own zoom and pan independently\n\nLet me implement this fix:Now let me verify the changes and run tests:Good. Now I need to update the callbacks that depend on `setView` to use the correct setter. Let me check the dependencies:Now let me run the tests and type check to make sure everything works:Let me check the test summary:Perfect! All tests pass. Now let me commit the change and push:Now I need to reply to the comment. Let me get the comment details so I can reply:Now let me check if there are any review threads to resolve. Let me query the GraphQL API:Good, there are no unresolved review threads. Now let me return to the run branch:{\"preferred_next_label\": \"Keep watching\"}",
           "internal.retry_count.address": 0,
-          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t12:<n>:35z: <n>,reviews: <n>",
+          "failure_signature": "",
           "graph.loop_restart_signature_limit": "1000",
           "command.output": "blob://sha256/7b0cc8b2dd71fb3e98790430923887703acae439870b245d8d7f032ae844e6b8",
           "thread.address.current_node": "check",
@@ -11279,12 +11460,12 @@
           "last_response": "I need to address the PR feedback. Let me start by checking out the PR branch and reading all comments.I can see the issue. The latest comment (dated after the last commit) explains that the current i",
           "internal.retry_count.check": 0,
           "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
-          "internal.thread_id": "address",
+          "internal.thread_id": "check",
           "internal.retry_count.pause": 0,
-          "outcome": "failed",
+          "outcome": "succeeded",
           "thread.pause.current_node": "check",
           "internal.retry_count.start": 0,
-          "failure_class": "deterministic"
+          "failure_class": ""
         },
         "node_outcomes": {
           "pause": {
@@ -11330,11 +11511,11 @@
             "usage": null
           }
         },
-        "next_node_id": "pause",
+        "next_node_id": "check",
         "node_visits": {
           "start": 1,
           "check": 40,
-          "pause": 37,
+          "pause": 38,
           "address": 2
         }
       },
@@ -12727,7 +12908,12 @@
       "first_event_seq": 734,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "failed",
+        "notes": null,
+        "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#581 (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=0, comments since 2026-07-21T12:35:35Z: 0, reviews: 0\n",
+        "timestamp": "2026-07-21T12:36:24.182539Z"
+      },
       "provider_used": null,
       "diff": null,
       "script_invocation": {
@@ -12735,11 +12921,27 @@
         "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
         "language": "shell"
       },
-      "script_timing": null,
+      "script_timing": {
+        "output": "blob://sha256/7b0cc8b2dd71fb3e98790430923887703acae439870b245d8d7f032ae844e6b8",
+        "exit_code": 1,
+        "duration_ms": 3727,
+        "termination": "exited",
+        "output_bytes": 145,
+        "live_streaming": true
+      },
       "parallel_results": null,
       "output": null,
+      "output_bytes": 145,
+      "live_streaming": true,
+      "termination": "exited",
       "started_at": "2026-07-21T12:36:20.389496Z",
       "handler": "command",
+      "timing": {
+        "wall_time_ms": 3792,
+        "inference_time_ms": 0,
+        "tool_time_ms": 3727,
+        "active_time_ms": 3727
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -12748,7 +12950,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "running"
+      "state": "failed"
     },
     "check@23": {
       "first_event_seq": 422,
@@ -13125,6 +13327,29 @@
         "cache_write_tokens": 0
       },
       "state": "failed"
+    },
+    "pause@38": {
+      "first_event_seq": 744,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T12:36:28.751538Z",
+      "handler": "wait",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
     },
     "pause@23": {
       "first_event_seq": 450,
