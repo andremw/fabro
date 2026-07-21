@@ -308,7 +308,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-07-21T08:36:12.519857Z",
-  "last_event_at": "2026-07-21T08:55:03.370907Z",
+  "last_event_at": "2026-07-21T08:55:07.738168Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -990,9 +990,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 101,
       "checkpoint": {
-        "timestamp": "2026-07-21T08:55:03.419842Z",
+        "timestamp": "2026-07-21T08:55:07.735186Z",
         "current_node": "address",
         "completed_nodes": [
           "start",
@@ -1007,30 +1007,137 @@
         ],
         "node_retries": {},
         "context_values": {
+          "preferred_label": "Keep watching",
+          "command.output": "blob://sha256/7dd7b583fe39c3a70f078df203d35666d067bffc7ee7d85ebdff3c147008b4da",
+          "failure_class": "",
+          "graph.rankdir": "LR",
           "internal.run_id": "01KY1X2THZB43QHTE50ZC6MNS5",
-          "internal.thread_id": "check",
+          "thread.address.current_node": "check",
+          "thread.check.current_node": "address",
+          "internal.node_visit_count": 2,
+          "thread.pause.current_node": "check",
+          "internal.retry_count.check": 0,
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "internal.retry_count.start": 0,
+          "internal.retry_count.address": 0,
+          "thread.start.current_node": "check",
           "current_node": "address",
+          "internal.fidelity": "compact",
+          "internal.thread_id": "check",
+          "last_stage": "address",
+          "response.address": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation exists for this feature and update it accordingly.Let me check what files were changed in this PR to understand the scope and see if there are any related documentation files.I see there are plan and brainstorm docs that were included in this PR. The comment is asking about updating docs, so let me read these to see if they need to be updated based on the implemented changes.Now I can see the issue. The comment is asking about updating the docs. Looking at the plan and spec docs, I notice a discrepancy:\n\n1. The spec (line 15) says: `GRAPH_MAX_ZOOM_LR = 300` (1.5x increase from 200%)\n2. The most recent comment says: \"max LR zoom needs to be increased to 400%\"\n3. The most recent implementation (from the check output) shows it was increased to 400% and includes zoom persistence\n\nThis means the docs (brainstorm and plan) still reference the old 300% maximum, but the implementation has been updated to 400%. I need to update both documents to reflect the actual implementation of 400%.\n\nLet me check what was actually implemented:Perfect. The code shows `GRAPH_MAX_ZOOM_LR = 400` on line 11. Now I need to update the docs to reflect this change from 300% to 400%. I also need to check for the zoom persistence feature mentioned in the feedback.Great! I can see the zoom persistence feature was implemented (lines 73-91). Now I need to update both documentation files to reflect:\n1. The increase from 300% to 400% for LR max zoom\n2. The addition of zoom persistence when switching between TB and LR modes\n\nLet me update the spec first:Now let me update the plan document to reflect the same changes:Good! Now let me commit these documentation updates, push them, and reply to the comment.Now let me reply to the comment on the PR:Perfect! I've successfully addressed the feedback:\n\n1. Updated the spec document (docs/brainstorms/2026-07-21-graph-zoom-lr-increase-requirements.md) to reflect:\n   - LR max zoom increased to 400% (from 300%)\n   - Added description of the zoom persistence feature\n\n2. Updated the plan document (docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md) to reflect:\n   - All references to 300% changed to 400%\n   - Updated acceptance criteria to include zoom persistence\n   - Updated scenarios and test steps to match the new 400% limit and zoom persistence behavior\n\n3. Committed and pushed the changes to the PR branch\n\n4. Posted a reply to the comment explaining what was updated\n\nNow returning to the run branch to complete the workflow.\n\n{\"preferred_next_label\": \"Keep watching\"}",
+          "internal.work_dir": "/workspace/fabro",
+          "outcome": "succeeded",
+          "graph.loop_restart_signature_limit": "1000",
+          "internal.retry_count.pause": 0,
+          "failure_signature": "",
+          "last_response": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation e"
+        },
+        "node_outcomes": {
+          "check": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/7dd7b583fe39c3a70f078df203d35666d067bffc7ee7d85ebdff3c147008b4da"
+            },
+            "notes": "Script completed: set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 4166,
+              "active_time_ms": 4166
+            }
+          },
+          "pause": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "address": {
+            "status": "succeeded",
+            "preferred_label": "Keep watching",
+            "context_updates": {
+              "last_response": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation e",
+              "last_stage": "address",
+              "response.address": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation exists for this feature and update it accordingly.Let me check what files were changed in this PR to understand the scope and see if there are any related documentation files.I see there are plan and brainstorm docs that were included in this PR. The comment is asking about updating docs, so let me read these to see if they need to be updated based on the implemented changes.Now I can see the issue. The comment is asking about updating the docs. Looking at the plan and spec docs, I notice a discrepancy:\n\n1. The spec (line 15) says: `GRAPH_MAX_ZOOM_LR = 300` (1.5x increase from 200%)\n2. The most recent comment says: \"max LR zoom needs to be increased to 400%\"\n3. The most recent implementation (from the check output) shows it was increased to 400% and includes zoom persistence\n\nThis means the docs (brainstorm and plan) still reference the old 300% maximum, but the implementation has been updated to 400%. I need to update both documents to reflect the actual implementation of 400%.\n\nLet me check what was actually implemented:Perfect. The code shows `GRAPH_MAX_ZOOM_LR = 400` on line 11. Now I need to update the docs to reflect this change from 300% to 400%. I also need to check for the zoom persistence feature mentioned in the feedback.Great! I can see the zoom persistence feature was implemented (lines 73-91). Now I need to update both documentation files to reflect:\n1. The increase from 300% to 400% for LR max zoom\n2. The addition of zoom persistence when switching between TB and LR modes\n\nLet me update the spec first:Now let me update the plan document to reflect the same changes:Good! Now let me commit these documentation updates, push them, and reply to the comment.Now let me reply to the comment on the PR:Perfect! I've successfully addressed the feedback:\n\n1. Updated the spec document (docs/brainstorms/2026-07-21-graph-zoom-lr-increase-requirements.md) to reflect:\n   - LR max zoom increased to 400% (from 300%)\n   - Added description of the zoom persistence feature\n\n2. Updated the plan document (docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md) to reflect:\n   - All references to 300% changed to 400%\n   - Updated acceptance criteria to include zoom persistence\n   - Updated scenarios and test steps to match the new 400% limit and zoom persistence behavior\n\n3. Committed and pushed the changes to the PR branch\n\n4. Posted a reply to the comment explaining what was updated\n\nNow returning to the run branch to complete the workflow.\n\n{\"preferred_next_label\": \"Keep watching\"}"
+            },
+            "notes": "Stage completed: address",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 222244,
+              "tool_time_ms": 0,
+              "active_time_ms": 222244
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "check",
+        "git_commit_sha": "53694df3e40f24ee086bee4b8408c1b729664314",
+        "loop_failure_signatures": {
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t08:<n>:17z: <n>,reviews: <n>": 1,
+          "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t06:<n>:31z: <n>,reviews: <n>": 1
+        },
+        "node_visits": {
+          "pause": 2,
+          "address": 2,
+          "check": 4,
+          "start": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 1,
+          "additions": 1,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T08:55:11.546181Z",
+        "current_node": "check",
+        "completed_nodes": [
+          "start",
+          "check",
+          "pause",
+          "check",
+          "address",
+          "check",
+          "pause",
+          "check",
+          "address",
+          "check"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "internal.run_id": "01KY1X2THZB43QHTE50ZC6MNS5",
+          "internal.thread_id": "address",
+          "current_node": "check",
           "thread.pause.current_node": "check",
           "internal.retry_count.pause": 0,
           "internal.retry_count.address": 0,
           "thread.address.current_node": "check",
-          "failure_class": "",
+          "failure_class": "deterministic",
           "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
           "internal.fidelity": "compact",
           "thread.start.current_node": "check",
-          "command.output": "blob://sha256/7dd7b583fe39c3a70f078df203d35666d067bffc7ee7d85ebdff3c147008b4da",
+          "command.output": "blob://sha256/d7f097762b1045def77f9cb7e089fb126f0ecd65a3de3a9b4f1427a1426bf254",
           "internal.retry_count.check": 0,
           "internal.retry_count.start": 0,
           "thread.check.current_node": "address",
-          "outcome": "succeeded",
+          "outcome": "failed",
           "graph.loop_restart_signature_limit": "1000",
           "last_stage": "address",
           "graph.rankdir": "LR",
           "response.address": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation exists for this feature and update it accordingly.Let me check what files were changed in this PR to understand the scope and see if there are any related documentation files.I see there are plan and brainstorm docs that were included in this PR. The comment is asking about updating docs, so let me read these to see if they need to be updated based on the implemented changes.Now I can see the issue. The comment is asking about updating the docs. Looking at the plan and spec docs, I notice a discrepancy:\n\n1. The spec (line 15) says: `GRAPH_MAX_ZOOM_LR = 300` (1.5x increase from 200%)\n2. The most recent comment says: \"max LR zoom needs to be increased to 400%\"\n3. The most recent implementation (from the check output) shows it was increased to 400% and includes zoom persistence\n\nThis means the docs (brainstorm and plan) still reference the old 300% maximum, but the implementation has been updated to 400%. I need to update both documents to reflect the actual implementation of 400%.\n\nLet me check what was actually implemented:Perfect. The code shows `GRAPH_MAX_ZOOM_LR = 400` on line 11. Now I need to update the docs to reflect this change from 300% to 400%. I also need to check for the zoom persistence feature mentioned in the feedback.Great! I can see the zoom persistence feature was implemented (lines 73-91). Now I need to update both documentation files to reflect:\n1. The increase from 300% to 400% for LR max zoom\n2. The addition of zoom persistence when switching between TB and LR modes\n\nLet me update the spec first:Now let me update the plan document to reflect the same changes:Good! Now let me commit these documentation updates, push them, and reply to the comment.Now let me reply to the comment on the PR:Perfect! I've successfully addressed the feedback:\n\n1. Updated the spec document (docs/brainstorms/2026-07-21-graph-zoom-lr-increase-requirements.md) to reflect:\n   - LR max zoom increased to 400% (from 300%)\n   - Added description of the zoom persistence feature\n\n2. Updated the plan document (docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md) to reflect:\n   - All references to 300% changed to 400%\n   - Updated acceptance criteria to include zoom persistence\n   - Updated scenarios and test steps to match the new 400% limit and zoom persistence behavior\n\n3. Committed and pushed the changes to the PR branch\n\n4. Posted a reply to the comment explaining what was updated\n\nNow returning to the run branch to complete the workflow.\n\n{\"preferred_next_label\": \"Keep watching\"}",
           "last_response": "I'll address the PR feedback. Let me start by switching to a clean branch and reading all the comments.I can see there's a new comment asking about updating the docs. Let me check what documentation e",
           "preferred_label": "Keep watching",
-          "internal.node_visit_count": 2,
-          "failure_signature": "",
+          "internal.node_visit_count": 5,
+          "failure_signature": "check|deterministic|script failed with exit code: <n> ## output pr fabro-sh/fabro#<n> (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=<n>,comments since <n>-<n>-21t08:<n>:43z: <n>,reviews: <n>",
           "internal.work_dir": "/workspace/fabro"
         },
         "node_outcomes": {
@@ -1052,17 +1159,20 @@
             }
           },
           "check": {
-            "status": "succeeded",
+            "status": "failed",
             "context_updates": {
-              "command.output": "blob://sha256/7dd7b583fe39c3a70f078df203d35666d067bffc7ee7d85ebdff3c147008b4da"
+              "command.output": "blob://sha256/d7f097762b1045def77f9cb7e089fb126f0ecd65a3de3a9b4f1427a1426bf254"
             },
-            "notes": "Script completed: set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+            "failure": {
+              "message": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#581 (head branch: feat/graph-zoom-lr-increase) draft; unresolved threads=0, comments since 2026-07-21T08:54:43Z: 0, reviews: 0\n",
+              "category": "deterministic"
+            },
             "usage": null,
             "timing": {
               "wall_time_ms": 0,
               "inference_time_ms": 0,
-              "tool_time_ms": 4166,
-              "active_time_ms": 4166
+              "tool_time_ms": 3790,
+              "active_time_ms": 3790
             }
           },
           "start": {
@@ -1074,12 +1184,12 @@
             "usage": null
           }
         },
-        "next_node_id": "check",
+        "next_node_id": "pause",
         "node_visits": {
           "start": 1,
           "pause": 2,
           "address": 2,
-          "check": 4
+          "check": 5
         }
       },
       "diff": {}
@@ -1246,7 +1356,12 @@
       "first_event_seq": 90,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: address",
+        "failure_reason": null,
+        "timestamp": "2026-07-21T08:55:03.418291Z"
+      },
       "provider_used": {
         "mode": "acp",
         "provider": "acp"
@@ -1264,6 +1379,12 @@
       "termination": "exited",
       "started_at": "2026-07-21T08:51:21.095924Z",
       "handler": "agent",
+      "timing": {
+        "wall_time_ms": 222322,
+        "inference_time_ms": 222244,
+        "tool_time_ms": 0,
+        "active_time_ms": 222244
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -1272,7 +1393,7 @@
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
       },
-      "state": "running"
+      "state": "succeeded"
     },
     "pause@1": {
       "first_event_seq": 30,
@@ -1355,6 +1476,33 @@
         "cache_write_tokens": 0
       },
       "state": "failed"
+    },
+    "check@5": {
+      "first_event_seq": 104,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nif [ -f .fabro-pr-watch ]; then\n  read repo pr head < .fabro-pr-watch\nelse\n  sha=$(git rev-parse HEAD)\n  origin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\n  line=$(ORIGIN=$origin gh api repos/$origin/commits/$sha/pulls --jq 'map(select(.state==\"open\"))|(map(select(.base.repo.full_name!=env.ORIGIN))+.)|first|select(.)|[.base.repo.full_name,(.number|tostring),.head.ref]|join(\" \")' 2>/dev/null || true)\n  if [ -z \"$line\" ]; then echo \"no open PR contains HEAD $sha — will retry\"; exit 1; fi\n  repo=${line%% *}; rest=${line#* }; pr=${rest%% *}; head=${rest#* }\n  echo \"$repo $pr $head\" > .fabro-pr-watch\nfi\nstate=$(gh pr view $pr --repo $repo --json state,isDraft --jq '[.state,(.isDraft|tostring)]|join(\" \")')\nif [ \"${state%% *}\" != \"OPEN\" ]; then echo \"VERDICT: PR $repo#$pr is ${state%% *} — stop watching\"; exit 0; fi\nif [ \"${state#* }\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nheadsha=$(gh pr view $pr --repo $repo --json headRefOid --jq .headRefOid)\nexport TIP=$(gh api repos/$repo/commits/$headsha --jq .commit.committer.date)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr (head branch: $head) draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr, head branch $head\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T08:55:07.737542Z",
+      "handler": "command",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
     },
     "address@1": {
       "first_event_seq": 48,
