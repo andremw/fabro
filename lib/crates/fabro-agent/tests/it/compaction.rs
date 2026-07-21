@@ -27,7 +27,7 @@ async fn openai_twin_compaction_preserves_tool_call_pairs() {
     session.initialize().await.unwrap();
 
     let result = session
-        .process_input(
+        .process_text_input(
             "Trigger the compaction regression by writing four small files, then say done.",
         )
         .await;
