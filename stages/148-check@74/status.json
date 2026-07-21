@@ -1,0 +1,6 @@
+{
+  "outcome": "failed",
+  "notes": null,
+  "failure_reason": "Script failed with exit code: 1\n\n## output\nPR fabro-sh/fabro#582 (head branch: feat/resizable-interview-dock) draft; unresolved threads=0, comments since 2026-07-21T13:41:05Z: 0, reviews: 0\n",
+  "timestamp": "2026-07-21T15:32:29.685939Z"
+}
