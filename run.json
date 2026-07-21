@@ -518,14 +518,120 @@
     }
   },
   "web_url": "http://127.0.0.1:32276/runs/01KY1NNS4T2KGTS97SZK3X7CF9",
-  "start": null,
-  "status": {
-    "kind": "starting"
+  "start": {
+    "start_time": "2026-07-21T06:26:46.333928Z",
+    "run_branch": "fabro/run/01KY1NNS4T2KGTS97SZK3X7CF9",
+    "base_sha": "371d08f3d8994607a872f722e446e1df6ec34252"
   },
-  "status_updated_at": "2026-07-21T06:26:39.992540Z",
-  "last_event_at": "2026-07-21T06:26:45.979870Z",
+  "status": {
+    "kind": "running"
+  },
+  "status_updated_at": "2026-07-21T06:26:46.334009Z",
+  "last_event_at": "2026-07-21T06:27:44.219863Z",
   "pending_control": null,
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "seq": 19,
+      "checkpoint": {
+        "timestamp": "2026-07-21T06:26:49.335070Z",
+        "current_node": "start",
+        "completed_nodes": [
+          "start"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "internal.fidelity": "compact",
+          "failure_signature": "",
+          "current_node": "start",
+          "internal.work_dir": "/workspace/fabro",
+          "internal.retry_count.start": 0,
+          "outcome": "succeeded",
+          "graph.rankdir": "LR",
+          "graph.goal": "Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request",
+          "internal.node_visit_count": 1,
+          "failure_class": "",
+          "internal.run_id": "01KY1NNS4T2KGTS97SZK3X7CF9",
+          "internal.thread_id": null
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "prepare",
+        "node_visits": {
+          "start": 1
+        }
+      },
+      "diff": {}
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T06:27:44.271440Z",
+        "current_node": "prepare",
+        "completed_nodes": [
+          "start",
+          "prepare"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "graph.rankdir": "LR",
+          "current_node": "prepare",
+          "internal.node_visit_count": 1,
+          "failure_class": "",
+          "internal.retry_count.start": 0,
+          "failure_signature": "",
+          "outcome": "succeeded",
+          "internal.run_id": "01KY1NNS4T2KGTS97SZK3X7CF9",
+          "internal.work_dir": "/workspace/fabro",
+          "last_response": "I'll locate and verify the requested plan, then prepare it for the build process.I found the requested plan file. It has **Status: approved** and contains 7 implementation slices organized into 4 wave",
+          "graph.goal": "Execute the approved implementation plan slice by slice in small batches with tests green, review the result from four angles, and ship it as a pull request",
+          "plan_path": "docs/plans/2026-07-21-agent-session-image-input-plan.md",
+          "thread.start.current_node": "prepare",
+          "last_stage": "prepare",
+          "internal.retry_count.prepare": 0,
+          "preferred_label": "Plan ready",
+          "internal.fidelity": "compact",
+          "internal.thread_id": "start",
+          "plan_ready": "true",
+          "response.prepare": "I'll locate and verify the requested plan, then prepare it for the build process.I found the requested plan file. It has **Status: approved** and contains 7 implementation slices organized into 4 waves. Now I need to:\n\n1. Add a \"## Build Progress\" section with checkboxes for each slice and step\n2. Change the status to \"in-progress\"\n3. Commit the changes\n\nLet me add the build progress section:Now I'll commit the plan file with the appropriate commit message:Perfect! I've successfully located and prepared the approved plan. Here's what I found:\n\n**Plan**: `docs/plans/2026-07-21-agent-session-image-input-plan.md`\n\n**Summary**: This plan implements multi-part content support for agent sessions, enabling images to be passed into the agent's initial user message. The implementation migrates `Message::User` from a simple `String` content field to `Vec<ContentPart>` to support both text and images.\n\n**Slices**: 7 slices organized into 4 waves\n- **Wave 0**: Slice 1 (AgentMessage::User content type change)\n- **Wave 1**: Slices 2-4 (Session API, test call sites, CodergenRunRequest updates)\n- **Wave 2**: Slices 5-6 (Image propagation, server handler updates)\n- **Wave 3**: Slice 7 (Documentation and completion)\n\n**Actions taken**:\n1. Added comprehensive \"## Build Progress\" section with checkboxes for all 7 slices and their individual steps\n2. Changed status from \"approved\" to \"in-progress\"\n3. Committed changes with message: `chore(build): start agent-session-image-input`\n\n```json\n{\"preferred_next_label\": \"Plan ready\", \"context_updates\": {\"plan_ready\": \"true\", \"plan_path\": \"docs/plans/2026-07-21-agent-session-image-input-plan.md\"}}\n```"
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "prepare": {
+            "status": "succeeded",
+            "preferred_label": "Plan ready",
+            "context_updates": {
+              "plan_ready": "true",
+              "last_response": "I'll locate and verify the requested plan, then prepare it for the build process.I found the requested plan file. It has **Status: approved** and contains 7 implementation slices organized into 4 wave",
+              "last_stage": "prepare",
+              "response.prepare": "I'll locate and verify the requested plan, then prepare it for the build process.I found the requested plan file. It has **Status: approved** and contains 7 implementation slices organized into 4 waves. Now I need to:\n\n1. Add a \"## Build Progress\" section with checkboxes for each slice and step\n2. Change the status to \"in-progress\"\n3. Commit the changes\n\nLet me add the build progress section:Now I'll commit the plan file with the appropriate commit message:Perfect! I've successfully located and prepared the approved plan. Here's what I found:\n\n**Plan**: `docs/plans/2026-07-21-agent-session-image-input-plan.md`\n\n**Summary**: This plan implements multi-part content support for agent sessions, enabling images to be passed into the agent's initial user message. The implementation migrates `Message::User` from a simple `String` content field to `Vec<ContentPart>` to support both text and images.\n\n**Slices**: 7 slices organized into 4 waves\n- **Wave 0**: Slice 1 (AgentMessage::User content type change)\n- **Wave 1**: Slices 2-4 (Session API, test call sites, CodergenRunRequest updates)\n- **Wave 2**: Slices 5-6 (Image propagation, server handler updates)\n- **Wave 3**: Slice 7 (Documentation and completion)\n\n**Actions taken**:\n1. Added comprehensive \"## Build Progress\" section with checkboxes for all 7 slices and their individual steps\n2. Changed status from \"approved\" to \"in-progress\"\n3. Committed changes with message: `chore(build): start agent-session-image-input`\n\n```json\n{\"preferred_next_label\": \"Plan ready\", \"context_updates\": {\"plan_ready\": \"true\", \"plan_path\": \"docs/plans/2026-07-21-agent-session-image-input-plan.md\"}}\n```",
+              "plan_path": "docs/plans/2026-07-21-agent-session-image-input-plan.md"
+            },
+            "notes": "Stage completed: prepare",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 54833,
+              "tool_time_ms": 0,
+              "active_time_ms": 54833
+            }
+          }
+        },
+        "next_node_id": "build_slice",
+        "node_visits": {
+          "start": 1,
+          "prepare": 1
+        }
+      },
+      "diff": {}
+    }
+  ],
   "conclusion": null,
   "sandbox": {
     "kind": "ready",
@@ -552,5 +658,72 @@
   "pull_request": null,
   "superseded_by": null,
   "pending_interviews": {},
-  "stages": {}
+  "stages": {
+    "prepare@1": {
+      "first_event_seq": 20,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "acp",
+        "provider": "acp"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": {
+        "stdout": "I'll locate and verify the requested plan, then prepare it for the build process.I found the requested plan file. It has **Status: approved** and contains 7 implementation slices organized into 4 waves. Now I need to:\n\n1. Add a \"## Build Progress\" section with checkboxes for each slice and step\n2. Change the status to \"in-progress\"\n3. Commit the changes\n\nLet me add the build progress section:Now I'll commit the plan file with the appropriate commit message:Perfect! I've successfully located and prepared the approved plan. Here's what I found:\n\n**Plan**: `docs/plans/2026-07-21-agent-session-image-input-plan.md`\n\n**Summary**: This plan implements multi-part content support for agent sessions, enabling images to be passed into the agent's initial user message. The implementation migrates `Message::User` from a simple `String` content field to `Vec<ContentPart>` to support both text and images.\n\n**Slices**: 7 slices organized into 4 waves\n- **Wave 0**: Slice 1 (AgentMessage::User content type change)\n- **Wave 1**: Slices 2-4 (Session API, test call sites, CodergenRunRequest updates)\n- **Wave 2**: Slices 5-6 (Image propagation, server handler updates)\n- **Wave 3**: Slice 7 (Documentation and completion)\n\n**Actions taken**:\n1. Added comprehensive \"## Build Progress\" section with checkboxes for all 7 slices and their individual steps\n2. Changed status from \"approved\" to \"in-progress\"\n3. Committed changes with message: `chore(build): start agent-session-image-input`\n\n```json\n{\"preferred_next_label\": \"Plan ready\", \"context_updates\": {\"plan_ready\": \"true\", \"plan_path\": \"docs/plans/2026-07-21-agent-session-image-input-plan.md\"}}\n```",
+        "stderr": "",
+        "stop_reason": "end_turn",
+        "duration_ms": 54833
+      },
+      "parallel_results": null,
+      "output": null,
+      "termination": "exited",
+      "started_at": "2026-07-21T06:26:49.335209Z",
+      "handler": "agent",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    },
+    "start@1": {
+      "first_event_seq": 16,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T06:26:49.334881Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T06:26:49.334723Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    }
+  }
 }
