@@ -47,6 +47,7 @@ pub struct CodergenRunRequest<'a> {
     pub tool_hooks:         Option<Arc<dyn fabro_agent::ToolHookCallback>>,
     pub cancel_token:       CancellationToken,
     pub agent_tool_runtime: fabro_agent::AgentToolRuntime,
+    pub initial_images:     Vec<String>,
 }
 
 pub struct OneShotRequest<'a> {
@@ -283,6 +284,12 @@ impl Handler for AgentHandler {
                     node_id: node.id.clone(),
                 }) as Arc<dyn fabro_agent::ToolHookCallback>
             });
+
+        // Extract images from prior human stage if present
+        let initial_images = prior_human_stage_id(context)
+            .and_then(|stage_id| get_human_answer_images(context, &stage_id))
+            .unwrap_or_default();
+
         let (response_text, stage_usage, backend_files_touched, last_file_touched, timing) =
             if let Some(backend) = &self.backend {
                 let result = backend
@@ -296,6 +303,7 @@ impl Handler for AgentHandler {
                         tool_hooks,
                         cancel_token: services.run.cancel_token(),
                         agent_tool_runtime: agent_tool_runtime.clone(),
+                        initial_images,
                     })
                     .await;
                 match result {

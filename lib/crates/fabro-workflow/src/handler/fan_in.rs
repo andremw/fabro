@@ -280,6 +280,7 @@ async fn llm_evaluate(
             tool_hooks: None,
             cancel_token,
             agent_tool_runtime: fabro_agent::AgentToolRuntime::default(),
+            initial_images: Vec::new(),
         })
         .await
     {
