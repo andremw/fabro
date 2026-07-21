@@ -1,6 +1,6 @@
 # Plan: Freeform Response Image Attachments
 
-**Status**: reviewed
+**Status**: approved
 **Spec**: docs/specs/freeform-image-attachments.md
 
 ## Goal
