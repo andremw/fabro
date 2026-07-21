@@ -1187,7 +1187,7 @@ async fn drive_agent_session(
         if initialize {
             session.initialize().await?;
         }
-        session.process_input(input).await
+        session.process_text_input(input).await
     };
     tokio::pin!(process);
 

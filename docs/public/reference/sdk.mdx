@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    session.process_input("List the files in this directory").await?;
+    session.process_text_input("List the files in this directory").await?;
     session.close();
     Ok(())
 }
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Session
 
-`Session` is the core type. It holds the LLM client, a provider profile, a sandbox, and configuration. The main loop lives inside `process_input()`.
+`Session` is the core type. It holds the LLM client, a provider profile, a sandbox, and configuration. The main loop lives inside `process_text_input()` and `process_message()`.
 
 **Constructor:**
 
@@ -83,10 +83,11 @@ pub fn new(
 
 | Method | Description |
 |---|---|
-| `initialize().await` | Discovers project docs, skills, and MCP servers. Call before `process_input`. |
-| `process_input(input).await` | Sends user input and runs the agent loop until the model stops or a limit is hit. |
+| `initialize().await` | Discovers project docs, skills, and MCP servers. Call before sending input. |
+| `process_text_input(input).await` | Sends text-only user input and runs the agent loop until the model stops or a limit is hit. |
+| `process_message(content, runtime).await` | Sends multi-part user input (text, images) with custom runtime and runs the agent loop. |
 | `close()` | Ends the session and emits `SessionEnded`. |
-| `interrupt()` | Cancels the current `process_input` call. |
+| `interrupt()` | Cancels the current processing call. |
 | `cancel_token()` | Returns a `CancellationToken` for external cancellation. |
 
 **Inspection:**
@@ -111,14 +112,14 @@ All fields are public. Key settings with their defaults:
 | Field | Default | Description |
 |---|---|---|
 | `max_turns` | `0` (unlimited) | Maximum conversation turns before stopping. |
-| `max_tool_rounds_per_input` | `200` | Maximum tool execution rounds per `process_input` call. |
+| `max_tool_rounds_per_input` | `200` | Maximum tool execution rounds per input processing call. |
 | `default_command_timeout_ms` | `10,000` | Default timeout for Bash tool commands. |
 | `max_command_timeout_ms` | `600,000` | Maximum allowed timeout for Bash tool commands. |
 | `enable_loop_detection` | `true` | Detect and break out of repetitive tool call patterns. |
 | `enable_context_compaction` | `true` | Automatically summarize old turns when approaching the context window limit. |
 | `compaction_threshold_percent` | `80` | Context window usage percentage that triggers compaction. |
 | `max_subagent_depth` | `1` | Maximum nesting depth for sub-agents. |
-| `wall_clock_timeout` | `None` | Hard timeout for `process_input`. Triggers `InterruptReason::WallClockTimeout`. |
+| `wall_clock_timeout` | `None` | Hard timeout for input processing. Triggers `InterruptReason::WallClockTimeout`. |
 | `tool_hooks` | `None` | Pre/post hooks around tool execution (see [Tool hooks](#tool-hooks)). |
 | `mcp_servers` | `[]` | MCP server configurations to connect on startup. |
 | `skill_dirs` | `None` | Directories to discover `SKILL.md` files. `None` uses convention defaults. |
@@ -187,7 +188,7 @@ Built-in profiles: `AnthropicProfile`, `OpenAiProfile`, `GeminiProfile`.
 
 ### Events
 
-All operations emit `AgentEvent` values through a tokio broadcast channel. Subscribe before calling `process_input()`.
+All operations emit `AgentEvent` values through a tokio broadcast channel. Subscribe before processing input.
 
 ```rust
 let mut rx = session.subscribe();
@@ -293,7 +294,7 @@ All fallible `Session` methods return `Result<T, AgentError>`:
 | Variant | Description |
 |---|---|
 | `Llm(SdkError)` | An error from the LLM provider (wraps `fabro_llm::error::SdkError`). |
-| `SessionClosed` | `process_input` was called on a closed session. |
+| `SessionClosed` | Input processing was called on a closed session. |
 | `InvalidState(String)` | The session is in an unexpected state. |
 | `ToolExecution(String)` | A tool execution failed. |
 | `Interrupted(InterruptReason)` | The session was cancelled (`Cancelled`) or timed out (`WallClockTimeout`). |

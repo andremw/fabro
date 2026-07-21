@@ -793,7 +793,7 @@ pub async fn run_with_args_and_client_and_catalog(
 
     // Initialize and run
     session.initialize().await?;
-    let result = session.process_input(&args.prompt).await;
+    let result = session.process_text_input(&args.prompt).await;
 
     if matches!(output_format, OutputFormat::Text) {
         // Print assistant text to stdout

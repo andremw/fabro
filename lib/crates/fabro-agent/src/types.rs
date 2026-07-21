@@ -38,7 +38,7 @@ mod system_time_iso8601 {
 #[derive(Debug, Clone)]
 pub enum Message {
     User {
-        content:   String,
+        content:   Vec<ContentPart>,
         timestamp: SystemTime,
     },
     Assistant {
@@ -94,7 +94,7 @@ impl Message {
     pub fn to_session_message(&self) -> SessionMessage {
         match self {
             Self::User { content, timestamp } => SessionMessage::User {
-                content:   content.clone(),
+                content:   serde_json::to_string(content).unwrap_or_default(),
                 timestamp: system_time_to_utc(*timestamp),
             },
             Self::Assistant {
@@ -130,7 +130,9 @@ impl Message {
     pub fn from_session_message(message: &SessionMessage) -> Result<Self, serde_json::Error> {
         Ok(match message {
             SessionMessage::User { content, timestamp } => Self::User {
-                content:   content.clone(),
+                content:   serde_json::from_str(content).unwrap_or_else(|_| {
+                    vec![ContentPart::Text(content.clone())]
+                }),
                 timestamp: utc_to_system_time(*timestamp),
             },
             SessionMessage::Assistant {
@@ -1007,6 +1009,79 @@ mod tests {
                 assert_eq!(error, "connection refused");
             }
             _ => panic!("expected McpServerFailed variant"),
+        }
+    }
+
+    // --- Message::User content Vec<ContentPart> tests ---
+
+    #[test]
+    fn message_user_single_text_part_compiles() {
+        let msg = Message::User {
+            content:   vec![ContentPart::Text("test".into())],
+            timestamp: SystemTime::now(),
+        };
+        match msg {
+            Message::User { content, .. } => {
+                assert_eq!(content.len(), 1);
+                assert!(matches!(content[0], ContentPart::Text(_)));
+            }
+            _ => panic!("expected User variant"),
+        }
+    }
+
+    #[test]
+    fn message_user_with_image_and_text_parts() {
+        use fabro_llm::types::ImageData;
+        let msg = Message::User {
+            content:   vec![
+                ContentPart::Image(ImageData {
+                    url:        Some("/tmp/img.png".into()),
+                    data:       None,
+                    media_type: None,
+                    detail:     None,
+                }),
+                ContentPart::Text("analyze".into()),
+            ],
+            timestamp: SystemTime::now(),
+        };
+        match msg {
+            Message::User { content, .. } => {
+                assert_eq!(content.len(), 2);
+                assert!(matches!(content[0], ContentPart::Image(_)));
+                assert!(matches!(content[1], ContentPart::Text(_)));
+            }
+            _ => panic!("expected User variant"),
+        }
+    }
+
+    #[test]
+    fn session_message_round_trip_multipart_user() {
+        use fabro_llm::types::ImageData;
+        let msg = Message::User {
+            content:   vec![
+                ContentPart::Image(ImageData {
+                    url:        Some("/tmp/test.png".into()),
+                    data:       None,
+                    media_type: None,
+                    detail:     None,
+                }),
+                ContentPart::Text("describe this".into()),
+            ],
+            timestamp: SystemTime::now(),
+        };
+        let session_msg = msg.to_session_message();
+        let restored = Message::from_session_message(&session_msg).expect("round-trip should work");
+        match restored {
+            Message::User { content, .. } => {
+                assert_eq!(content.len(), 2);
+                assert!(matches!(content[0], ContentPart::Image(_)));
+                if let ContentPart::Text(t) = &content[1] {
+                    assert_eq!(t, "describe this");
+                } else {
+                    panic!("expected Text part");
+                }
+            }
+            _ => panic!("expected User variant"),
         }
     }
 }

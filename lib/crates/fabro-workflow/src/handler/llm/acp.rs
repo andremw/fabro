@@ -16,7 +16,9 @@ use fabro_types::{
 use fabro_util::time::elapsed_ms;
 use tokio_util::sync::CancellationToken;
 
-use super::super::agent::{CodergenBackend, CodergenResult, CodergenRunRequest, OneShotRequest};
+use super::super::agent::{
+    CodergenBackend, CodergenResult, CodergenRunRequest, OneShotRequest, extract_text_from_content,
+};
 use super::activation_lease::{ActivationLease, ActivationLeaseOptions};
 use super::changed_files;
 use crate::error::Error;
@@ -335,9 +337,10 @@ impl CodergenBackend for AgentAcpBackend {
             ));
         }
         let stage_scope = StageScope::for_handler(request.context, &request.node.id);
+        let prompt_text = extract_text_from_content(&request.initial_content);
         self.run_turn(
             request.node,
-            request.prompt.to_string(),
+            prompt_text,
             request.emitter,
             &stage_scope,
             request.sandbox,
@@ -421,6 +424,7 @@ mod tests {
     use fabro_acp::{AcpError, AcpProcessExit};
     use fabro_agent::{LocalSandbox, Sandbox, shell_quote};
     use fabro_graphviz::graph::{AttrValue, Node};
+    use fabro_llm::types::ContentPart;
     use fabro_sandbox::test_support::MockSandbox;
     use fabro_types::{CommandTermination, EventBody, ExecOutputTail};
     use tokio_util::sync::CancellationToken;
@@ -461,7 +465,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -509,7 +513,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -579,7 +583,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -627,7 +631,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -666,7 +670,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -716,7 +720,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "cancel",
+                initial_content:    vec![ContentPart::Text("cancel".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -770,7 +774,7 @@ mod tests {
         backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -812,7 +816,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,
@@ -865,7 +869,7 @@ mod tests {
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "write hello",
+                initial_content:    vec![ContentPart::Text("write hello".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,

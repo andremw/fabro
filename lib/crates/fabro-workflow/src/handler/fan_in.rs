@@ -272,7 +272,7 @@ async fn llm_evaluate(
     match backend
         .run(CodergenRunRequest {
             node: &eval_node,
-            prompt: &full_prompt,
+            initial_content: vec![fabro_llm::types::ContentPart::Text(full_prompt.clone())],
             context,
             thread_id: None,
             emitter,

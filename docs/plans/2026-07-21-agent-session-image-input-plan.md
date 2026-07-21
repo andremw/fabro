@@ -1,6 +1,6 @@
 # Plan: Agent Session Image Input API
 
-**Status**: approved
+**Status**: implemented
 **Spec**: docs/superpowers/specs/2026-07-21-agent-session-image-input.md
 
 ## Goal
@@ -568,3 +568,151 @@ The plan's existing "Risks & Open Questions" section already documents the key c
 - SessionMessage serialization schema impact (backend-only change, no API modification needed)
 
 These observations remain unchanged as they represent known trade-offs consistent with the codebase's existing design principles.
+
+## Build Progress
+
+### Wave 0
+- [x] Slice 1: AgentMessage::User content type change
+  - [x] Change Message::User content field type
+  - [x] Test Message::User with single text part compiles
+  - [x] Test Message::User with image and text parts
+  - [x] Update History::convert_to_messages User arm
+  - [x] Test history conversion with multi-part User
+  - [x] Update all internal Message::User construction sites
+  - [x] Test internal constructions compile
+  - [x] Test SessionMessage round-trip
+  - [x] Refactor
+
+### Wave 1
+- [x] Slice 2: Session::process_message API
+  - [x] Add Session::process_message method
+  - [x] Implement process_message body
+  - [x] Test process_message with single text part
+  - [x] Test process_message with multi-part content
+  - [x] Add Session::process_text_input convenience method
+  - [x] Test process_text_input delegates correctly
+  - [x] Remove process_input and process_input_with_runtime
+  - [x] Test removal by attempting build
+  - [x] Refactor
+- [x] Slice 3: Update agent crate test call sites
+  - [x] Update parity_matrix.rs call sites
+  - [x] Test parity_matrix compiles and passes
+  - [x] Update compaction.rs call sites
+  - [x] Test compaction compiles and passes
+  - [x] Update subagent.rs call site
+  - [x] Test subagent compiles
+  - [x] Update apply_patch.rs call site
+  - [x] Test apply_patch compiles
+  - [x] Update cli.rs call site
+  - [x] Test CLI compiles
+  - [x] Run full fabro-agent test suite
+  - [x] Refactor
+- [x] Slice 4: CodergenRunRequest and backend updates
+  - [x] Change CodergenRunRequest.prompt to initial_content
+  - [x] Test CodergenRunRequest compiles
+  - [x] Update AgentApiBackend::run to use initial_content
+  - [x] Test AgentApiBackend compiles
+  - [x] Update AcpBackend::run to use initial_content
+  - [x] Test AcpBackend compiles
+  - [x] Update PromptHandler to extract text from initial_content
+  - [x] Test PromptHandler compiles
+  - [x] Run fabro-workflow tests
+  - [x] Refactor
+
+### Wave 2
+- [x] Slice 5: Agent handler image propagation
+  - [x] Add HUMAN_ANSWER_IMAGES_PREFIX constant
+  - [x] Add extract_human_images helper
+  - [x] Test extract_human_images with images in context
+  - [x] Test extract_human_images returns None when key absent
+  - [x] Identify prior stage from context
+  - [x] Construct initial_content with images
+  - [x] Test initial_content construction with images
+  - [x] Test initial_content construction without images
+  - [x] Update CodergenRunRequest construction call site
+  - [x] Test fabro-llm attachment resolution
+  - [x] Run full fabro-workflow tests
+  - [x] Refactor
+- [x] Slice 6: Server handler and external call sites
+  - [x] Update server sessions handler call site
+  - [x] Test server compiles
+  - [x] Check fabro-store for Message::User construction
+  - [x] Test fabro-store compiles
+  - [x] Run workspace build
+  - [x] Run workspace tests
+  - [x] Refactor
+
+### Wave 3
+- [x] Slice 7: Documentation and plan completion
+  - [x] Check SDK documentation for Session examples
+  - [x] Check fabro-agent README for Session examples
+  - [x] Verify acceptance criteria
+  - [x] Update plan status
+  - [x] Refactor
+
+## Ship Review Summary
+
+All four parallel reviewers (review_spec, review_quality, review_security, review_tests) completed successfully with "succeeded" verdicts and no blocker-severity issues.
+
+### Reviewer Findings
+
+1. **review_spec** (c3534d6): Succeeded
+   - Verified all acceptance criteria are testable and covered by scenarios
+   - No specification gaps or ambiguities found
+   - Plan structure aligns with implementation requirements
+
+2. **review_quality** (9b18302): Succeeded - Selected as best outcome
+   - Code quality standards met across all slices
+   - Mechanical migrations executed correctly (Message::User type change, API updates)
+   - Test coverage comprehensive (6914 tests passing)
+   - No code quality blockers or warnings
+
+3. **review_security** (a019327): Succeeded
+   - No security vulnerabilities introduced
+   - Image file path handling follows existing fabro-llm attachment resolution security model
+   - Checkpoint serialization changes maintain data integrity
+   - No privilege escalation or injection risks
+
+4. **review_tests** (d10e07e): Succeeded
+   - All acceptance criteria verified through test coverage
+   - Workspace build succeeds: `cargo build --workspace` ✓
+   - Full test suite passes: 6914/6914 tests (1 slow), 185 skipped
+   - No test regressions from Message::User type migration
+
+### Blockers Fixed
+
+None. All reviewers returned "succeeded" with no blocker-severity issues.
+
+### Warnings Applied
+
+None. No warnings were raised by any reviewer.
+
+### Warnings Deliberately Not Applied
+
+None. No warnings were deferred or declined.
+
+### Implementation Summary
+
+The plan was executed across 7 slices in 3 waves:
+- **Wave 0**: Message::User content type changed from `String` to `Vec<ContentPart>`
+- **Wave 1**: Session API updated with `process_message` and `process_text_input`, all agent crate call sites migrated, CodergenRunRequest refactored from `prompt: &str` to `initial_content: Vec<ContentPart>`
+- **Wave 2**: Agent handler image propagation added via `extract_human_images`, server-side call sites migrated
+- **Wave 3**: Documentation updated, plan marked complete
+
+All acceptance criteria verified:
+1. ✓ Session accepts multi-part initial message via `process_message(Vec<ContentPart>, runtime)`
+2. ✓ Text-only messages work via `process_text_input(&str)` convenience wrapper
+3. ✓ Images reach LLM provider through fabro-llm attachment resolution
+4. ✓ Workflow handler injects images via `extract_human_images(context)` when present
+5. ✓ Migration is mechanical: all `Message::User { content: String }` updated to `content: vec![ContentPart::Text(...)]`
+6. ✓ Agent session resumption preserved through SessionMessage round-trip
+
+### Final Test Evidence
+
+```
+cargo nextest run --workspace
+────────────
+Summary [30.119s] 6914 tests run: 6914 passed (1 slow), 185 skipped
+```
+
+All tests green. No regressions. Implementation complete and ready to ship.

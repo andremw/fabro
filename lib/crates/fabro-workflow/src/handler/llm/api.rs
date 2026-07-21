@@ -1137,7 +1137,7 @@ impl CodergenBackend for AgentApiBackend {
 
     async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
         let node = request.node;
-        let prompt = request.prompt;
+        let initial_content = request.initial_content;
         let context = request.context;
         let thread_id = request.thread_id;
         let emitter = request.emitter;
@@ -1269,7 +1269,7 @@ impl CodergenBackend for AgentApiBackend {
                     emit_agent_tools_available(&session, &node.id, &stage_id, emitter);
                 }
                 let process_result = session
-                    .process_input_with_runtime(prompt, agent_tool_runtime.clone())
+                    .process_message(initial_content.clone(), agent_tool_runtime.clone())
                     .await;
                 let timing = session.last_input_timing();
                 inference_duration = inference_duration.saturating_add(timing.inference);
@@ -1403,7 +1403,7 @@ impl CodergenBackend for AgentApiBackend {
                         }
                         emit_agent_tools_available(&session, &node.id, &stage_id, emitter);
                         let process_result = session
-                            .process_input_with_runtime(prompt, agent_tool_runtime.clone())
+                            .process_message(initial_content.clone(), agent_tool_runtime.clone())
                             .await;
                         let timing = session.last_input_timing();
                         inference_duration = inference_duration.saturating_add(timing.inference);
@@ -1471,8 +1471,8 @@ impl CodergenBackend for AgentApiBackend {
                         }
                         let repair_message = error.repair_message(schema);
                         let repair_result = session
-                            .process_input_with_runtime(
-                                &repair_message,
+                            .process_message(
+                                vec![fabro_llm::types::ContentPart::Text(repair_message)],
                                 fabro_agent::AgentToolRuntime::default(),
                             )
                             .await;
@@ -2866,7 +2866,7 @@ reasoning = false
         let result = backend
             .run(CodergenRunRequest {
                 node:               &node,
-                prompt:             "Audit the result",
+                initial_content:    vec![fabro_llm::types::ContentPart::Text("Audit the result".to_string())],
                 context:            &context,
                 thread_id:          None,
                 emitter:            &emitter,

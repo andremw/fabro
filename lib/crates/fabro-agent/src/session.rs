@@ -1207,11 +1207,6 @@ impl Session {
         &self.file_tracker
     }
 
-    pub async fn process_input(&mut self, input: &str) -> Result<(), Error> {
-        self.process_input_with_runtime(input, AgentToolRuntime::default())
-            .await
-    }
-
     #[must_use]
     pub const fn last_input_timing(&self) -> SessionInputTiming {
         self.last_input_timing
@@ -1222,12 +1217,12 @@ impl Session {
         self.last_input_usage.clone()
     }
 
-    /// Process an input. The inference/tool timing accumulated during the call
+    /// Process a message with multi-part content. The inference/tool timing accumulated during the call
     /// is available via [`Self::last_input_timing`] after this returns, even on
     /// error.
-    pub async fn process_input_with_runtime(
+    pub async fn process_message(
         &mut self,
-        input: &str,
+        content: Vec<ContentPart>,
         agent_tool_runtime: AgentToolRuntime,
     ) -> Result<(), Error> {
         let mut timing = SessionInputTiming::default();
@@ -1256,9 +1251,9 @@ impl Session {
             })
         });
 
-        // Process the initial input, then drain any followups
+        // Process the initial message, then drain any followups
         let mut result = self
-            .run_single_input(input, &agent_tool_runtime, &mut timing, &mut usage)
+            .run_single_message(content, &agent_tool_runtime, &mut timing, &mut usage)
             .await;
 
         if result.is_ok() {
@@ -1293,6 +1288,73 @@ impl Session {
         result
     }
 
+    /// Process a text-only input as a convenience wrapper around process_message.
+    pub async fn process_text_input(&mut self, input: &str) -> Result<(), Error> {
+        self.process_message(
+            vec![ContentPart::Text(input.to_string())],
+            AgentToolRuntime::default(),
+        )
+        .await
+    }
+
+    async fn run_single_message(
+        &mut self,
+        content: Vec<ContentPart>,
+        agent_tool_runtime: &AgentToolRuntime,
+        timing: &mut SessionInputTiming,
+        usage_accumulator: &mut TokenCounts,
+    ) -> Result<(), Error> {
+        if self.state == SessionState::Closed {
+            return Err(Error::SessionClosed);
+        }
+
+        self.transition(SessionState::Thinking);
+
+        // Extract text from content parts for event emission
+        let text_content: String = content
+            .iter()
+            .filter_map(|p| {
+                if let ContentPart::Text(t) = p {
+                    Some(t.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+        // For text-only messages, perform skill expansion
+        let (final_content, expanded_text) = if content.len() == 1
+            && matches!(content.first(), Some(ContentPart::Text(_)))
+            && !self.skills.is_empty() {
+            let expanded = expand_skill(&self.skills, &text_content).map_err(Error::InvalidState)?;
+            if let Some(ref name) = expanded.skill_name {
+                self.activated_skill_context_observed = true;
+                self.event_emitter
+                    .emit(self.id.clone(), AgentEvent::SkillActivated {
+                        skill_name: name.clone(),
+                        source:     SkillActivationSource::Slash,
+                    });
+            }
+            (vec![ContentPart::Text(expanded.text.clone())], expanded.text)
+        } else {
+            (content, text_content)
+        };
+
+        // Append user turn and emit event
+        self.history.push(Message::User {
+            content:   final_content,
+            timestamp: SystemTime::now(),
+        });
+        self.event_emitter
+            .emit(self.id.clone(), AgentEvent::UserInput {
+                text: expanded_text,
+            });
+
+        self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
+            .await
+    }
+
     async fn run_single_input(
         &mut self,
         input: &str,
@@ -1300,8 +1362,6 @@ impl Session {
         timing: &mut SessionInputTiming,
         usage_accumulator: &mut TokenCounts,
     ) -> Result<(), Error> {
-        const STREAM_CONSUME_RETRIES: usize = 3;
-
         if self.state == SessionState::Closed {
             return Err(Error::SessionClosed);
         }
@@ -1329,13 +1389,25 @@ impl Session {
 
         // Append user turn and emit event
         self.history.push(Message::User {
-            content:   expanded_input.clone(),
+            content:   vec![ContentPart::Text(expanded_input.clone())],
             timestamp: SystemTime::now(),
         });
         self.event_emitter
             .emit(self.id.clone(), AgentEvent::UserInput {
                 text: expanded_input.clone(),
             });
+
+        self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
+            .await
+    }
+
+    async fn run_agent_loop_after_user_message(
+        &mut self,
+        agent_tool_runtime: &AgentToolRuntime,
+        timing: &mut SessionInputTiming,
+        usage_accumulator: &mut TokenCounts,
+    ) -> Result<(), Error> {
+        const STREAM_CONSUME_RETRIES: usize = 3;
 
         let mut round_count: usize = 0;
 
@@ -1892,7 +1964,7 @@ impl Session {
                 }
                 SteeringItem::User { text } => {
                     self.history.push(Message::User {
-                        content:   text.clone(),
+                        content:   vec![ContentPart::Text(text.clone())],
                         timestamp: SystemTime::now(),
                     });
                 }
@@ -2233,13 +2305,13 @@ mod tests {
     #[tokio::test]
     async fn text_only_response_natural_completion() {
         let mut session = make_session(vec![text_response("Hello there!")]).await;
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
 
         assert_eq!(session.state(), SessionState::Idle);
         let turns = session.history().turns();
         // UserTurn + AssistantTurn = 2
         assert_eq!(turns.len(), 2);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "Hi"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "Hi")));
         assert!(
             matches!(&turns[1], Message::Assistant { content, .. } if content == "Hello there!")
         );
@@ -2256,7 +2328,7 @@ mod tests {
         ];
 
         let mut session = make_session_with_tools(responses, registry).await;
-        session.process_input("Use echo tool").await.unwrap();
+        session.process_text_input("Use echo tool").await.unwrap();
 
         assert_eq!(session.state(), SessionState::Idle);
         let turns = session.history().turns();
@@ -2307,7 +2379,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
 
         let result = session
-            .process_input_with_runtime("use the slow tool", AgentToolRuntime::default())
+            .process_message(vec![ContentPart::Text("use the slow tool".to_string())], AgentToolRuntime::default())
             .await;
         result.unwrap();
         let first = session.last_input_timing();
@@ -2321,7 +2393,7 @@ mod tests {
         );
 
         let result = session
-            .process_input_with_runtime("no tools this time", AgentToolRuntime::default())
+            .process_message(vec![ContentPart::Text("no tools this time".to_string())], AgentToolRuntime::default())
             .await;
         result.unwrap();
         let second = session.last_input_timing();
@@ -2391,7 +2463,7 @@ mod tests {
             ])),
         }));
 
-        session.process_input("Use tools").await.unwrap();
+        session.process_text_input("Use tools").await.unwrap();
 
         assert_eq!(seen_tokens.lock().unwrap().as_slice(), [
             "t1".to_string(),
@@ -2418,7 +2490,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        session.process_input("Keep using tools").await.unwrap();
+        session.process_text_input("Keep using tools").await.unwrap();
 
         // Should stop after 2 rounds: User + (Asst+ToolResult) * 2 = 5 turns
         assert_eq!(session.state(), SessionState::Idle);
@@ -2442,11 +2514,11 @@ mod tests {
         let mut session = make_session_with_config(responses, config).await;
 
         // First input: adds User + Assistant = 2 turns
-        session.process_input("one").await.unwrap();
+        session.process_text_input("one").await.unwrap();
         assert_eq!(session.history().turns().len(), 2);
 
         // Second input: adds User (now 3 turns), then max_turns check triggers
-        session.process_input("two").await.unwrap();
+        session.process_text_input("two").await.unwrap();
         // Should have 3 turns total (User + Asst + User), max_turns hit before LLM call
         assert_eq!(session.history().turns().len(), 3);
     }
@@ -2455,7 +2527,7 @@ mod tests {
     async fn steer_injects_steering_turn() {
         let mut session = make_session(vec![text_response("OK")]).await;
         session.steer("Focus on the task".to_string());
-        session.process_input("Do something").await.unwrap();
+        session.process_text_input("Do something").await.unwrap();
 
         let turns = session.history().turns();
         // User + Steering + Assistant = 3
@@ -2472,7 +2544,7 @@ mod tests {
         let mut session = make_session(vec![text_response("OK")]).await;
         let mut rx = session.subscribe();
         session.steer("hi there".to_string());
-        session.process_input("Do something").await.unwrap();
+        session.process_text_input("Do something").await.unwrap();
 
         let mut found_text = None;
         while let Ok(ev) = rx.try_recv() {
@@ -2508,7 +2580,7 @@ mod tests {
             wake_handle.steer("resume now".to_string(), None);
         });
 
-        timeout(Duration::from_secs(1), session.process_input("start"))
+        timeout(Duration::from_secs(1), session.process_text_input("start"))
             .await
             .expect("session should wake when steering arrives")
             .unwrap();
@@ -2525,7 +2597,7 @@ mod tests {
 
         let handle = session.control_handle();
         handle.interrupt_then_steer("stop now".to_string(), None);
-        session.process_input("start").await.unwrap();
+        session.process_text_input("start").await.unwrap();
 
         let mut found_text = None;
         while let Ok(ev) = rx.try_recv() {
@@ -2575,7 +2647,7 @@ mod tests {
             handle,
         }));
 
-        session.process_input("hi").await.unwrap();
+        session.process_text_input("hi").await.unwrap();
         let turns = session.history().turns();
         // User + Assistant + Steering + Assistant = 4
         assert_eq!(turns.len(), 4);
@@ -2598,19 +2670,19 @@ mod tests {
 
         let mut session = make_session(responses).await;
         session.follow_up("followup message".to_string());
-        session.process_input("initial message").await.unwrap();
+        session.process_text_input("initial message").await.unwrap();
 
         let turns = session.history().turns();
         // First cycle: User + Assistant = 2
         // Second cycle: User + Assistant = 2
         // Total = 4
         assert_eq!(turns.len(), 4);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "initial message"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "initial message")));
         assert!(
             matches!(&turns[1], Message::Assistant { content, .. } if content == "First response")
         );
         assert!(
-            matches!(&turns[2], Message::User { content, .. } if content == "followup message")
+            matches!(&turns[2], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "followup message"))
         );
         assert!(
             matches!(&turns[3], Message::Assistant { content, .. } if content == "Followup response")
@@ -2623,7 +2695,7 @@ mod tests {
         let mut rx = session.subscribe();
 
         session.initialize().await.unwrap();
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
         session.close();
 
         // Collect events
@@ -2668,7 +2740,7 @@ mod tests {
         .await;
         let mut rx = session.subscribe();
 
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
 
         let context_window = std::iter::from_fn(|| rx.try_recv().ok()).find_map(|event| {
             if let AgentEvent::AssistantMessage { context_window, .. } = event.event {
@@ -2699,7 +2771,7 @@ mod tests {
         let mut session = make_session_with_tools(responses, registry).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         let mut tool_end_events = Vec::new();
         while let Ok(event) = rx.try_recv() {
@@ -2726,7 +2798,7 @@ mod tests {
         ];
 
         let mut session = make_session(responses).await;
-        session.process_input("Do something").await.unwrap();
+        session.process_text_input("Do something").await.unwrap();
 
         let turns = session.history().turns();
         // User + Asst(tool_call) + ToolResults + Asst(text) = 4
@@ -2753,7 +2825,7 @@ mod tests {
         ];
 
         let mut session = make_session_with_tools(responses, registry).await;
-        session.process_input("Use fail tool").await.unwrap();
+        session.process_text_input("Use fail tool").await.unwrap();
 
         let turns = session.history().turns();
         if let Message::ToolResults { results, .. } = &turns[2] {
@@ -2789,7 +2861,7 @@ mod tests {
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Keep echoing").await.unwrap();
+        session.process_text_input("Keep echoing").await.unwrap();
 
         // Check for LoopDetected event
         let mut found_loop_detection = false;
@@ -2825,7 +2897,7 @@ mod tests {
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
         // Set interrupt before processing
         session.interrupt();
-        let result = session.process_input("Do something").await;
+        let result = session.process_text_input("Do something").await;
 
         // Should return Interrupted error and transition to Closed
         assert!(matches!(result, Err(Error::Interrupted(_))));
@@ -2880,7 +2952,7 @@ mod tests {
         // Wire the session's cancel_token to our shared one
         session.cancel_token = cancel_token;
 
-        let result = session.process_input("Do something").await;
+        let result = session.process_text_input("Do something").await;
 
         // Should return Interrupted error and transition to Closed
         assert!(matches!(result, Err(Error::Interrupted(_))));
@@ -2910,7 +2982,7 @@ mod tests {
         let env = Arc::new(MockSandbox::default());
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), Error::Llm(_)));
         assert_eq!(session.state(), SessionState::Closed);
@@ -2922,17 +2994,17 @@ mod tests {
 
         let mut session = make_session(responses).await;
 
-        session.process_input("one").await.unwrap();
+        session.process_text_input("one").await.unwrap();
         assert_eq!(session.state(), SessionState::Idle);
 
-        session.process_input("two").await.unwrap();
+        session.process_text_input("two").await.unwrap();
         assert_eq!(session.state(), SessionState::Idle);
 
         let turns = session.history().turns();
         assert_eq!(turns.len(), 4);
-        assert!(matches!(&turns[0], Message::User { content, .. } if content == "one"));
+        assert!(matches!(&turns[0], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "one")));
         assert!(matches!(&turns[1], Message::Assistant { content, .. } if content == "First"));
-        assert!(matches!(&turns[2], Message::User { content, .. } if content == "two"));
+        assert!(matches!(&turns[2], Message::User { content, .. } if matches!(content.as_slice(), [ContentPart::Text(t)] if t == "two")));
         assert!(matches!(&turns[3], Message::Assistant { content, .. } if content == "Second"));
     }
 
@@ -2942,7 +3014,7 @@ mod tests {
         session.close();
         assert_eq!(session.state(), SessionState::Closed);
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), Error::SessionClosed));
     }
@@ -2971,7 +3043,7 @@ mod tests {
         session.close();
 
         let mut rx = session.subscribe();
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
         assert!(matches!(result, Err(Error::SessionClosed)));
 
         // No SessionStarted event should have been emitted
@@ -3008,7 +3080,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
         let mut rx = session.subscribe();
 
-        session.process_input("Use echo three times").await.unwrap();
+        session.process_text_input("Use echo three times").await.unwrap();
 
         let turns = session.history().turns();
         // User + Assistant(3 tool calls) + ToolResults + Assistant(text) = 4
@@ -3059,7 +3131,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
         let mut rx = session.subscribe();
 
-        session.process_input(&large_input).await.unwrap();
+        session.process_text_input(&large_input).await.unwrap();
 
         let mut found_warning = false;
         while let Ok(event) = rx.try_recv() {
@@ -3082,7 +3154,7 @@ mod tests {
 
         // Default reasoning_effort is None
         session.set_reasoning_effort(Some(ReasoningEffort::High));
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3104,7 +3176,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
         let mut rx = session.subscribe();
 
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
 
         let mut found_warning = false;
         while let Ok(event) = rx.try_recv() {
@@ -3142,7 +3214,7 @@ mod tests {
         ];
 
         let mut session = make_session_with_tools(responses, registry).await;
-        session.process_input("Use strict tool").await.unwrap();
+        session.process_text_input("Use strict tool").await.unwrap();
 
         let turns = session.history().turns();
         if let Message::ToolResults { results, .. } = &turns[2] {
@@ -3188,7 +3260,7 @@ mod tests {
         ];
 
         let mut session = make_session_with_tools(responses, registry).await;
-        session.process_input("Use strict tool").await.unwrap();
+        session.process_text_input("Use strict tool").await.unwrap();
 
         let turns = session.history().turns();
         if let Message::ToolResults { results, .. } = &turns[2] {
@@ -3206,8 +3278,8 @@ mod tests {
         let mut rx = session.subscribe();
 
         session.initialize().await.unwrap();
-        session.process_input("one").await.unwrap();
-        session.process_input("two").await.unwrap();
+        session.process_text_input("one").await.unwrap();
+        session.process_text_input("two").await.unwrap();
         session.close();
 
         let mut session_start_count = 0;
@@ -3239,7 +3311,7 @@ mod tests {
         };
         let mut session = Session::new(client, profile, env, config, None);
         session.initialize().await.unwrap();
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         // Verify user instructions are included in the system prompt
         let captured = provider_ref.captured_request.lock().unwrap();
@@ -3264,7 +3336,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
 
         // Intentionally skip initialize(): system prompt remains empty.
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3295,7 +3367,7 @@ mod tests {
         let env = Arc::new(MockSandbox::default());
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
 
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3322,11 +3394,11 @@ mod tests {
 
         for index in 0..10 {
             session
-                .process_input(&format!("turn {index}"))
+                .process_text_input(&format!("turn {index}"))
                 .await
                 .unwrap();
         }
-        session.process_input("turn 10").await.unwrap();
+        session.process_text_input("turn 10").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3363,7 +3435,7 @@ mod tests {
         };
         let mut session = Session::new(client, profile, env, config, None);
 
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3426,7 +3498,7 @@ mod tests {
         };
         let mut session = Session::new(client, profile, env, config, None);
 
-        session.process_input("test").await.unwrap();
+        session.process_text_input("test").await.unwrap();
 
         let captured = provider_ref.captured_request.lock().unwrap();
         let request = captured
@@ -3457,7 +3529,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         assert_eq!(session.state(), SessionState::Idle);
         let turns = session.history().turns();
@@ -3498,7 +3570,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         let turns = session.history().turns();
         if let Message::ToolResults { results, .. } = &turns[2] {
@@ -3537,7 +3609,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         let captured_value = captured.lock().unwrap();
         let (name, args) = captured_value
@@ -3563,7 +3635,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         let turns = session.history().turns();
         if let Message::ToolResults { results, .. } = &turns[2] {
@@ -3598,7 +3670,7 @@ mod tests {
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Use echo").await.unwrap();
+        session.process_text_input("Use echo").await.unwrap();
 
         let mut tool_end_events = Vec::new();
         while let Ok(event) = rx.try_recv() {
@@ -3624,7 +3696,7 @@ mod tests {
         let mut session = make_session(vec![text_response("Hello there!")]).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
 
         let mut deltas = Vec::new();
         while let Ok(event) = rx.try_recv() {
@@ -3652,7 +3724,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Hello").await.unwrap();
+        session.process_text_input("Hello").await.unwrap();
 
         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
         assert_eq!(session.history().turns().len(), 2);
@@ -3707,7 +3779,7 @@ mod tests {
         ]));
         let mut session = make_session_with_provider(provider.clone()).await;
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
 
         assert!(matches!(
             result,
@@ -3739,7 +3811,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
 
         assert!(matches!(
             result,
@@ -3821,7 +3893,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
 
         assert!(matches!(result, Err(Error::Llm(LlmError::Stream { .. }))));
         assert_eq!(provider.call_index.load(Ordering::SeqCst), 4);
@@ -3872,7 +3944,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Hello").await.unwrap();
+        session.process_text_input("Hello").await.unwrap();
 
         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
         let turns = session.history().turns();
@@ -3910,7 +3982,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        session.process_input("Hello").await.unwrap();
+        session.process_text_input("Hello").await.unwrap();
 
         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
         let turns = session.history().turns();
@@ -3959,7 +4031,7 @@ mod tests {
         let mut session = make_session_with_provider(provider.clone()).await;
         let mut rx = session.subscribe();
 
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
         assert!(matches!(
             result,
             Err(Error::Llm(LlmError::Provider {
@@ -4042,7 +4114,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, config, None);
         let mut rx = session.subscribe();
 
-        session.process_input(&large_input).await.unwrap();
+        session.process_text_input(&large_input).await.unwrap();
 
         let mut found_started = false;
         let mut found_completed = false;
@@ -4088,7 +4160,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, config, None);
         let mut rx = session.subscribe();
 
-        session.process_input("hi").await.unwrap();
+        session.process_text_input("hi").await.unwrap();
 
         let mut started = None;
         let mut found_completed = false;
@@ -4128,7 +4200,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, config, None);
         let mut rx = session.subscribe();
 
-        session.process_input(&large_input).await.unwrap();
+        session.process_text_input(&large_input).await.unwrap();
 
         let mut found_warning = false;
         let mut found_compaction = false;
@@ -4168,7 +4240,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, config, None);
         let mut rx = session.subscribe();
 
-        session.process_input(&large_input).await.unwrap();
+        session.process_text_input(&large_input).await.unwrap();
 
         let mut found_compaction = false;
         while let Ok(event) = rx.try_recv() {
@@ -4199,7 +4271,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, config, None);
         let mut rx = session.subscribe();
 
-        session.process_input("hi").await.unwrap();
+        session.process_text_input("hi").await.unwrap();
 
         let mut found_api_usage_warning = false;
         let mut found_compaction = false;
@@ -4301,7 +4373,7 @@ mod tests {
         let mut rx = session.subscribe();
 
         // Should not return an error even though compaction fails
-        let result = session.process_input(&large_input).await;
+        let result = session.process_text_input(&large_input).await;
         assert!(
             result.is_ok(),
             "Session should continue despite compaction failure"
@@ -4409,7 +4481,7 @@ mod tests {
 
         // First call: tool call executes, files get tracked, no compaction yet
         // (compaction may trigger but file tracker is populated by tool execution)
-        session.process_input("Read the file").await.unwrap();
+        session.process_text_input("Read the file").await.unwrap();
         assert_eq!(
             session.file_tracker().file_count(),
             1,
@@ -4419,7 +4491,7 @@ mod tests {
         // Second call with large input: context is well over threshold, compaction
         // triggers
         let large_input = "x".repeat(400);
-        session.process_input(&large_input).await.unwrap();
+        session.process_text_input(&large_input).await.unwrap();
 
         // Verify the compaction request has the structured prompt
         let captured = provider.captured_complete.lock().unwrap();
@@ -4527,7 +4599,7 @@ mod tests {
         assert!(mcp_ready, "McpServerReady event should be emitted");
 
         // Process input — LLM calls MCP tool, gets result, responds
-        session.process_input("Call the echo tool").await.unwrap();
+        session.process_text_input("Call the echo tool").await.unwrap();
 
         // Verify turn sequence
         let turns = session.history().turns();
@@ -4619,7 +4691,7 @@ mod tests {
         };
 
         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
-        let result = session.process_input("Do something slow").await;
+        let result = session.process_text_input("Do something slow").await;
 
         assert!(
             matches!(
@@ -4641,7 +4713,7 @@ mod tests {
         };
 
         let mut session = make_session_with_config(responses, config).await;
-        let result = session.process_input("Hello").await;
+        let result = session.process_text_input("Hello").await;
 
         assert!(result.is_ok());
         assert_eq!(session.state(), SessionState::Idle);
@@ -4712,7 +4784,7 @@ mod tests {
         session.initialize().await.unwrap();
 
         let mut rx = session.subscribe();
-        session.process_input("Hi").await.unwrap();
+        session.process_text_input("Hi").await.unwrap();
 
         assert_eq!(session.state(), SessionState::Idle);
 
@@ -4897,7 +4969,7 @@ mod tests {
         session.initialize().await.unwrap();
 
         let mut rx = session.subscribe();
-        session.process_input("/commit fix things").await.unwrap();
+        session.process_text_input("/commit fix things").await.unwrap();
 
         let mut activations: Vec<(String, SkillActivationSource)> = Vec::new();
         while let Ok(envelope) = rx.try_recv() {
@@ -4946,7 +5018,7 @@ mod tests {
         session.initialize().await.unwrap();
 
         let mut rx = session.subscribe();
-        session.process_input("please commit").await.unwrap();
+        session.process_text_input("please commit").await.unwrap();
 
         let mut tool_activations = 0;
         while let Ok(envelope) = rx.try_recv() {
@@ -4998,6 +5070,77 @@ mod tests {
             if matches!(envelope.event, AgentEvent::SkillActivated { .. }) {
                 panic!("failed use_skill should not emit SkillActivated");
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_message_with_single_text_part() {
+        let mut session = make_session(vec![text_response("hello response")]).await;
+
+        let content = vec![ContentPart::Text("test message".to_string())];
+        let result = session
+            .process_message(content, AgentToolRuntime::default())
+            .await;
+
+        assert!(result.is_ok(), "process_message should succeed");
+        assert_eq!(session.history().turns().len(), 2); // User + Assistant
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content, .. } = first_turn {
+            assert_eq!(content.len(), 1);
+            assert!(matches!(content[0], ContentPart::Text(_)));
+        } else {
+            panic!("First turn should be User message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_message_with_multi_part_content() {
+        use fabro_llm::types::ImageData;
+
+        let mut session = make_session(vec![text_response("analyzed the image")]).await;
+
+        let content = vec![
+            ContentPart::Image(ImageData {
+                url:        Some("/tmp/test.png".to_string()),
+                data:       None,
+                media_type: None,
+                detail:     None,
+            }),
+            ContentPart::Text("analyze this image".to_string()),
+        ];
+        let result = session
+            .process_message(content.clone(), AgentToolRuntime::default())
+            .await;
+
+        assert!(result.is_ok(), "process_message should succeed with multi-part content");
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content: msg_content, .. } = first_turn {
+            assert_eq!(msg_content.len(), 2, "User message should have 2 parts");
+            assert!(matches!(msg_content[0], ContentPart::Image(_)), "First part should be Image");
+            assert!(matches!(msg_content[1], ContentPart::Text(_)), "Second part should be Text");
+        } else {
+            panic!("First turn should be User message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_text_input_delegates_to_process_message() {
+        let mut session = make_session(vec![text_response("hello response")]).await;
+
+        let result = session.process_text_input("test message").await;
+
+        assert!(result.is_ok(), "process_text_input should succeed");
+        assert_eq!(session.history().turns().len(), 2); // User + Assistant
+        let first_turn = &session.history().turns()[0];
+        if let Message::User { content, .. } = first_turn {
+            assert_eq!(content.len(), 1);
+            if let ContentPart::Text(text) = &content[0] {
+                assert_eq!(text, "test message");
+            } else {
+                panic!("Content should be Text");
+            }
+        } else {
+            panic!("First turn should be User message");
         }
     }
 }

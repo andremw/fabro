@@ -97,7 +97,7 @@ fn is_repeating_pattern(signatures: &[u64], pattern_len: usize) -> bool {
 mod tests {
     use std::time::SystemTime;
 
-    use fabro_llm::types::{TokenCounts, ToolCall};
+    use fabro_llm::types::{ContentPart, TokenCounts, ToolCall};
 
     use super::*;
 
@@ -266,15 +266,15 @@ mod tests {
     fn user_turns_are_ignored() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         assert!(!detect_loop(&history, 10));

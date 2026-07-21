@@ -311,7 +311,7 @@ async fn openai_compatible_twin_preserves_raw_apply_patch_arguments() {
     let mut rx = session.subscribe();
 
     session
-        .process_input("Replace old with new in data.txt using apply_patch")
+        .process_text_input("Replace old with new in data.txt using apply_patch")
         .await
         .expect("process_input failed");
 
@@ -529,7 +529,7 @@ non_openai_provider_tests!(provider_specific_editing);
 // ---------------------------------------------------------------------------
 async fn scenario_simple_file_creation(session: &mut Session, dir: &Path) {
     session
-        .process_input("Create a file called hello.txt containing 'Hello'")
+        .process_text_input("Create a file called hello.txt containing 'Hello'")
         .await
         .expect("process_input failed");
     assert!(dir.join("hello.txt").exists());
@@ -541,7 +541,7 @@ async fn scenario_simple_file_creation(session: &mut Session, dir: &Path) {
 async fn scenario_read_and_edit_file(session: &mut Session, dir: &Path) {
     std::fs::write(dir.join("data.txt"), "old content").expect("failed to write data.txt");
     session
-        .process_input("Read data.txt and replace its content with 'new content'")
+        .process_text_input("Read data.txt and replace its content with 'new content'")
         .await
         .expect("process_input failed");
     let content = std::fs::read_to_string(dir.join("data.txt")).expect("failed to read data.txt");
@@ -558,7 +558,7 @@ async fn scenario_multi_file_edit(session: &mut Session, dir: &Path) {
     std::fs::write(dir.join("a.txt"), "aaa").expect("failed to write a.txt");
     std::fs::write(dir.join("b.txt"), "bbb").expect("failed to write b.txt");
     session
-        .process_input(
+        .process_text_input(
             "Read a.txt and b.txt, then replace the content of a.txt with 'AAA' and b.txt with 'BBB'",
         )
         .await
@@ -574,7 +574,7 @@ async fn scenario_multi_file_edit(session: &mut Session, dir: &Path) {
 // ---------------------------------------------------------------------------
 async fn scenario_shell_execution(session: &mut Session, _dir: &Path) {
     session
-        .process_input(
+        .process_text_input(
             "Run the command `echo hello_from_shell` in the shell and tell me what it printed",
         )
         .await
@@ -586,7 +586,7 @@ async fn scenario_shell_execution(session: &mut Session, _dir: &Path) {
 // ---------------------------------------------------------------------------
 async fn scenario_shell_timeout(session: &mut Session, _dir: &Path) {
     session
-        .process_input("Run the command `sleep 999` with a 1-second timeout")
+        .process_text_input("Run the command `sleep 999` with a 1-second timeout")
         .await
         .expect("process_input failed");
 }
@@ -599,7 +599,7 @@ async fn scenario_grep_and_glob(session: &mut Session, dir: &Path) {
         .expect("failed to write target.txt");
     std::fs::write(dir.join("other.txt"), "nothing").expect("failed to write other.txt");
     session
-        .process_input(
+        .process_text_input(
             "Search for files containing 'needle_pattern_xyz' and tell me which file has it",
         )
         .await
@@ -616,7 +616,7 @@ async fn scenario_multi_step_read_analyze_edit(session: &mut Session, dir: &Path
     )
     .expect("failed to write buggy.rs");
     session
-        .process_input("Read buggy.rs, find the bug, and fix it")
+        .process_text_input("Read buggy.rs, find the bug, and fix it")
         .await
         .expect("process_input failed");
     let content = std::fs::read_to_string(dir.join("buggy.rs")).expect("failed to read buggy.rs");
@@ -636,7 +636,7 @@ async fn scenario_tool_output_truncation(session: &mut Session, dir: &Path) {
     });
     std::fs::write(dir.join("big.txt"), lines).expect("failed to write big.txt");
     session
-        .process_input("Read the file big.txt and tell me how many lines it has")
+        .process_text_input("Read the file big.txt and tell me how many lines it has")
         .await
         .expect("process_input failed");
 }
@@ -649,7 +649,7 @@ async fn scenario_parallel_tool_calls(session: &mut Session, dir: &Path) {
     std::fs::write(dir.join("two.txt"), "content_two").expect("failed to write two.txt");
     std::fs::write(dir.join("three.txt"), "content_three").expect("failed to write three.txt");
     session
-        .process_input("Read one.txt, two.txt, and three.txt and tell me what each contains")
+        .process_text_input("Read one.txt, two.txt, and three.txt and tell me what each contains")
         .await
         .expect("process_input failed");
 }
@@ -660,7 +660,7 @@ async fn scenario_parallel_tool_calls(session: &mut Session, dir: &Path) {
 async fn scenario_steering_before_input(session: &mut Session, _dir: &Path) {
     session.steer("Stop counting and just say DONE".to_string());
     session
-        .process_input("Count from 1 to 100, one number per line")
+        .process_text_input("Count from 1 to 100, one number per line")
         .await
         .expect("process_input failed");
 }
@@ -693,7 +693,7 @@ async fn scenario_steering_mid_task(session: &mut Session, dir: &Path) {
     });
 
     session
-        .process_input(
+        .process_text_input(
             "Read task.txt, then create files a.txt, b.txt, c.txt, d.txt, e.txt each containing their letter",
         )
         .await
@@ -714,7 +714,7 @@ async fn scenario_steering_mid_task(session: &mut Session, dir: &Path) {
 async fn scenario_follow_up(session: &mut Session, dir: &Path) {
     session.follow_up("Create a file called second.txt containing 'second'".to_string());
     session
-        .process_input("Create a file called first.txt containing 'first'")
+        .process_text_input("Create a file called first.txt containing 'first'")
         .await
         .expect("process_input failed");
 
@@ -751,7 +751,7 @@ macro_rules! reasoning_effort_tests {
                 make_session_with_config($provider, $model, tmp.path(), config, None).await;
             session.initialize().await.unwrap();
             session
-                .process_input("Say hello")
+                .process_text_input("Say hello")
                 .await
                 .expect("process_input failed");
         }
@@ -805,7 +805,7 @@ reasoning_effort_tests!(
 async fn scenario_subagent_spawn(session: &mut Session, dir: &Path) {
     std::fs::write(dir.join("secret.txt"), "the_secret_value").expect("failed to write secret.txt");
     session
-        .process_input(
+        .process_text_input(
             "Spawn a subagent to read the file secret.txt and report its contents. \
              Wait for the subagent to finish, then tell me what it found.",
         )
@@ -830,7 +830,7 @@ macro_rules! loop_detection_tests {
                 make_session_with_config($provider, $model, tmp.path(), config, None).await;
             session.initialize().await.unwrap();
             session
-                .process_input("Repeatedly read the file /dev/null")
+                .process_text_input("Repeatedly read the file /dev/null")
                 .await
                 .expect("process_input failed");
         }
@@ -1007,7 +1007,7 @@ async fn load_openai_twin_scenario(name: &str, namespace: &str, cwd: &Path) {
 // ---------------------------------------------------------------------------
 async fn scenario_error_recovery(session: &mut Session, dir: &Path) {
     session
-        .process_input(
+        .process_text_input(
             "Try to read a file called nonexistent_file.txt. If it doesn't exist, create it with the content 'recovered'",
         )
         .await
@@ -1030,7 +1030,7 @@ async fn scenario_error_recovery(session: &mut Session, dir: &Path) {
 async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
     // Test basic fetch (HTML-to-markdown conversion)
     session
-        .process_input(
+        .process_text_input(
             "Use the web_fetch tool to fetch https://example.com and write its content to a file called fetched.txt",
         )
         .await
@@ -1052,7 +1052,7 @@ async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
 
     // Test fetch with prompt parameter (LLM summarization)
     session
-        .process_input(
+        .process_text_input(
             "Use the web_fetch tool with the prompt parameter to fetch https://example.com and answer: 'What is the title heading on this page?' Write only the answer to a file called answer.txt",
         )
         .await
@@ -1072,7 +1072,7 @@ async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
 // ---------------------------------------------------------------------------
 async fn scenario_web_search(session: &mut Session, dir: &Path) {
     session
-        .process_input(
+        .process_text_input(
             "Use the web_search tool to search for 'Rust programming language' and write the first result's title and URL to a file called search_results.txt",
         )
         .await
@@ -1093,7 +1093,7 @@ async fn scenario_provider_specific_editing(session: &mut Session, dir: &Path) {
     std::fs::write(dir.join("target.rs"), "fn greet() { println!(\"hello\"); }")
         .expect("failed to write target.rs");
     session
-        .process_input("Edit target.rs to change 'hello' to 'goodbye'")
+        .process_text_input("Edit target.rs to change 'hello' to 'goodbye'")
         .await
         .expect("process_input failed");
     let content = std::fs::read_to_string(dir.join("target.rs")).expect("failed to read target.rs");

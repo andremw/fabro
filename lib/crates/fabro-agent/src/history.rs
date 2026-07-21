@@ -5,6 +5,21 @@ use fabro_types::SessionMessage;
 
 use crate::types::Message;
 
+/// Helper to extract text from content vector
+fn extract_text(content: &[ContentPart]) -> String {
+    content
+        .iter()
+        .filter_map(|p| {
+            if let ContentPart::Text(t) = p {
+                Some(t.as_str())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct History {
     turns: Vec<Message>,
@@ -97,7 +112,12 @@ impl History {
         self.turns
             .iter()
             .map(|turn| match turn {
-                Message::User { content, .. } => LlmMessage::user(content),
+                Message::User { content, .. } => LlmMessage {
+                    role:         Role::User,
+                    content:      content.clone(),
+                    name:         None,
+                    tool_call_id: None,
+                },
                 Message::Assistant {
                     content,
                     tool_calls,
@@ -164,10 +184,11 @@ fn extract_recent_user_messages(discarded: Vec<Message>, token_budget: usize) ->
     // Walk backward to find the earliest user message within budget
     for (i, turn) in discarded.iter().enumerate().rev() {
         if let Message::User { content, .. } = turn {
-            if total_chars + content.len() > char_budget {
+            let content_chars = extract_text(content).len();
+            if total_chars + content_chars > char_budget {
                 break;
             }
-            total_chars += content.len();
+            total_chars += content_chars;
             first_kept_index = i;
         }
     }
@@ -223,7 +244,7 @@ mod tests {
         let mut history = History::default();
         for i in 0..8 {
             history.push(Message::User {
-                content:   format!("msg {i}"),
+                content:   vec![ContentPart::Text(format!("msg {i}"))],
                 timestamp: SystemTime::now(),
             });
         }
@@ -237,7 +258,7 @@ mod tests {
         let mut history = History::default();
         for i in 0..3 {
             history.push(Message::User {
-                content:   format!("msg {i}"),
+                content:   vec![ContentPart::Text(format!("msg {i}"))],
                 timestamp: SystemTime::now(),
             });
         }
@@ -250,7 +271,7 @@ mod tests {
         let mut history = History::default();
         for i in 0..8 {
             history.push(Message::User {
-                content:   format!("msg {i}"),
+                content:   vec![ContentPart::Text(format!("msg {i}"))],
                 timestamp: SystemTime::now(),
             });
         }
@@ -258,21 +279,21 @@ mod tests {
         let turns = history.turns();
         // Layout: summary, extracted user msgs (0..3), preserved (4..7)
         assert!(matches!(&turns[0], Message::System { .. }));
-        assert!(matches!(&turns[1], Message::User { content, .. } if content == "msg 0"));
-        assert!(matches!(&turns[2], Message::User { content, .. } if content == "msg 1"));
-        assert!(matches!(&turns[3], Message::User { content, .. } if content == "msg 2"));
-        assert!(matches!(&turns[4], Message::User { content, .. } if content == "msg 3"));
-        assert!(matches!(&turns[5], Message::User { content, .. } if content == "msg 4"));
-        assert!(matches!(&turns[6], Message::User { content, .. } if content == "msg 5"));
-        assert!(matches!(&turns[7], Message::User { content, .. } if content == "msg 6"));
-        assert!(matches!(&turns[8], Message::User { content, .. } if content == "msg 7"));
+        assert!(matches!(&turns[1], Message::User { content, .. } if extract_text(content) == "msg 0"));
+        assert!(matches!(&turns[2], Message::User { content, .. } if extract_text(content) == "msg 1"));
+        assert!(matches!(&turns[3], Message::User { content, .. } if extract_text(content) == "msg 2"));
+        assert!(matches!(&turns[4], Message::User { content, .. } if extract_text(content) == "msg 3"));
+        assert!(matches!(&turns[5], Message::User { content, .. } if extract_text(content) == "msg 4"));
+        assert!(matches!(&turns[6], Message::User { content, .. } if extract_text(content) == "msg 5"));
+        assert!(matches!(&turns[7], Message::User { content, .. } if extract_text(content) == "msg 6"));
+        assert!(matches!(&turns[8], Message::User { content, .. } if extract_text(content) == "msg 7"));
     }
 
     #[test]
     fn compact_preserves_matching_tool_calls_for_preserved_tool_results() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "old msg".into(),
+            content:   vec![ContentPart::Text("old msg".into())],
             timestamp: SystemTime::now(),
         });
         for index in 0..3 {
@@ -352,7 +373,7 @@ mod tests {
         let mut history = History::default();
         for i in 0..6 {
             history.push(Message::User {
-                content:   format!("msg {i}"),
+                content:   vec![ContentPart::Text(format!("msg {i}"))],
                 timestamp: SystemTime::now(),
             });
         }
@@ -373,7 +394,7 @@ mod tests {
     fn user_turn_maps_to_user_message() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "Hello".into(),
+            content:   vec![ContentPart::Text("Hello".into())],
             timestamp: SystemTime::now(),
         });
         let messages = history.convert_to_messages();
@@ -548,7 +569,7 @@ mod tests {
         let tool_call = ToolCall::new("call_1", "read_file", serde_json::json!({"path": "a.rs"}));
         let tool_result = ToolResult::success("call_1", serde_json::json!("ok"));
         history.push(Message::User {
-            content:   "Read a file".into(),
+            content:   vec![ContentPart::Text("Read a file".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -574,7 +595,7 @@ mod tests {
 
         assert_eq!(restored.turns().len(), 3);
         assert!(
-            matches!(&restored.turns()[0], Message::User { content, .. } if content == "Read a file")
+            matches!(&restored.turns()[0], Message::User { content, .. } if extract_text(content) == "Read a file")
         );
         assert!(
             matches!(&restored.turns()[1], Message::Assistant { content, tool_calls, usage, .. }
@@ -590,7 +611,7 @@ mod tests {
         let mut history = History::default();
         assert_eq!(history.turns().len(), 0);
         history.push(Message::User {
-            content:   "First".into(),
+            content:   vec![ContentPart::Text("First".into())],
             timestamp: SystemTime::now(),
         });
         assert_eq!(history.turns().len(), 1);
@@ -609,7 +630,7 @@ mod tests {
     fn round_trip_preserves_content() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "Hello".into(),
+            content:   vec![ContentPart::Text("Hello".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -651,11 +672,11 @@ mod tests {
     fn compact_strips_openai_reasoning_from_preserved_turns() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "old msg".into(),
+            content:   vec![ContentPart::Text("old msg".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "recent msg".into(),
+            content:   vec![ContentPart::Text("recent msg".into())],
             timestamp: SystemTime::now(),
         });
         let reasoning = ContentPart::Other {
@@ -699,11 +720,11 @@ mod tests {
     fn compact_preserves_anthropic_thinking_blocks() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "old msg".into(),
+            content:   vec![ContentPart::Text("old msg".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "recent msg".into(),
+            content:   vec![ContentPart::Text("recent msg".into())],
             timestamp: SystemTime::now(),
         });
         let thinking = ContentPart::Thinking(ThinkingData {
@@ -741,7 +762,7 @@ mod tests {
     fn compact_preserves_assistant_data_but_resets_usage() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "old msg".into(),
+            content:   vec![ContentPart::Text("old msg".into())],
             timestamp: SystemTime::now(),
         });
         let tool_call = ToolCall::new("call_1", "search", serde_json::json!({"query": "fabro"}));
@@ -795,7 +816,7 @@ mod tests {
     fn compact_strips_reasoning_from_all_preserved_assistant_turns() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "old msg".into(),
+            content:   vec![ContentPart::Text("old msg".into())],
             timestamp: SystemTime::now(),
         });
         // Two assistant turns that will both be preserved
@@ -829,7 +850,7 @@ mod tests {
     fn extract_recent_user_messages_collects_in_chronological_order() {
         let turns = vec![
             Message::User {
-                content:   "first".into(),
+                content:   vec![ContentPart::Text("first".into())],
                 timestamp: SystemTime::now(),
             },
             Message::Assistant {
@@ -841,25 +862,25 @@ mod tests {
                 timestamp:      SystemTime::now(),
             },
             Message::User {
-                content:   "second".into(),
+                content:   vec![ContentPart::Text("second".into())],
                 timestamp: SystemTime::now(),
             },
         ];
         let extracted = extract_recent_user_messages(turns, 20_000);
         assert_eq!(extracted.len(), 2);
-        assert!(matches!(&extracted[0], Message::User { content, .. } if content == "first"));
-        assert!(matches!(&extracted[1], Message::User { content, .. } if content == "second"));
+        assert!(matches!(&extracted[0], Message::User { content, .. } if extract_text(content) == "first"));
+        assert!(matches!(&extracted[1], Message::User { content, .. } if extract_text(content) == "second"));
     }
 
     #[test]
     fn extract_recent_user_messages_respects_token_budget() {
         let turns = vec![
             Message::User {
-                content:   "a".repeat(100),
+                content:   vec![ContentPart::Text("a".repeat(100))],
                 timestamp: SystemTime::now(),
             },
             Message::User {
-                content:   "b".repeat(100),
+                content:   vec![ContentPart::Text("b".repeat(100))],
                 timestamp: SystemTime::now(),
             },
         ];
@@ -867,14 +888,14 @@ mod tests {
         // exceed
         let extracted = extract_recent_user_messages(turns, 30);
         assert_eq!(extracted.len(), 1);
-        assert!(matches!(&extracted[0], Message::User { content, .. } if content.starts_with('b')));
+        assert!(matches!(&extracted[0], Message::User { content, .. } if extract_text(content).starts_with('b')));
     }
 
     #[test]
     fn compact_extracts_only_user_turns_from_discarded() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "user msg".into(),
+            content:   vec![ContentPart::Text("user msg".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -886,7 +907,7 @@ mod tests {
             timestamp:      SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "preserved".into(),
+            content:   vec![ContentPart::Text("preserved".into())],
             timestamp: SystemTime::now(),
         });
 
@@ -896,10 +917,10 @@ mod tests {
         assert_eq!(history.turns().len(), 3);
         assert!(matches!(&history.turns()[0], Message::System { .. }));
         assert!(
-            matches!(&history.turns()[1], Message::User { content, .. } if content == "user msg")
+            matches!(&history.turns()[1], Message::User { content, .. } if extract_text(content) == "user msg")
         );
         assert!(
-            matches!(&history.turns()[2], Message::User { content, .. } if content == "preserved")
+            matches!(&history.turns()[2], Message::User { content, .. } if extract_text(content) == "preserved")
         );
     }
 }

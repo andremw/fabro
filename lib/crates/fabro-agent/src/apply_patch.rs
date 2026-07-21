@@ -1768,7 +1768,7 @@ def farewell(name):
         );
         session.initialize().await.unwrap();
         session
-            .process_input("Update the greeting functions")
+            .process_text_input("Update the greeting functions")
             .await
             .unwrap();
 
@@ -1840,7 +1840,7 @@ def farewell(name):
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
         session.initialize().await.unwrap();
         session
-            .process_input("Patch a missing function")
+            .process_text_input("Patch a missing function")
             .await
             .unwrap();
 

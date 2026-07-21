@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use fabro_llm::client::Client;
-use fabro_llm::types::{Message as LlmMessage, Request};
+use fabro_llm::types::{ContentPart, Message as LlmMessage, Request};
 use tracing::debug;
 
 use crate::agent_profile::AgentProfile;
@@ -10,6 +10,21 @@ use crate::event::Emitter;
 use crate::file_tracker::FileTracker;
 use crate::history::History;
 use crate::types::{AgentEvent, Message};
+
+/// Extract text content from a Vec<ContentPart>, joining all text parts
+fn extract_text_content(content: &[ContentPart]) -> String {
+    content
+        .iter()
+        .filter_map(|p| {
+            if let ContentPart::Text(t) = p {
+                Some(t.as_str())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
+}
 
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 
@@ -223,9 +238,8 @@ fn estimate_chars_local_tokens(chars: usize) -> usize {
 
 fn estimate_turn_chars(turn: &Message) -> usize {
     match turn {
-        Message::User { content, .. }
-        | Message::System { content, .. }
-        | Message::Steering { content, .. } => content.len(),
+        Message::User { content, .. } => extract_text_content(content).len(),
+        Message::System { content, .. } | Message::Steering { content, .. } => content.len(),
         Message::Assistant {
             content,
             tool_calls,
@@ -251,7 +265,8 @@ pub fn render_turns_for_summary(turns: &[Message]) -> String {
     for turn in turns {
         match turn {
             Message::User { content, .. } => {
-                let _ = writeln!(out, "User: {content}");
+                let text = extract_text_content(content);
+                let _ = writeln!(out, "User: {text}");
             }
             Message::Assistant {
                 content,
@@ -313,7 +328,7 @@ mod tests {
     fn render_turns_produces_labeled_text() {
         let turns = vec![
             Message::User {
-                content:   "Hello".into(),
+                content:   vec![ContentPart::Text("Hello".into())],
                 timestamp: SystemTime::now(),
             },
             Message::Assistant {
@@ -371,7 +386,7 @@ mod tests {
     fn estimate_local_token_count_basic() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "Hello world".into(), // 11 chars
+            content:   vec![ContentPart::Text("Hello world".into())], // 11 chars
             timestamp: SystemTime::now(),
         });
         // system_prompt = "test" (4/4 = 1 token) + 11 chars / 4 = 2 tokens = 3 tokens
@@ -384,7 +399,7 @@ mod tests {
     fn active_context_estimate_without_assistant_usage_uses_local_estimate() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "Hello world".into(), // 11 chars => 2 tokens
+            content:   vec![ContentPart::Text("Hello world".into())], // 11 chars => 2 tokens
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -417,7 +432,7 @@ mod tests {
     fn active_context_local_estimate_matches_whole_history_rounding() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "abc".into(),
+            content:   vec![ContentPart::Text("abc".into())],
             timestamp: SystemTime::now(),
         });
 
@@ -431,7 +446,7 @@ mod tests {
     fn active_context_estimate_uses_latest_assistant_usage_plus_later_turns() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "ignored before baseline".repeat(100),
+            content:   vec![ContentPart::Text("ignored before baseline".repeat(100))],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -452,7 +467,7 @@ mod tests {
         });
         history.push(Message::User {
             // 16 chars => 4 local tokens.
-            content:   "u".repeat(16),
+            content:   vec![ContentPart::Text("u".repeat(16))],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Steering {
@@ -512,7 +527,7 @@ mod tests {
             timestamp:      SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "ignored before latest baseline".repeat(100),
+            content:   vec![ContentPart::Text("ignored before latest baseline".repeat(100))],
             timestamp: SystemTime::now(),
         });
         history.push(Message::Assistant {
@@ -527,7 +542,7 @@ mod tests {
             timestamp:      SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "u".repeat(8),
+            content:   vec![ContentPart::Text("u".repeat(8))],
             timestamp: SystemTime::now(),
         });
 
@@ -555,7 +570,7 @@ mod tests {
         let mut history = History::default();
         // Push enough content to exceed a tiny context window
         history.push(Message::User {
-            content:   "x".repeat(1000),
+            content:   vec![ContentPart::Text("x".repeat(1000))],
             timestamp: SystemTime::now(),
         });
         let emitter = Emitter::new();
