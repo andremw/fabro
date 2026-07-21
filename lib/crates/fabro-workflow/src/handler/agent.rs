@@ -432,6 +432,28 @@ fn get_human_answer_images(context: &Context, stage_id: &str) -> Option<Vec<Stri
         .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok())
 }
 
+/// Identify the immediately prior human stage from workflow context.
+///
+/// Checks if the last executed stage (from `last_stage` context key) provided
+/// human answer images. Returns the stage ID if images are present, otherwise
+/// `None`.
+///
+/// This allows agent stages to automatically detect and consume images from
+/// the preceding human stage without explicit wiring.
+fn prior_human_stage_id(context: &Context) -> Option<String> {
+    let last_stage = context.get_string(keys::LAST_STAGE, "");
+    if last_stage.is_empty() {
+        return None;
+    }
+
+    // Check if this stage has human answer images in the context
+    if get_human_answer_images(context, &last_stage).is_some() {
+        Some(last_stage)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 #[expect(
     clippy::disallowed_methods,
