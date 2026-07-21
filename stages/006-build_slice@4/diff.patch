@@ -1,0 +1,376 @@
+diff --git a/docs/plans/2026-07-21-freeform-image-attachments-plan.md b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+index e03727e..f43841f 100644
+--- a/docs/plans/2026-07-21-freeform-image-attachments-plan.md
++++ b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+@@ -917,17 +917,17 @@ All blockers resolved. Plan is ready for implementation.
+ - [x] Refactor
+ 
+ ### Slice 4: Image persistence in run artifact directory
+-- [ ] Add image file extension mapping helper
+-- [ ] Test extension mapping
+-- [ ] Add image storage helper
+-- [ ] Test image storage with single image
+-- [ ] Test image storage with multiple images
+-- [ ] Extend human handler execute method to store images
+-- [ ] Add context key for image paths
+-- [ ] Test context key is added for TextWithImages answer
+-- [ ] Test no context key for Text answer
+-- [ ] Test context key is stage-specific
+-- [ ] Refactor
++- [x] Add image file extension mapping helper
++- [x] Test extension mapping
++- [x] Add image storage helper
++- [x] Test image storage with single image
++- [x] Test image storage with multiple images
++- [x] Extend human handler execute method to store images
++- [x] Add context key for image paths
++- [x] Test context key is added for TextWithImages answer
++- [x] Test no context key for Text answer
++- [x] Test context key is stage-specific
++- [x] Refactor
+ 
+ ### Slice 5: Agent stage automatic image propagation
+ - [ ] Add context key constant
+diff --git a/lib/crates/fabro-workflow/src/handler/human.rs b/lib/crates/fabro-workflow/src/handler/human.rs
+index a736dcf..5f44042 100644
+--- a/lib/crates/fabro-workflow/src/handler/human.rs
++++ b/lib/crates/fabro-workflow/src/handler/human.rs
+@@ -1,4 +1,4 @@
+-use std::path::Path;
++use std::path::{Path, PathBuf};
+ use std::str::FromStr;
+ use std::sync::Arc;
+ use std::time::Instant;
+@@ -16,6 +16,43 @@ use crate::event::{Emitter, Event, StageScope};
+ use crate::millis_u64;
+ use crate::outcome::{Outcome, OutcomeExt};
+ 
++/// Map image MIME type to file extension.
++fn extension_for_mime(mime: &str) -> &'static str {
++    match mime {
++        "image/png" => "png",
++        "image/jpeg" => "jpg",
++        "image/gif" => "gif",
++        "image/webp" => "webp",
++        "image/heic" => "heic",
++        _ => "bin",
++    }
++}
++
++/// Store answer images in the run artifact directory.
++/// Returns a vector of absolute paths to the stored images.
++async fn store_answer_images(
++    images: &[fabro_interview::ImageAttachment],
++    stage_id: &str,
++    run_dir: &Path,
++) -> Result<Vec<PathBuf>, Error> {
++    use tokio::fs;
++
++    let mut paths = Vec::new();
++    for (index, image) in images.iter().enumerate() {
++        let ext = extension_for_mime(&image.media_type);
++        let filename = format!("human_{stage_id}_image_{index}.{ext}");
++        let path = run_dir.join(&filename);
++        fs::write(&path, &image.data).await.map_err(|err| {
++            Error::handler(format!(
++                "failed to write image {filename} to {}: {err}",
++                run_dir.display()
++            ))
++        })?;
++        paths.push(path);
++    }
++    Ok(paths)
++}
++
+ /// A choice derived from an outgoing edge.
+ struct Choice {
+     key:   String,
+@@ -217,7 +254,7 @@ impl Handler for HumanHandler {
+         node: &Node,
+         context: &Context,
+         graph: &Graph,
+-        _run_dir: &Path,
++        run_dir: &Path,
+         services: &EngineServices,
+     ) -> Result<Outcome, Error> {
+         let HumanGateQuestion {
+@@ -358,6 +395,14 @@ impl Handler for HumanHandler {
+         );
+         interview_guard.resolve();
+ 
++        // Store images if the answer contains them
++        let image_paths = match &answer.value {
++            AnswerValue::TextWithImages { images, .. } => {
++                Some(store_answer_images(images, &node.id, run_dir).await?)
++            }
++            _ => None,
++        };
++
+         // Try fixed-choice match
+         if let Some(selected) = find_choice_match(&answer, &choices) {
+             let mut outcome = make_choice_outcome(
+@@ -372,6 +417,12 @@ impl Handler for HumanHandler {
+                 &answer_text(&answer),
+                 Some(&selected.selected_label),
+             );
++            if let Some(paths) = image_paths {
++                outcome.context_updates.insert(
++                    format!("fabro.human_answer_images.{}", node.id),
++                    serde_json::json!(paths),
++                );
++            }
+             return Ok(outcome);
+         }
+ 
+@@ -397,6 +448,12 @@ impl Handler for HumanHandler {
+                 &answer_text(&answer),
+                 None,
+             );
++            if let Some(paths) = image_paths {
++                outcome.context_updates.insert(
++                    format!("fabro.human_answer_images.{}", node.id),
++                    serde_json::json!(paths),
++                );
++            }
+             return Ok(outcome);
+         }
+ 
+@@ -410,6 +467,12 @@ impl Handler for HumanHandler {
+                 &answer_text(&answer),
+                 Some(&first.label),
+             );
++            if let Some(paths) = image_paths {
++                outcome.context_updates.insert(
++                    format!("fabro.human_answer_images.{}", node.id),
++                    serde_json::json!(paths),
++                );
++            }
+             return Ok(outcome);
+         }
+ 
+@@ -1125,4 +1188,225 @@ mod tests {
+             "run.unblocked"
+         ],);
+     }
++
++    #[test]
++    fn extension_for_mime_maps_image_types() {
++        assert_eq!(extension_for_mime("image/png"), "png");
++        assert_eq!(extension_for_mime("image/jpeg"), "jpg");
++        assert_eq!(extension_for_mime("image/gif"), "gif");
++        assert_eq!(extension_for_mime("image/webp"), "webp");
++        assert_eq!(extension_for_mime("image/heic"), "heic");
++        assert_eq!(extension_for_mime("application/pdf"), "bin");
++    }
++
++    #[tokio::test]
++    async fn store_answer_images_single_image() {
++        use fabro_interview::ImageAttachment;
++        use tempfile::TempDir;
++
++        let temp_dir = TempDir::new().unwrap();
++        let run_dir = temp_dir.path();
++
++        let image_data = vec![0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]; // PNG header
++        let images = vec![ImageAttachment {
++            data:       image_data.clone(),
++            media_type: "image/png".to_string(),
++        }];
++
++        let paths = store_answer_images(&images, "review", run_dir)
++            .await
++            .unwrap();
++
++        assert_eq!(paths.len(), 1);
++        assert_eq!(paths[0].file_name().unwrap(), "human_review_image_0.png");
++
++        let content = tokio::fs::read(&paths[0]).await.unwrap();
++        assert_eq!(content, image_data);
++    }
++
++    #[tokio::test]
++    async fn store_answer_images_multiple_images() {
++        use fabro_interview::ImageAttachment;
++        use tempfile::TempDir;
++
++        let temp_dir = TempDir::new().unwrap();
++        let run_dir = temp_dir.path();
++
++        let png_data = vec![0x89, 0x50, 0x4e, 0x47];
++        let jpeg_data = vec![0xff, 0xd8, 0xff, 0xe0];
++        let gif_data = vec![0x47, 0x49, 0x46, 0x38];
++
++        let images = vec![
++            ImageAttachment {
++                data:       png_data.clone(),
++                media_type: "image/png".to_string(),
++            },
++            ImageAttachment {
++                data:       jpeg_data.clone(),
++                media_type: "image/jpeg".to_string(),
++            },
++            ImageAttachment {
++                data:       gif_data.clone(),
++                media_type: "image/gif".to_string(),
++            },
++        ];
++
++        let paths = store_answer_images(&images, "review", run_dir)
++            .await
++            .unwrap();
++
++        assert_eq!(paths.len(), 3);
++        assert_eq!(paths[0].file_name().unwrap(), "human_review_image_0.png");
++        assert_eq!(paths[1].file_name().unwrap(), "human_review_image_1.jpg");
++        assert_eq!(paths[2].file_name().unwrap(), "human_review_image_2.gif");
++
++        assert_eq!(tokio::fs::read(&paths[0]).await.unwrap(), png_data);
++        assert_eq!(tokio::fs::read(&paths[1]).await.unwrap(), jpeg_data);
++        assert_eq!(tokio::fs::read(&paths[2]).await.unwrap(), gif_data);
++    }
++
++    #[tokio::test]
++    async fn human_gate_adds_context_key_for_text_with_images() {
++        use fabro_interview::{Answer, ImageAttachment};
++        use tempfile::TempDir;
++
++        let temp_dir = TempDir::new().unwrap();
++        let run_dir = temp_dir.path();
++
++        let image_data = vec![0x89, 0x50, 0x4e, 0x47];
++        let images = vec![ImageAttachment {
++            data:       image_data,
++            media_type: "image/png".to_string(),
++        }];
++        let answer = Answer::text_with_images("test answer", images);
++
++        let interviewer = Arc::new(CallbackInterviewer::new(move |_| answer.clone()));
++        let handler = HumanHandler::new(interviewer);
++
++        let mut graph = Graph::new("test");
++        let mut gate = Node::new("gate");
++        gate.attrs
++            .insert("label".to_string(), AttrValue::String("Choose".to_string()));
++        graph.nodes.insert("gate".to_string(), gate);
++        graph
++            .nodes
++            .insert("target".to_string(), Node::new("target"));
++
++        let mut edge = Edge::new("gate", "target");
++        edge.attrs
++            .insert("freeform".to_string(), AttrValue::Boolean(true));
++        graph.edges.push(edge);
++
++        let node = graph.nodes.get("gate").unwrap();
++        let context = Context::new();
++
++        let outcome = handler
++            .execute(node, &context, &graph, run_dir, &make_services())
++            .await
++            .unwrap();
++
++        assert_eq!(outcome.status, crate::outcome::StageOutcome::Succeeded);
++        let context_key = "fabro.human_answer_images.gate";
++        assert!(outcome.context_updates.contains_key(context_key));
++        let paths: Vec<PathBuf> =
++            serde_json::from_value(outcome.context_updates[context_key].clone()).unwrap();
++        assert_eq!(paths.len(), 1);
++        assert_eq!(
++            paths[0].file_name().unwrap(),
++            "human_gate_image_0.png"
++        );
++    }
++
++    #[tokio::test]
++    async fn human_gate_no_context_key_for_text_answer() {
++        use tempfile::TempDir;
++
++        let temp_dir = TempDir::new().unwrap();
++        let run_dir = temp_dir.path();
++
++        let answer = Answer::text("plain text answer");
++        let interviewer = Arc::new(CallbackInterviewer::new(move |_| answer.clone()));
++        let handler = HumanHandler::new(interviewer);
++
++        let mut graph = Graph::new("test");
++        let mut gate = Node::new("gate");
++        gate.attrs
++            .insert("label".to_string(), AttrValue::String("Choose".to_string()));
++        graph.nodes.insert("gate".to_string(), gate);
++        graph
++            .nodes
++            .insert("target".to_string(), Node::new("target"));
++
++        let mut edge = Edge::new("gate", "target");
++        edge.attrs
++            .insert("freeform".to_string(), AttrValue::Boolean(true));
++        graph.edges.push(edge);
++
++        let node = graph.nodes.get("gate").unwrap();
++        let context = Context::new();
++
++        let outcome = handler
++            .execute(node, &context, &graph, run_dir, &make_services())
++            .await
++            .unwrap();
++
++        assert_eq!(outcome.status, crate::outcome::StageOutcome::Succeeded);
++        assert!(!outcome
++            .context_updates
++            .keys()
++            .any(|k| k.starts_with("fabro.human_answer_images.")));
++    }
++
++    #[tokio::test]
++    async fn human_gate_context_key_is_stage_specific() {
++        use fabro_interview::{Answer, ImageAttachment};
++        use tempfile::TempDir;
++
++        let temp_dir = TempDir::new().unwrap();
++        let run_dir = temp_dir.path();
++
++        let image_data = vec![0x89, 0x50, 0x4e, 0x47];
++        let images = vec![ImageAttachment {
++            data:       image_data,
++            media_type: "image/png".to_string(),
++        }];
++        let answer = Answer::text_with_images("test answer", images);
++
++        let interviewer = Arc::new(CallbackInterviewer::new(move |_| answer.clone()));
++        let handler = HumanHandler::new(interviewer);
++
++        let mut graph = Graph::new("test");
++        let mut clarify = Node::new("clarify");
++        clarify
++            .attrs
++            .insert("label".to_string(), AttrValue::String("Clarify".to_string()));
++        graph.nodes.insert("clarify".to_string(), clarify);
++        graph
++            .nodes
++            .insert("target".to_string(), Node::new("target"));
++
++        let mut edge = Edge::new("clarify", "target");
++        edge.attrs
++            .insert("freeform".to_string(), AttrValue::Boolean(true));
++        graph.edges.push(edge);
++
++        let node = graph.nodes.get("clarify").unwrap();
++        let context = Context::new();
++
++        let outcome = handler
++            .execute(node, &context, &graph, run_dir, &make_services())
++            .await
++            .unwrap();
++
++        assert_eq!(outcome.status, crate::outcome::StageOutcome::Succeeded);
++        let context_key = "fabro.human_answer_images.clarify";
++        assert!(outcome.context_updates.contains_key(context_key));
++        let paths: Vec<PathBuf> =
++            serde_json::from_value(outcome.context_updates[context_key].clone()).unwrap();
++        assert_eq!(paths.len(), 1);
++        assert_eq!(
++            paths[0].file_name().unwrap(),
++            "human_clarify_image_0.png"
++        );
++    }
+ }

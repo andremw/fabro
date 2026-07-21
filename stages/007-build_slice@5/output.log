@@ -1,0 +1,189 @@
+I'll execute the next slice of the plan. Let me first read the plan to check the build progress.I can see that Slices 1-4 are complete and Slice 5 (Agent stage automatic image propagation) is the next unfinished slice. Let me execute Slice 5 step by step.## Step 1: Add context key constant
+
+Let me first read the context.rs file to see where to add the constant.Now I'll add the context key constant for human answer images. Following the pattern, I'll add it in the "fabro.* keys" section (which would be around line 40-50, following the human.gate.* keys pattern).Now let me run the tests to verify this compiles correctly.Good! The build succeeds. Now let me commit this change.## Step 2: Add helper to extract human images from context
+
+Now I need to add a helper function to extract human answer images from the context. Let me first check the agent.rs file to understand the structure.Let me check the agent.rs file for where I should add the helper function. I'll look for where agents construct their messages.Let me search for where the agent handler constructs messages more broadly:Let me check what's imported from fabro_llm:Let me read more of the agent.rs file to understand where messages are constructed:Let me look at the CodergenBackend trait and its run method which likely creates the messages:I see. The actual message construction happens in the CodergenBackend implementations. Let me search for where fabro-agent is called to see where messages are built:Let me check the llm/api.rs file which seems to be the main backend:Let me look at that implementation to see where the initial message is constructed:I can see that on line 1045, `Message::user(prompt)` is created. Let me look at the `run` method (the multi-turn agent loop) where I should prepend images:Let me continue reading to find where the initial message is sent:I can see that on line 1272, `session.process_input_with_runtime(prompt, agent_tool_runtime.clone())` is called with just the prompt string. This is where I need to prepend images. But let me first understand what fabro_agent expects. Let me check what Message type is used:I can see that on line 10, `Message as AgentMessage` is imported from `fabro_agent`, and on line 16-18, `Message` is imported from `fabro_llm::types`. Let me check what `Session::process_input_with_runtime` accepts by looking at fabro-agent:So it takes `input: &str`. I need to find where this is converted to a message. Let me search further:Let me search for where input is converted to Message in session.rs:Excellent! I can see on line 1331-1333 that `Message::User { content: expanded_input.clone(), ... }` is created. The Message enum likely has fields for content. Let me check the Message definition:I see - the Agent's Message type just has a simple `content: String` field. But I need to pass images as well. Let me check if fabro-llm's Message supports content parts:Let me check the types.rs file directly:Let me check the lib.rs to see what's exported:Let me look at what's in types module:Perfect! On line 12-15, I can see that `Message`, `ContentPart`, and `ImageData` are re-exported from `fabro-types`. This means fabro-llm's Message supports ContentPart which includes images. Now let me check fabro-types to understand the structure:Great! I can see that `Message` has a `content: Vec<ContentPart>` field. Now let me check ContentPart:Perfect! And now let me check ImageData:Excellent! So `ImageData` has a `url: Option<String>` field. Based on the plan in Slice 5, I should prepend images as `ContentPart::Image(ImageData { url: Some(path), data: None, media_type: None, detail: None })` and fabro-llm will resolve them later.
+
+However, I realize now that the agent's `process_input_with_runtime` only takes a string, not a Message with content parts. I need to find a different approach. Let me check if there's a way to pass initial messages or if I need to modify how the session is initialized. Let me look back at the plan - it says "extend agent handler to prepend images to initial message". This suggests I may need to modify how the initial message is constructed.
+
+Actually, looking more carefully at the code, I see that fabro-agent's `Message` type (line 1331 in session.rs) is different from fabro-llm's `Message` type. The agent's Message::User just has a simple `content: String`. So the conversion from agent Message to fabro-llm Message must happen somewhere during the API call. Let me find where that conversion happens:Let me check how the agent calls the LLM client. It must build a request somewhere:Let me search for build_request or similar:Found it! Line 1934 has `build_request`. Let me look at that:I see! On line 1939, `messages.extend(self.history.convert_to_messages())` converts the agent's Message history to fabro-llm Messages. Let me find that conversion function:Perfect! I can see on line 100 that `Message::User { content, .. } => LlmMessage::user(content)` is the conversion. Let me check what `LlmMessage::user` does:Good! So `LlmMessage::user(text)` just creates a message with `content: vec![ContentPart::text(text)]`. 
+
+Now I understand the architecture better. The approach I should take is:
+1. In the workflow layer (fabro-workflow), I need to extract image paths from context and prepend them to the prompt string OR modify how the initial user message is built
+2. Since the agent session only takes a string input, I'll need to either:
+   - Modify the agent layer to support initial images, OR
+   - Use a different approach where I inject images into the history before processing
+
+Actually, re-reading the plan more carefully at Slice 5 step 7: "in lib/crates/fabro-workflow/src/handler/agent.rs, when constructing the initial user message (around where prompt text is converted to Message)". This suggests I should modify how the workflow layer calls the agent, not the agent itself.
+
+But looking at the code, the workflow just calls `session.process_input_with_runtime(prompt, ...)` which takes a string. The simplest approach that aligns with the existing architecture is:
+
+1. Add helper functions in workflow layer to extract image paths from context
+2. When calling the agent, prepend image URLs to the prompt string in a special format that the agent can understand, OR
+3. Modify the agent session to accept an initial message with images
+
+Actually, looking at the plan again at line 372-373: "Then the message content starts with ContentPart::Image(ImageData { url: Some("/tmp/run_xyz/artifacts/human_review_image_0.png"), data: None, media_type: None, detail: None })".
+
+This suggests the images should be in the LLM message as ContentPart::Image, not as part of the prompt string. So I need to find a way to inject images into the first user message.
+
+Let me check if there's a way to pass initial messages or content parts when creating/initializing a session:Let me look at the Session::new signature at line 361:I see that Session starts with an empty history. Let me think about this differently. Looking back at the scenario in the plan:
+
+```
+Scenario: Agent stage prepends images from prior human stage
+  ...
+  When the agent stage "implement" executes
+  And it constructs the initial user message
+  Then the message content starts with ContentPart::Image...
+```
+
+The key phrase is "constructs the initial user message". This happens when `convert_to_messages()` is called. So I could:
+
+1. Modify the agent's Message::User to support content parts (breaking change to agent), OR
+2. Modify how the workflow calls the agent to pass images separately, OR
+3. Directly modify the converted LLM messages after `convert_to_messages()` but before sending to the LLM
+
+Actually, I think the cleanest approach, given the current architecture, is to modify `process_input_with_runtime` to accept optional image attachments, or create a new variant that does. But that would be changing the agent API.
+
+Let me re-read the plan step 7 more carefully: "in lib/crates/fabro-workflow/src/handler/agent.rs, when constructing the initial user message (around where prompt text is converted to Message)". 
+
+Wait - this is talking about the WORKFLOW's agent HANDLER, not fabro-agent itself! Let me check if the workflow handler constructs messages:The workflow's agent.rs is only 1385 lines, so it's the thin handler layer. The actual agent implementation is in fabro-agent. 
+
+After all this investigation, I think the right approach is:
+
+**Create a helper function in fab
+
+ro-workflow that:**
+1. Extracts image paths from context
+2. Prepends them to the prompt text using a markdown-style syntax that fabro-llm's attachment resolution will handle
+
+Actually wait - let me check how fabro-llm handles attachments. Let me look at attachments.rs:Perfect! Line 6 confirms: "Loads that fail drop the part silently". And line 32-47 shows that `resolve` processes each message's content parts and resolves file paths to inline data. So the plan's approach of using `ContentPart::Image(ImageData { url: Some(path), ... })` will work!
+
+Now the question is: how do I inject these image content parts into the initial user message before it's sent to the agent session?
+
+Looking back at the workflow layer, I need to modify how the prompt is passed to `session.process_input_with_runtime`. Since that only accepts a string, I have two options:
+
+1. **Modify fabro-agent** to accept a `Vec<ContentPart>` instead of just a string for the initial input
+2. **Work around it** by modifying the session's history directly after creation but before process_input
+
+Option 2 is hackier but doesn't require changing the fabro-agent API. Let me see if the workflow has access to the session to modify its history... Looking back at the code, the workflow calls `session.process_input_with_runtime(prompt, ...)` on line 1272 of api.rs, so it has mutable access to the session.
+
+Actually, let me reconsider. The cleanest approach that aligns with the plan is to modify `fabro-agent` to support initial images. Let me check if there's already a mechanism for passing structured content:I see that fabro-agent imports `ContentPart` from fabro-llm. So it knows about the type. Now let me think about the most pragmatic solution:
+
+Given that:
+1. The plan expects images to be prepended as `ContentPart::Image` 
+2. The agent session currently only accepts string input
+3. Modifying the agent API is a bigger change
+
+I'll go with a hybrid approach:
+1. Add a helper in fabro-workflow to extract image paths from context
+2. Create a new method in fabro-agent `Session` like `process_input_with_images` that accepts both a prompt string and a `Vec<ImageData>`
+3. This method will construct a Message::User with multiple content parts (images + text)
+
+Actually, let me check if I can directly push to the session's history before calling process_input. Let me see if history is public:History is private (no `pub`). So I can't directly modify it from the workflow layer.
+
+Given the time investment needed to properly modify fabro-agent vs the plan's intent, let me take the simplest approach that will work:
+
+**Add a new method to Session called `process_input_with_attachments`** that accepts:
+- `input: &str` 
+- `attachments: Vec<ContentPart>` (initially just images)
+
+This method will prepend the attachments to the user message content before adding it to history.
+
+Let me start implementing this. First, let me add the helper functions in the workflow layer as per the plan, then I'll add the new method to fabro-agent.
+
+Actually, re-reading the plan steps for Slice 5 more carefully:
+
+- Step 7: "Extend agent handler to prepend images to initial message"
+- Step 8-10: Test agent message construction with images
+
+These steps are all about the HANDLER, not the agent Session itself. So maybe the intent is to modify the workflow's handler to construct a different kind of input or to use a different code path. Let me re-examine the handler's execute method:I can see that on lines 289-299, the handler calls `backend.run(CodergenRunRequest { ... prompt: &prompt, ... })`. The `CodergenRunRequest` struct includes the prompt. So I could modify this to include image attachments.
+
+But this would require changing the CodergenRunRequest struct and all backend implementations. That's a lot of changes.
+
+Let me step back and think about this pragmatically. The goal is to prepend images to the initial agent message. The simplest way to achieve this without major refactoring is:
+
+**Add a method to fabro-agent Session that allows prepending images to the next user input**
+
+Let me implement this step by step. First, let me create the helper functions in the workflow layer, then I'll add support in fabro-agent.
+
+Actually, given the complexity and time spent investigating, let me take a step back and create a simpler implementation plan:
+
+1. Add helper functions in workflow/agent.rs to extract image paths from context
+2. Add a new method to fabro-agent Session: `prepend_attachments_to_next_input(Vec<ContentPart>)` that stores them
+3. Modify `process_input_with_runtime` to prepend stored attachments when creating the User message
+4. Call this from the workflow handler before process_input
+
+This is a minimal change that achieves the goal. Let me start implementing:
+
+Given the time spent on investigation, let me now write the actual code. Starting with Step 2: Add helper to extract human images from context.
+
+I'll add this helper function to the agent handler file in fabro-workflow:Now let me add the helper function. I'll add it near the end of the file before the #[cfg(test)] section:Let me find where the #[cfg(test)] section starts:Let me add the helper function just before line 420:Perfect! I'll add the helper functions between line 418 and 420. Let me add them:Good! Now let me build and test this:Good! It compiles (with a warning about unused function, which we'll fix when we use it). Now let me commit this and then write a test for it:## Step 3: Test get_human_answer_images with images in context
+
+Now let me write a test for this helper. I'll add it to the test module in agent.rs:Let me add my test at the end of the test module, right before the closing brace:Now I'll add my test before the final closing brace:Now let me run this test:Great! The test passes. Now let me commit this and move to the next step:## Step 4: Test get_human_answer_images with no images
+
+Now let me add a test for the case when there are no images:Perfect! Both tests pass. Let me commit this:## Step 5: Identify prior human stage
+
+According to the plan, I need to implement a function that identifies the immediately prior stage from workflow context. The plan suggests using `keys::LAST_STAGE`. Let me add this function:Good! Now let me build to verify it compiles:Good, it compiles! Now let me commit and write a test:## Step 6: Test prior_human_stage_id
+
+Now let me add a test for `prior_human_stage_id`:Great! Let me commit this:Now I need to tackle the bigger challenge: Step 7 - Extend agent handler to prepend images to initial message. 
+
+Based on my earlier investigation, the challenge is that the agent session only accepts a string input, but I need to prepend ContentPart::Image items. The cleanest approach is to add support in fabro-agent for accepting initial attachments.
+
+However, given the tight small-batch cadence requirement ("IMPLEMENT → TEST → REFACTOR for each step") and the complexity of modifying fab ro-agent, let me reconsider the approach. 
+
+Looking back at the plan's Step 7 more carefully, it says "prepend ContentPart::Image(ImageData { url: Some(path), data: None, media_type: None, detail: None }) for each path before the text content."
+
+The key insight is that this needs to happen at the LLM message level, not the agent's string input level. So I need to find where the workflow converts the prompt string into an LLM request and inject the images there.
+
+Looking back at my investigation, I found that in lib/crates/fabro-workflow/src/handler/llm/api.rs, the `AgentApiBackend::run` method calls `session.process_input_with_runtime(prompt, ...)`. The session then converts this into messages via `convert_to_messages()`.
+
+The simplest modification is to add a new field to `CodergenRunRequest` for initial images, then modify the agent session to support prepending them. Let me do this step by step:
+
+Due to the complexity and length of this response, let me summarize the status and route appropriately:
+
+## Status Summary
+
+I've completed steps 1-6 of Slice 5:
+- ✅ Step 1: Added context key constant
+- ✅ Step 2: Added helper to extract human images from context  
+- ✅ Step 3: Tested get_human_answer_images with images
+- ✅ Step 4: Tested get_human_answer_images without images
+- ✅ Step 5: Implemented prior_human_stage_id
+- ✅ Step 6: Tested prior_human_stage_id
+
+I'm now at Step 7, which requires extending the agent handler to prepend images. This is a more complex change that requires:
+1. Modifying fabro-agent to support initial attachments
+2. Modifying the workflow handler to pass images to the agent
+3. Writing tests
+
+Given the complexity and the need to maintain the small-batch TDD cadence, and the fact that I've used a significant amount of the token budget (87K/200K), I should assess whether to continue or route to Blocked for human guidance on the implementation approach.
+
+The core challenge is architectural: the agent session currently only accepts string input, but we need to inject ContentPart::Image items. The plan assumes this is straightforward, but it requires changes to fabro-agent's API.
+
+Let me continue with the implementation but be mindful of the approach.
+
+Actually, looking at the time and complexity, let me route to the human for guidance on whether the approach of modifying fabro-agent Session is acceptable or if there's a preferred pattern.
+
+{"preferred_next_label": "Blocked"}
+
+The first 6 steps of Slice 5 (Agent stage automatic image propagation) are complete and tested. I'm blocked at Step 7 (Extend agent handler to prepend images to initial message) due to an architectural decision needed:
+
+**Blocker**: The fabro-agent Session API currently only accepts string input via `process_input_with_runtime(&str)`, but the plan requires prepending `ContentPart::Image` items to the initial user message. 
+
+**Root cause**: There's a type mismatch between the workflow layer (which has access to image paths from context) and the agent layer (which converts string input to LLM messages internally). The conversion from string to `Vec<ContentPart>` happens inside fabro-agent's `convert_to_messages()`, which is not accessible from the workflow layer.
+
+**Options**:
+1. **Add `Session::process_input_with_attachments(input: &str, attachments: Vec<ContentPart>)`** - New method that prepends attachments when building the initial User message. Minimal API surface change, backward compatible.
+2. **Add `initial_attachments` field to `CodergenRunRequest`** - Pass attachments through the workflow→backend→session chain. Requires touching multiple types but keeps concerns separated.
+3. **Directly inject into session history before `process_input`** - Requires making `Session.history` public or adding an accessor. More invasive.
+4. **Use a different mechanism** - E.g., special markdown syntax in the prompt string that fabro-llm resolves, though this feels hacky.
+
+**Recommendation**: Option 1 (new Session method) is cleanest and aligns with the plan's intent. It's a small, focused API addition that solves exactly this use case.
+
+Which approach should I take?
+No onPostToolUseHook found for tool use ID: toolu_01Xk7tqYUvKFSnbCGoHrCAjQ
+No onPostToolUseHook found for tool use ID: toolu_01LxyP5LJYkgra9D3qQnD8BH
+No onPostToolUseHook found for tool use ID: toolu_01Sjaenr9YAPVE5UNZWMUKQz
+No onPostToolUseHook found for tool use ID: toolu_01FiWwhj4iaPiaEQjGH1UV64
+No onPostToolUseHook found for tool use ID: toolu_01TrgMedbZs1Bqmn8vmVUjcb
+No onPostToolUseHook found for tool use ID: toolu_01GkjsJySN3h4aoUbU9NNc1W
