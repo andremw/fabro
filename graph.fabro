@@ -1,0 +1,67 @@
+digraph SpecsPlan {
+    graph [
+        goal="Produce an approved specification and implementation plan (no code) for the feature described at the Describe Feature gate"
+    ]
+    rankdir=LR
+
+    // All agent nodes run Claude Code over ACP — auth comes from
+    // CLAUDE_CODE_OAUTH_TOKEN in the environment env, billed to the
+    // Claude subscription. No API provider credentials are used.
+    start [shape=Mdiamond, label="Start"]
+    exit  [shape=Msquare, label="Exit"]
+
+    // ---- Specs phase (from dev-team /specs) ----
+    describe    [shape=hexagon, label="Describe the feature to spec and plan. Multi-line text welcome; type 'goal' to use the run goal instead."]
+    draft_spec  [label="Draft Spec", prompt="@prompts/draft-spec.md", goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    clarify     [shape=hexagon, label="Answer the open questions above. Type 'proceed' to accept all documented inferences."]
+    // Human-gated loops: every visit is a deliberate human change request, so
+    // the limit only guards against gross runaway, not normal iteration.
+    refine_spec [label="Refine Spec", prompt="@prompts/refine-spec.md", max_visits=15, goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    spec_gate   [shape=hexagon, label="Approve this spec and continue to planning? Anything else you type is treated as a change request."]
+
+    // ---- Plan phase (from dev-team /plan) ----
+    plan_feature [label="Write Plan", prompt="@prompts/plan.md", goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    reviews      [shape=component, label="Dispatch Plan Reviewers", max_parallel=5]
+    review_acceptance [label="Acceptance Critic",      prompt="@prompts/plan-review-acceptance.md", backend="acp", acp.command="claude-code-acp"]
+    review_design     [label="Design Critic",          prompt="@prompts/plan-review-design.md", backend="acp", acp.command="claude-code-acp"]
+    review_ux         [label="UX Critic",              prompt="@prompts/plan-review-ux.md", backend="acp", acp.command="claude-code-acp"]
+    review_strategic  [label="Strategic Critic",       prompt="@prompts/plan-review-strategic.md", backend="acp", acp.command="claude-code-acp"]
+    review_parallel   [label="Parallelization Critic", prompt="@prompts/plan-review-parallelization.md", backend="acp", acp.command="claude-code-acp"]
+    merge_reviews   [shape=tripleoctagon, label="Merge Reviews"]
+    address_reviews [label="Address Reviews", prompt="@prompts/address-reviews.md", max_visits=15, goal_gate=true, backend="acp", acp.command="claude-code-acp"]
+    plan_gate       [shape=hexagon, label="Approve this plan? Approval dispatches the build-ship child run. Anything else you type is treated as a change request."]
+    // The one API-backed node: fabro's run tools ([run.agent] fabro_tools) are
+    // only injected into API-backend stages, not ACP ones. Needs a working
+    // ANTHROPIC_API_KEY; a failure here does not fail the run — the spec/plan
+    // PR still opens and build-ship can be run manually.
+    dispatch_build  [label="Dispatch Build", prompt="@prompts/dispatch-build.md", reasoning_effort="low"]
+
+    start -> describe
+    describe -> draft_spec [freeform=true]
+    draft_spec -> clarify [condition="outcome=succeeded"]
+    draft_spec -> exit
+    clarify -> refine_spec [freeform=true]
+    refine_spec -> spec_gate [condition="outcome=succeeded"]
+    refine_spec -> exit
+    spec_gate -> plan_feature [label="[A] Approve spec"]
+    spec_gate -> refine_spec  [freeform=true]
+
+    plan_feature -> reviews [condition="outcome=succeeded"]
+    plan_feature -> exit
+    reviews -> review_acceptance
+    reviews -> review_design
+    reviews -> review_ux
+    reviews -> review_strategic
+    reviews -> review_parallel
+    review_acceptance -> merge_reviews
+    review_design     -> merge_reviews
+    review_ux         -> merge_reviews
+    review_strategic  -> merge_reviews
+    review_parallel   -> merge_reviews
+    merge_reviews -> address_reviews
+    address_reviews -> plan_gate [condition="outcome=succeeded"]
+    address_reviews -> exit
+    plan_gate -> dispatch_build  [label="[A] Approve plan"]
+    plan_gate -> address_reviews [freeform=true]
+    dispatch_build -> exit
+}
