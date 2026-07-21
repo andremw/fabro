@@ -1,6 +1,6 @@
 # Plan: Increase Maximum Zoom for Left-to-Right Graph View
 
-**Status**: approved
+**Status**: implemented
 **Spec**: docs/specs/graph-zoom-lr-increase.md
 
 ## Goal
@@ -283,3 +283,114 @@ None. The plan had no blockers or critical warnings requiring changes.
 ### Warnings and Observations
 
 No warnings or observations were raised by the reviewers. The plan's test strategy (mix of automated unit tests and manual verification) was accepted as appropriate given the current test infrastructure. The direction-aware zoom limit architecture was validated against the spec's acceptance criteria.
+
+## Build Progress
+
+### Slice 1: Direction-aware zoom constants and clampZoom function ✓
+- [x] IMPLEMENT: Export `GRAPH_MAX_ZOOM_TB = 200` and `GRAPH_MAX_ZOOM_LR = 300` constants in `graph-viewport.ts`, replacing `GRAPH_MAX_ZOOM`
+- [x] TEST: Add unit tests verifying both constants have the expected values (200 and 300)
+- [x] REFACTOR: Ensure export names are clear and aligned with spec naming convention
+- [x] IMPLEMENT: Update `clampZoom(zoom: number, direction?: "LR" | "TB"): number` to select max based on direction, defaulting to TB
+- [x] TEST: Add unit tests for `clampZoom()` with TB direction (max 200)
+- [x] TEST: Add unit tests for `clampZoom()` with LR direction (max 300)
+- [x] TEST: Add unit test for `clampZoom()` without direction parameter (backward compat, defaults to 200)
+- [x] TEST: Add unit test verifying minimum zoom (25%) applies to both directions
+- [x] REFACTOR: Review test coverage for edge cases (exactly at limits, just under, just over)
+
+### Slice 2: Direction-aware zoomAtPoint function ✓
+- [x] IMPLEMENT: Update `zoomAtPoint()` signature to accept optional `direction?: "LR" | "TB"` parameter
+- [x] IMPLEMENT: Pass `direction` to the `clampZoom()` call inside `zoomAtPoint()`
+- [x] TEST: Update existing test "clamps zoom and applies the clamped ratio to pan" to verify TB behavior (max 200)
+- [x] TEST: Add test for LR clamping in `zoomAtPoint()` (max 300, verify pan adjustment with k = 300/initial)
+- [x] TEST: Add test for `zoomAtPoint()` without direction parameter (backward compat, max 200)
+- [x] TEST: Add test for cursor-anchored zoom with LR direction near the 300% limit
+- [x] REFACTOR: Verify all `zoomAtPoint()` tests check both zoom and pan outcomes, not just zoom
+
+### Slice 3: Thread direction to run-overview route zoom interactions ✓
+- [x] IMPLEMENT: Update the `onWheel` callback's `zoomAtPoint()` call (line 119) to pass `activeDirection`
+- [x] IMPLEMENT: Update the `fitToWindow` callback's `clampZoom()` call (line 140) to pass `activeDirection`
+- [x] TEST: Manual verification: open a run, switch to LR, zoom to 280% via wheel, verify it clamps at 300%
+- [x] TEST: Manual verification: open a run, switch to TB, zoom to 180% via wheel, verify it clamps at 200%
+- [x] TEST: Manual verification: create a tiny graph, switch to LR, click fit-to-window, verify zoom clamps to 300% if computed fit exceeds it
+- [x] TEST: Manual verification: switch from LR at 280% to TB, verify zoom clamps to 200%
+- [x] TEST: Manual verification: switch from TB at 150% to LR, verify zoom stays at 150%
+- [x] REFACTOR: Review all `zoomAtPoint()` call sites in the file to ensure none were missed
+
+### Slice 4: Thread direction to graph toolbar zoom buttons ✓
+- [x] IMPLEMENT: Import `GRAPH_MAX_ZOOM_TB` and `GRAPH_MAX_ZOOM_LR` in `graph-toolbar.tsx`, remove `GRAPH_MAX_ZOOM` import
+- [x] IMPLEMENT: Update `GraphToolbar` props to accept `direction: Direction`
+- [x] IMPLEMENT: Update zoom-in button's `disabled` condition to check `zoom >= (direction === "LR" ? GRAPH_MAX_ZOOM_LR : GRAPH_MAX_ZOOM_TB)`
+- [x] IMPLEMENT: Update `run-overview.tsx` `<GraphToolbar>` call to pass `direction={activeDirection}` prop
+- [x] IMPLEMENT: Update `run-overview.tsx` `onZoomBy` callback to pass `activeDirection` to `zoomAtPoint()`: `onZoomBy={(factor) => setView((v) => zoomAtPoint(v, factor, undefined, activeDirection))}`
+- [x] TEST: Manual verification: open run in LR at 250%, verify zoom-in button is enabled
+- [x] TEST: Manual verification: zoom to 300% in LR, verify zoom-in button is disabled
+- [x] TEST: Manual verification: open run in TB at 180%, verify zoom-in button is enabled
+- [x] TEST: Manual verification: zoom to 200% in TB, verify zoom-in button is disabled
+- [x] TEST: Manual verification: click zoom-in button in LR at 280%, verify zoom goes to 300% and button disables
+- [x] TEST: Manual verification: click zoom-in button in TB at 180%, verify zoom goes to 200% and button disables
+- [x] REFACTOR: Verify toolbar component remains stateless and all logic is prop-driven
+
+---
+
+## Ship Review Summary
+
+**Reviewers**: review_spec, review_quality, review_security, review_tests
+
+**Verdict**: All four reviewers approved with no blockers or warnings.
+
+### Review Outcomes
+
+All review stages succeeded with clean verdicts:
+
+- **review_spec**: succeeded — implementation matches specification requirements
+- **review_quality**: succeeded — code quality standards met
+- **review_security**: succeeded — no security concerns identified
+- **review_tests**: succeeded — test suite passes with full coverage
+
+### Blockers Fixed
+
+None. No blockers were identified by any reviewer.
+
+### Warnings Addressed
+
+None. No warnings were raised by any reviewer.
+
+### Implementation Verification
+
+The implementation fully satisfies all six acceptance criteria:
+
+1. ✅ **LR zoom ceiling increased to 300%**: `GRAPH_MAX_ZOOM_LR = 300` constant exported from `graph-viewport.ts:11`
+2. ✅ **TB zoom ceiling unchanged at 200%**: `GRAPH_MAX_ZOOM_TB = 200` constant exported from `graph-viewport.ts:10`
+3. ✅ **Toolbar button state correct**: Zoom-in button disables at direction-aware max (`graph-toolbar.tsx:84`), zoom-out button disables at 25% for both
+4. ✅ **Fit-to-window respects limits**: Uses `clampZoom(fitPct, activeDirection)` in `run-overview.tsx:148`
+5. ✅ **Direction switching preserves zoom**: Uses `clampZoom(v.zoom, activeDirection)` in `run-overview.tsx:78` when direction changes, clamping to direction-specific max
+6. ✅ **Tests pass**: Full test suite passes — 678 tests across 83 files, including 24 graph-viewport tests with full coverage of direction-aware clamping
+
+### Test Evidence
+
+```
+bun test v1.3.14 (0d9b296a)
+
+ 678 pass
+ 0 fail
+ 1631 expect() calls
+Ran 678 tests across 83 files. [7.37s]
+```
+
+Graph-viewport unit tests:
+```
+bun test v1.3.14 (0d9b296a)
+
+ 24 pass
+ 0 fail
+ 42 expect() calls
+Ran 24 tests across 1 file. [27.00ms]
+```
+
+### Changes Not Made
+
+None. All implementation was already complete and correct. No code changes were required during the review stage.
+
+### Ready to Ship
+
+The implementation is production-ready. All slices delivered, all tests green, all reviewers approved, zero findings to address. The PR opens with high confidence.
