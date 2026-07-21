@@ -1,0 +1,40 @@
+I'll review the code quality of the implemented changes by first examining the commits and then analyzing the code.Let me read the key changed files to understand the implementation:Now let me look at the history conversion and compaction changes:Let me check some test files to understand how the implementation is tested:Let me check the ACP backend and API backend changes:Now let me check the Session API changes more closely:Now let me examine the workflow integration tests to see how images are handled:Now let me check if there are any issues with the context module changes:Let me read the plan to understand what was built:Now I have enough information to provide a comprehensive code quality review. Let me analyze what I found:
+
+```json
+{
+  "reviewer": "review-code-quality",
+  "verdict": "approve",
+  "issues": [
+    {
+      "category": "duplication",
+      "description": "extract_text_content helper is duplicated across multiple files with identical logic: history.rs:9-21, compaction.rs:14-27, and agent.rs:67-79 all filter ContentPart::Text and join strings",
+      "severity": "warning",
+      "files": [
+        "lib/crates/fabro-agent/src/history.rs",
+        "lib/crates/fabro-agent/src/compaction.rs",
+        "lib/crates/fabro-workflow/src/handler/agent.rs"
+      ],
+      "suggestion": "Extract to a shared helper in fabro_llm::types or fabro-agent's types module, e.g. ContentPart::extract_text(&[ContentPart]) -> String, and import it in all three locations"
+    },
+    {
+      "category": "clarity",
+      "description": "extract_human_images function reads context with a prefix-based key but doesn't validate the JSON structure beyond serde's type check. Silent failure on malformed data could hide bugs",
+      "severity": "warning",
+      "files": [
+        "lib/crates/fabro-workflow/src/handler/agent.rs"
+      ],
+      "suggestion": "Add debug logging when extraction fails due to invalid JSON, or add an info-level trace when images are found to make the flow visible in logs"
+    },
+    {
+      "category": "consistency",
+      "description": "The agent handler constructs initial_content by conditionally prepending images then always appending text. This ordering (images-first, text-last) is implicit and not documented in either the function or the ContentPart creation",
+      "severity": "warning",
+      "files": [
+        "lib/crates/fabro-workflow/src/handler/agent.rs"
+      ],
+      "suggestion": "Add a comment explaining the ordering requirement (if any) or why images precede text, e.g. '// Images must precede text for optimal LLM context' or '// Order: images, then text prompt'"
+    }
+  ],
+  "summary": "The implementation is clean and follows established patterns. The main concern is duplicated text extraction logic across three files. The code correctly migrates from String to Vec<ContentPart> systematically, preserves backwards compatibility through process_text_input, and handles the multi-part message flow end-to-end. Pattern adherence is strong—the changes mirror existing fabro-llm ContentPart handling and maintain the session/history/serialization contracts."
+}
+```
