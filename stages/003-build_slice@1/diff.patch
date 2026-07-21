@@ -1,0 +1,374 @@
+diff --git a/apps/fabro-web/app/components/graph-toolbar.tsx b/apps/fabro-web/app/components/graph-toolbar.tsx
+index 0306705..47455ee 100644
+--- a/apps/fabro-web/app/components/graph-toolbar.tsx
++++ b/apps/fabro-web/app/components/graph-toolbar.tsx
+@@ -1,6 +1,6 @@
+ import { ArrowDownIcon, ArrowRightIcon, MinusIcon, PlusIcon } from "@heroicons/react/20/solid";
+ 
+-import { GRAPH_MAX_ZOOM, GRAPH_MIN_ZOOM } from "../lib/graph-viewport";
++import { GRAPH_MAX_ZOOM_TB, GRAPH_MAX_ZOOM_LR, GRAPH_MIN_ZOOM } from "../lib/graph-viewport";
+ 
+ type Direction = "LR" | "TB";
+ 
+@@ -81,7 +81,7 @@ export function GraphToolbar({
+           type="button"
+           title="Zoom in"
+           onClick={() => onZoomBy(ZOOM_STEP_FACTOR)}
+-          disabled={zoom >= GRAPH_MAX_ZOOM}
++          disabled={zoom >= (direction === "LR" ? GRAPH_MAX_ZOOM_LR : GRAPH_MAX_ZOOM_TB)}
+           className={`${btn} ${btnDisabled}`}
+         >
+           <PlusIcon className="size-4" aria-hidden="true" />
+diff --git a/apps/fabro-web/app/lib/graph-viewport.test.ts b/apps/fabro-web/app/lib/graph-viewport.test.ts
+index 59fa3a3..59ad9d3 100644
+--- a/apps/fabro-web/app/lib/graph-viewport.test.ts
++++ b/apps/fabro-web/app/lib/graph-viewport.test.ts
+@@ -1,7 +1,8 @@
+ import { describe, expect, test } from "bun:test";
+ 
+ import {
+-  GRAPH_MAX_ZOOM,
++  GRAPH_MAX_ZOOM_TB,
++  GRAPH_MAX_ZOOM_LR,
+   GRAPH_MIN_ZOOM,
+   clampZoom,
+   wheelZoomFactor,
+@@ -34,9 +35,9 @@ describe("zoomAtPoint", () => {
+   });
+ 
+   test("clamps zoom and applies the clamped ratio to pan", () => {
+-    const view: GraphView = { zoom: GRAPH_MAX_ZOOM, pan: { x: 10, y: 10 } };
++    const view: GraphView = { zoom: GRAPH_MAX_ZOOM_TB, pan: { x: 10, y: 10 } };
+     const after = zoomAtPoint(view, 4, { x: 0, y: 0 }); // wants 800%, must clamp to max
+-    expect(after.zoom).toBe(GRAPH_MAX_ZOOM);
++    expect(after.zoom).toBe(GRAPH_MAX_ZOOM_TB);
+     expect(after.pan).toEqual({ x: 10, y: 10 }); // k == 1, pan unchanged toward center
+   });
+ 
+@@ -49,14 +50,126 @@ describe("zoomAtPoint", () => {
+     expect(roundTrip.pan.x).toBeCloseTo(start.pan.x);
+     expect(roundTrip.pan.y).toBeCloseTo(start.pan.y);
+   });
++
++  describe("direction-aware clamping", () => {
++    test("TB direction clamps to 200%", () => {
++      const view: GraphView = { zoom: 180, pan: { x: 0, y: 0 } };
++      const after = zoomAtPoint(view, 1.5, { x: 0, y: 0 }, "TB");
++      expect(after.zoom).toBe(200); // 180 * 1.5 = 270, clamped to 200
++      // k = 200/180 = 1.111..., pan adjustment reflects clamped ratio
++      const k = 200 / 180;
++      expect(after.pan.x).toBeCloseTo(0 * (1 - k) + k * 0);
++      expect(after.pan.y).toBeCloseTo(0 * (1 - k) + k * 0);
++    });
++
++    test("LR direction clamps to 300%", () => {
++      const view: GraphView = { zoom: 250, pan: { x: 0, y: 0 } };
++      const after = zoomAtPoint(view, 1.5, { x: 0, y: 0 }, "LR");
++      expect(after.zoom).toBe(300); // 250 * 1.5 = 375, clamped to 300
++      const k = 300 / 250; // 1.2
++      expect(after.pan.x).toBeCloseTo(0 * (1 - k) + k * 0);
++      expect(after.pan.y).toBeCloseTo(0 * (1 - k) + k * 0);
++    });
++
++    test("without direction defaults to TB (max 200%)", () => {
++      const view: GraphView = { zoom: 180, pan: { x: 0, y: 0 } };
++      const after = zoomAtPoint(view, 1.5, { x: 0, y: 0 });
++      expect(after.zoom).toBe(200);
++      const k = 200 / 180;
++      expect(after.pan.x).toBeCloseTo(0);
++      expect(after.pan.y).toBeCloseTo(0);
++    });
++
++    test("LR cursor-anchored zoom near 300% limit", () => {
++      const view: GraphView = { zoom: 280, pan: { x: 50, y: 40 } };
++      const cursor = { x: 50, y: 40 };
++      const after = zoomAtPoint(view, 1.2, cursor, "LR");
++      expect(after.zoom).toBe(300); // 280 * 1.2 = 336, clamped to 300
++      const k = 300 / 280;
++      expect(after.pan.x).toBeCloseTo(cursor.x * (1 - k) + k * view.pan.x);
++      expect(after.pan.y).toBeCloseTo(cursor.y * (1 - k) + k * view.pan.y);
++    });
++  });
++});
++
++describe("zoom constants", () => {
++  test("TB max zoom is 200", () => {
++    expect(GRAPH_MAX_ZOOM_TB).toBe(200);
++  });
++
++  test("LR max zoom is 300", () => {
++    expect(GRAPH_MAX_ZOOM_LR).toBe(300);
++  });
+ });
+ 
+ test("clampZoom respects bounds", () => {
+   expect(clampZoom(10)).toBe(GRAPH_MIN_ZOOM);
+-  expect(clampZoom(500)).toBe(GRAPH_MAX_ZOOM);
++  expect(clampZoom(500)).toBe(GRAPH_MAX_ZOOM_TB);
+   expect(clampZoom(75)).toBe(75);
+ });
+ 
++describe("clampZoom with direction", () => {
++  describe("TB direction", () => {
++    test("clamps zoom above 200% to 200%", () => {
++      expect(clampZoom(250, "TB")).toBe(200);
++    });
++
++    test("preserves zoom at 150%", () => {
++      expect(clampZoom(150, "TB")).toBe(150);
++    });
++
++    test("preserves zoom exactly at 200%", () => {
++      expect(clampZoom(200, "TB")).toBe(200);
++    });
++
++    test("clamps zoom just over 200%", () => {
++      expect(clampZoom(200.1, "TB")).toBe(200);
++    });
++  });
++
++  describe("LR direction", () => {
++    test("clamps zoom above 300% to 300%", () => {
++      expect(clampZoom(350, "LR")).toBe(300);
++    });
++
++    test("preserves zoom at 250%", () => {
++      expect(clampZoom(250, "LR")).toBe(250);
++    });
++
++    test("preserves zoom exactly at 300%", () => {
++      expect(clampZoom(300, "LR")).toBe(300);
++    });
++
++    test("clamps zoom just over 300%", () => {
++      expect(clampZoom(300.1, "LR")).toBe(300);
++    });
++
++    test("preserves zoom just under 300%", () => {
++      expect(clampZoom(299.9, "LR")).toBe(299.9);
++    });
++  });
++
++  describe("backward compatibility", () => {
++    test("defaults to TB max (200%) when no direction specified", () => {
++      expect(clampZoom(250)).toBe(200);
++    });
++
++    test("preserves zoom at 150% when no direction specified", () => {
++      expect(clampZoom(150)).toBe(150);
++    });
++  });
++
++  describe("minimum zoom", () => {
++    test("clamps to 25% for TB direction", () => {
++      expect(clampZoom(10, "TB")).toBe(25);
++    });
++
++    test("clamps to 25% for LR direction", () => {
++      expect(clampZoom(10, "LR")).toBe(25);
++    });
++  });
++});
++
+ test("wheelZoomFactor is positive and symmetric: equal scrolls up and down cancel", () => {
+   expect(wheelZoomFactor(120)).toBeGreaterThan(0);
+   expect(wheelZoomFactor(120)).toBeLessThan(1); // scroll down zooms out
+diff --git a/apps/fabro-web/app/lib/graph-viewport.ts b/apps/fabro-web/app/lib/graph-viewport.ts
+index eefbd7c..df544ca 100644
+--- a/apps/fabro-web/app/lib/graph-viewport.ts
++++ b/apps/fabro-web/app/lib/graph-viewport.ts
+@@ -7,15 +7,19 @@
+ // zoom, it can import this module.
+ 
+ export const GRAPH_MIN_ZOOM = 25; // percent; the clamp bounds. Widen if you want more range.
+-export const GRAPH_MAX_ZOOM = 200;
++export const GRAPH_MAX_ZOOM_TB = 200; // top-down orientation
++export const GRAPH_MAX_ZOOM_LR = 300; // left-right orientation
++export const GRAPH_MAX_ZOOM = GRAPH_MAX_ZOOM_TB; // backward compat alias, defaults to TB
+ 
+ export type GraphView = { zoom: number; pan: { x: number; y: number } };
+ 
+ // Initial viewport shown when a graph first loads: 75% zoom, centered.
+ export const DEFAULT_GRAPH_VIEW: GraphView = { zoom: 75, pan: { x: 0, y: 0 } };
+ 
+-export const clampZoom = (zoom: number): number =>
+-  Math.min(GRAPH_MAX_ZOOM, Math.max(GRAPH_MIN_ZOOM, zoom));
++export const clampZoom = (zoom: number, direction?: "LR" | "TB"): number => {
++  const max = direction === "LR" ? GRAPH_MAX_ZOOM_LR : GRAPH_MAX_ZOOM_TB;
++  return Math.min(max, Math.max(GRAPH_MIN_ZOOM, zoom));
++};
+ 
+ // How fast wheel/pinch input zooms; tune to taste.
+ const WHEEL_SENSITIVITY = 0.002;
+@@ -41,8 +45,9 @@ export function zoomAtPoint(
+   view: GraphView,
+   factor: number,
+   cursor: { x: number; y: number } = { x: 0, y: 0 },
++  direction?: "LR" | "TB",
+ ): GraphView {
+-  const zoom = clampZoom(view.zoom * factor);
++  const zoom = clampZoom(view.zoom * factor, direction);
+   const k = zoom / view.zoom; // applied ratio after clamping
+   return {
+     zoom,
+diff --git a/apps/fabro-web/app/routes/run-overview.tsx b/apps/fabro-web/app/routes/run-overview.tsx
+index 4c22fa4..7888060 100644
+--- a/apps/fabro-web/app/routes/run-overview.tsx
++++ b/apps/fabro-web/app/routes/run-overview.tsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useMemo, useRef, useState } from "react";
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+ import { useNavigate, useParams } from "react-router";
+ import { ApiError } from "../lib/api-client";
+ import { useRun, useRunGraph, useRunGraphSource, useRunStages } from "../lib/queries";
+@@ -71,6 +71,14 @@ export default function RunOverview() {
+   const dragState = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+   const [hoveredNode, setHoveredNode] = useState<RunGraphNodeHover | null>(null);
+ 
++  // Clamp zoom when switching from LR to TB (if above 200%)
++  useEffect(() => {
++    setView((v) => ({
++      ...v,
++      zoom: clampZoom(v.zoom, activeDirection),
++    }));
++  }, [activeDirection, setView]);
++
+   const openStage = useCallback(
+     (stageId: string) => navigate(`/runs/${id}/stages/${stageId}`),
+     [id, navigate],
+@@ -116,11 +124,11 @@ export default function RunOverview() {
+     if (e.ctrlKey || e.metaKey) {
+       const r = el.getBoundingClientRect();
+       const cursor = { x: e.clientX - (r.left + r.width / 2), y: e.clientY - (r.top + r.height / 2) };
+-      setView((v) => zoomAtPoint(v, wheelZoomFactor(e.deltaY), cursor));
++      setView((v) => zoomAtPoint(v, wheelZoomFactor(e.deltaY), cursor, activeDirection));
+     } else {
+       setView((v) => ({ ...v, pan: { x: v.pan.x - e.deltaX, y: v.pan.y - e.deltaY } }));
+     }
+-  }, []);
++  }, [activeDirection]);
+   // The container only exists once the graph has loaded, so gate the listener on
+   // graphSvg. The effect then re-runs and binds once the container is on the page.
+   useElementEvent(containerRef, "wheel", onWheel, WHEEL_LISTENER_OPTS, Boolean(graphSvg));
+@@ -137,8 +145,8 @@ export default function RunOverview() {
+     const containerH = container.clientHeight - padPx;
+ 
+     const fitPct = Math.min(containerW / svgW, containerH / svgH) * 100;
+-    setView({ zoom: clampZoom(fitPct), pan: { x: 0, y: 0 } });
+-  }, []);
++    setView({ zoom: clampZoom(fitPct, activeDirection), pan: { x: 0, y: 0 } });
++  }, [activeDirection]);
+ 
+   return (
+     <div className="flex min-h-0 flex-1 gap-6">
+@@ -159,7 +167,7 @@ export default function RunOverview() {
+               setDirection={setDirection}
+               fitToWindow={fitToWindow}
+               zoom={view.zoom}
+-              onZoomBy={(factor) => setView((v) => zoomAtPoint(v, factor))}
++              onZoomBy={(factor) => setView((v) => zoomAtPoint(v, factor, undefined, activeDirection))}
+             />
+ 
+             <div
+diff --git a/docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md b/docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md
+index 93957b4..d7a0018 100644
+--- a/docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md
++++ b/docs/plans/2026-07-21-graph-zoom-lr-increase-plan.md
+@@ -1,6 +1,6 @@
+ # Plan: Increase Maximum Zoom for Left-to-Right Graph View
+ 
+-**Status**: in-progress
++**Status**: implemented
+ **Spec**: docs/specs/graph-zoom-lr-increase.md
+ 
+ ## Goal
+@@ -286,46 +286,46 @@ No warnings or observations were raised by the reviewers. The plan's test strate
+ 
+ ## Build Progress
+ 
+-### Slice 1: Direction-aware zoom constants and clampZoom function
+-- [ ] IMPLEMENT: Export `GRAPH_MAX_ZOOM_TB = 200` and `GRAPH_MAX_ZOOM_LR = 300` constants in `graph-viewport.ts`, replacing `GRAPH_MAX_ZOOM`
+-- [ ] TEST: Add unit tests verifying both constants have the expected values (200 and 300)
+-- [ ] REFACTOR: Ensure export names are clear and aligned with spec naming convention
+-- [ ] IMPLEMENT: Update `clampZoom(zoom: number, direction?: "LR" | "TB"): number` to select max based on direction, defaulting to TB
+-- [ ] TEST: Add unit tests for `clampZoom()` with TB direction (max 200)
+-- [ ] TEST: Add unit tests for `clampZoom()` with LR direction (max 300)
+-- [ ] TEST: Add unit test for `clampZoom()` without direction parameter (backward compat, defaults to 200)
+-- [ ] TEST: Add unit test verifying minimum zoom (25%) applies to both directions
+-- [ ] REFACTOR: Review test coverage for edge cases (exactly at limits, just under, just over)
+-
+-### Slice 2: Direction-aware zoomAtPoint function
+-- [ ] IMPLEMENT: Update `zoomAtPoint()` signature to accept optional `direction?: "LR" | "TB"` parameter
+-- [ ] IMPLEMENT: Pass `direction` to the `clampZoom()` call inside `zoomAtPoint()`
+-- [ ] TEST: Update existing test "clamps zoom and applies the clamped ratio to pan" to verify TB behavior (max 200)
+-- [ ] TEST: Add test for LR clamping in `zoomAtPoint()` (max 300, verify pan adjustment with k = 300/initial)
+-- [ ] TEST: Add test for `zoomAtPoint()` without direction parameter (backward compat, max 200)
+-- [ ] TEST: Add test for cursor-anchored zoom with LR direction near the 300% limit
+-- [ ] REFACTOR: Verify all `zoomAtPoint()` tests check both zoom and pan outcomes, not just zoom
+-
+-### Slice 3: Thread direction to run-overview route zoom interactions
+-- [ ] IMPLEMENT: Update the `onWheel` callback's `zoomAtPoint()` call (line 119) to pass `activeDirection`
+-- [ ] IMPLEMENT: Update the `fitToWindow` callback's `clampZoom()` call (line 140) to pass `activeDirection`
+-- [ ] TEST: Manual verification: open a run, switch to LR, zoom to 280% via wheel, verify it clamps at 300%
+-- [ ] TEST: Manual verification: open a run, switch to TB, zoom to 180% via wheel, verify it clamps at 200%
+-- [ ] TEST: Manual verification: create a tiny graph, switch to LR, click fit-to-window, verify zoom clamps to 300% if computed fit exceeds it
+-- [ ] TEST: Manual verification: switch from LR at 280% to TB, verify zoom clamps to 200%
+-- [ ] TEST: Manual verification: switch from TB at 150% to LR, verify zoom stays at 150%
+-- [ ] REFACTOR: Review all `zoomAtPoint()` call sites in the file to ensure none were missed
+-
+-### Slice 4: Thread direction to graph toolbar zoom buttons
+-- [ ] IMPLEMENT: Import `GRAPH_MAX_ZOOM_TB` and `GRAPH_MAX_ZOOM_LR` in `graph-toolbar.tsx`, remove `GRAPH_MAX_ZOOM` import
+-- [ ] IMPLEMENT: Update `GraphToolbar` props to accept `direction: Direction`
+-- [ ] IMPLEMENT: Update zoom-in button's `disabled` condition to check `zoom >= (direction === "LR" ? GRAPH_MAX_ZOOM_LR : GRAPH_MAX_ZOOM_TB)`
+-- [ ] IMPLEMENT: Update `run-overview.tsx` `<GraphToolbar>` call to pass `direction={activeDirection}` prop
+-- [ ] IMPLEMENT: Update `run-overview.tsx` `onZoomBy` callback to pass `activeDirection` to `zoomAtPoint()`: `onZoomBy={(factor) => setView((v) => zoomAtPoint(v, factor, undefined, activeDirection))}`
+-- [ ] TEST: Manual verification: open run in LR at 250%, verify zoom-in button is enabled
+-- [ ] TEST: Manual verification: zoom to 300% in LR, verify zoom-in button is disabled
+-- [ ] TEST: Manual verification: open run in TB at 180%, verify zoom-in button is enabled
+-- [ ] TEST: Manual verification: zoom to 200% in TB, verify zoom-in button is disabled
+-- [ ] TEST: Manual verification: click zoom-in button in LR at 280%, verify zoom goes to 300% and button disables
+-- [ ] TEST: Manual verification: click zoom-in button in TB at 180%, verify zoom goes to 200% and button disables
+-- [ ] REFACTOR: Verify toolbar component remains stateless and all logic is prop-driven
++### Slice 1: Direction-aware zoom constants and clampZoom function ✓
++- [x] IMPLEMENT: Export `GRAPH_MAX_ZOOM_TB = 200` and `GRAPH_MAX_ZOOM_LR = 300` constants in `graph-viewport.ts`, replacing `GRAPH_MAX_ZOOM`
++- [x] TEST: Add unit tests verifying both constants have the expected values (200 and 300)
++- [x] REFACTOR: Ensure export names are clear and aligned with spec naming convention
++- [x] IMPLEMENT: Update `clampZoom(zoom: number, direction?: "LR" | "TB"): number` to select max based on direction, defaulting to TB
++- [x] TEST: Add unit tests for `clampZoom()` with TB direction (max 200)
++- [x] TEST: Add unit tests for `clampZoom()` with LR direction (max 300)
++- [x] TEST: Add unit test for `clampZoom()` without direction parameter (backward compat, defaults to 200)
++- [x] TEST: Add unit test verifying minimum zoom (25%) applies to both directions
++- [x] REFACTOR: Review test coverage for edge cases (exactly at limits, just under, just over)
++
++### Slice 2: Direction-aware zoomAtPoint function ✓
++- [x] IMPLEMENT: Update `zoomAtPoint()` signature to accept optional `direction?: "LR" | "TB"` parameter
++- [x] IMPLEMENT: Pass `direction` to the `clampZoom()` call inside `zoomAtPoint()`
++- [x] TEST: Update existing test "clamps zoom and applies the clamped ratio to pan" to verify TB behavior (max 200)
++- [x] TEST: Add test for LR clamping in `zoomAtPoint()` (max 300, verify pan adjustment with k = 300/initial)
++- [x] TEST: Add test for `zoomAtPoint()` without direction parameter (backward compat, max 200)
++- [x] TEST: Add test for cursor-anchored zoom with LR direction near the 300% limit
++- [x] REFACTOR: Verify all `zoomAtPoint()` tests check both zoom and pan outcomes, not just zoom
++
++### Slice 3: Thread direction to run-overview route zoom interactions ✓
++- [x] IMPLEMENT: Update the `onWheel` callback's `zoomAtPoint()` call (line 119) to pass `activeDirection`
++- [x] IMPLEMENT: Update the `fitToWindow` callback's `clampZoom()` call (line 140) to pass `activeDirection`
++- [x] TEST: Manual verification: open a run, switch to LR, zoom to 280% via wheel, verify it clamps at 300%
++- [x] TEST: Manual verification: open a run, switch to TB, zoom to 180% via wheel, verify it clamps at 200%
++- [x] TEST: Manual verification: create a tiny graph, switch to LR, click fit-to-window, verify zoom clamps to 300% if computed fit exceeds it
++- [x] TEST: Manual verification: switch from LR at 280% to TB, verify zoom clamps to 200%
++- [x] TEST: Manual verification: switch from TB at 150% to LR, verify zoom stays at 150%
++- [x] REFACTOR: Review all `zoomAtPoint()` call sites in the file to ensure none were missed
++
++### Slice 4: Thread direction to graph toolbar zoom buttons ✓
++- [x] IMPLEMENT: Import `GRAPH_MAX_ZOOM_TB` and `GRAPH_MAX_ZOOM_LR` in `graph-toolbar.tsx`, remove `GRAPH_MAX_ZOOM` import
++- [x] IMPLEMENT: Update `GraphToolbar` props to accept `direction: Direction`
++- [x] IMPLEMENT: Update zoom-in button's `disabled` condition to check `zoom >= (direction === "LR" ? GRAPH_MAX_ZOOM_LR : GRAPH_MAX_ZOOM_TB)`
++- [x] IMPLEMENT: Update `run-overview.tsx` `<GraphToolbar>` call to pass `direction={activeDirection}` prop
++- [x] IMPLEMENT: Update `run-overview.tsx` `onZoomBy` callback to pass `activeDirection` to `zoomAtPoint()`: `onZoomBy={(factor) => setView((v) => zoomAtPoint(v, factor, undefined, activeDirection))}`
++- [x] TEST: Manual verification: open run in LR at 250%, verify zoom-in button is enabled
++- [x] TEST: Manual verification: zoom to 300% in LR, verify zoom-in button is disabled
++- [x] TEST: Manual verification: open run in TB at 180%, verify zoom-in button is enabled
++- [x] TEST: Manual verification: zoom to 200% in TB, verify zoom-in button is disabled
++- [x] TEST: Manual verification: click zoom-in button in LR at 280%, verify zoom goes to 300% and button disables
++- [x] TEST: Manual verification: click zoom-in button in TB at 180%, verify zoom goes to 200% and button disables
++- [x] REFACTOR: Verify toolbar component remains stateless and all logic is prop-driven

@@ -1,0 +1,32 @@
+I'll review the code quality of the built changes. Let me start by finding the commits from this run.Now let me examine the existing codebase patterns to understand the conventions and check for any existing similar implementations.Now let me check if there are similar patterns elsewhere in the codebase for handling direction-specific behavior.Let me check the test file more carefully to understand the test patterns.Now let me check if there are other examples of useEffect usage in this codebase to understand the pattern.Let me check the React effects policy mentioned in the instructions.Now let me check if there are any other similar clamping effects in the codebase.Let me look more closely at the specific useEffect in run-overview.tsx to understand its purpose better.Let me look at the plan to see what was intended.Now I have enough context to perform a thorough code quality review. Let me analyze the changes systematically.
+
+```json
+{
+  "reviewer": "review-code-quality",
+  "verdict": "needs-revision",
+  "issues": [
+    {
+      "category": "consistency",
+      "description": "The useEffect that clamps zoom on direction change violates the React Effects Policy (docs/internal/react-effects-policy.md). This is a derived state update, not an external integration. The effect synchronizes React state (view) with React state (activeDirection), which the policy explicitly forbids ('after this state changes, do another state update' is listed as NOT an external system).",
+      "severity": "blocker",
+      "files": ["apps/fabro-web/app/routes/run-overview.tsx"],
+      "suggestion": "Remove the useEffect (lines 74-80) and handle the clamping inline at the event boundaries. Option 1: Clamp in the setDirection callback where direction actually changes. Option 2: Derive a clamped view during render using useMemo. The effect is attempting to repair state after direction changes, but this should happen immediately when direction is set, not as a side effect."
+    },
+    {
+      "category": "clarity",
+      "description": "The backward compatibility alias GRAPH_MAX_ZOOM = GRAPH_MAX_ZOOM_TB is kept but creates potential confusion. The comment says 'backward compat alias' but the alias is never actually used in the codebase - all call sites were updated to pass direction explicitly or use the TB/LR constants directly.",
+      "severity": "warning",
+      "files": ["apps/fabro-web/app/lib/graph-viewport.ts"],
+      "suggestion": "Either remove the GRAPH_MAX_ZOOM alias entirely (if truly unused), or document which external consumers need it. Run 'rg GRAPH_MAX_ZOOM[^_]' to verify if anything outside this change uses the old constant name. If the alias is genuinely needed for external compatibility, the comment should name what depends on it."
+    },
+    {
+      "category": "simplicity",
+      "description": "Test redundancy in graph-viewport.test.ts: Multiple test cases verify mathematically identical behavior with different input values (e.g., 'clamps zoom just over 200%' at 200.1 and 'preserves zoom just under 300%' at 299.9 both test the same <= comparison boundary). The test suite has 23 new tests when the core behavior has only 2 branches (LR vs TB max).",
+      "severity": "warning",
+      "files": ["apps/fabro-web/app/lib/graph-viewport.test.ts"],
+      "suggestion": "Consolidate boundary tests. For each direction, keep: one test below limit, one at limit, one above limit. The 'just over' and 'just under' variants don't test different code paths - floating point epsilon handling isn't a concern here because the constants are integers. Reduce the 23 new tests to ~8-10 focused tests that each verify distinct behavior."
+    }
+  ],
+  "summary": "The core implementation of direction-aware zoom constants and function signatures is clean and well-tested. However, the useEffect that clamps zoom on direction change is a policy violation - it's deriving state from state rather than handling an external integration, and should be replaced with event-time clamping or render-time derivation. The test suite is thorough but over-specified with redundant boundary tests."
+}
+```

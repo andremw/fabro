@@ -1,0 +1,8 @@
+I'll review the security aspects of the built code. Let me first find the commits and examine the changes.Now let me examine the changed files more closely to review for security issues.```json
+{
+  "reviewer": "review-security",
+  "verdict": "approve",
+  "issues": [],
+  "summary": "This diff introduces direction-aware zoom limits for graph visualization (LR: 300%, TB: 200%). The changes are purely client-side UI logic involving numerical constants, math operations, and React state management. No security-relevant boundaries are crossed: no user input reaches backends, no credentials are handled, no authorization logic is affected, and no data exposure paths are introduced."
+}
+```
