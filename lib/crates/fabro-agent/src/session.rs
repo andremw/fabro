@@ -1323,14 +1323,32 @@ impl Session {
             .collect::<Vec<_>>()
             .join("");
 
+        // For text-only messages, perform skill expansion
+        let (final_content, expanded_text) = if content.len() == 1
+            && matches!(content.first(), Some(ContentPart::Text(_)))
+            && !self.skills.is_empty() {
+            let expanded = expand_skill(&self.skills, &text_content).map_err(Error::InvalidState)?;
+            if let Some(ref name) = expanded.skill_name {
+                self.activated_skill_context_observed = true;
+                self.event_emitter
+                    .emit(self.id.clone(), AgentEvent::SkillActivated {
+                        skill_name: name.clone(),
+                        source:     SkillActivationSource::Slash,
+                    });
+            }
+            (vec![ContentPart::Text(expanded.text.clone())], expanded.text)
+        } else {
+            (content, text_content)
+        };
+
         // Append user turn and emit event
         self.history.push(Message::User {
-            content:   content,
+            content:   final_content,
             timestamp: SystemTime::now(),
         });
         self.event_emitter
             .emit(self.id.clone(), AgentEvent::UserInput {
-                text: text_content,
+                text: expanded_text,
             });
 
         self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
