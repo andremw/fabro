@@ -5,12 +5,6 @@ use fabro_types::SessionMessage;
 
 use crate::types::Message;
 
-/// Helper to create a text-only content vector for testing
-#[cfg(test)]
-fn text_content(s: &str) -> Vec<ContentPart> {
-    vec![ContentPart::Text(s.to_string())]
-}
-
 /// Helper to extract text from content vector
 fn extract_text(content: &[ContentPart]) -> String {
     content
