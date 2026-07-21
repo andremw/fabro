@@ -647,6 +647,41 @@ async fn submit_server_interview_answer(
             text: text.clone(),
         }
         .into(),
+        AnswerValue::TextWithImages { text, images } => {
+            use base64::Engine as _;
+            types::SubmitAnswerTextWithImagesRequest {
+                kind: types::SubmitAnswerTextWithImagesRequestKind::TextWithImages,
+                text: text.clone().try_into().expect("text should be valid"),
+                images: images
+                    .iter()
+                    .map(|img| {
+                        let media_type = match img.media_type.as_str() {
+                            "image/png" => {
+                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImagePng
+                            }
+                            "image/jpeg" => {
+                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageJpeg
+                            }
+                            "image/gif" => {
+                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageGif
+                            }
+                            "image/webp" => {
+                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageWebp
+                            }
+                            "image/heic" => {
+                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageHeic
+                            }
+                            _ => types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImagePng, // fallback
+                        };
+                        types::SubmitAnswerTextWithImagesRequestImagesItem {
+                            data: base64::engine::general_purpose::STANDARD.encode(&img.data),
+                            media_type,
+                        }
+                    })
+                    .collect(),
+            }
+            .into()
+        }
         AnswerValue::Selected(key) => types::SubmitAnswerSelectedRequest {
             kind:       types::SubmitAnswerSelectedRequestKind::Selected,
             option_key: key.clone(),

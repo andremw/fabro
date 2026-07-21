@@ -16020,3 +16020,75 @@ fn answer_from_text_with_images_request_rejects_mime_mismatch() {
     let result = super::answer_from_request(req, &question);
     assert!(result.is_err());
 }
+
+#[test]
+fn validate_answer_accepts_text_with_images_for_freeform() {
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let answer = Answer::text_with_images(
+        "Review complete",
+        vec![ImageAttachment {
+            data:       vec![1, 2, 3],
+            media_type: "image/png".to_string(),
+        }],
+    );
+
+    let result = super::validate_answer_for_question(&question, &answer);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn validate_answer_accepts_text_with_images_for_allow_freeform_multiple_choice() {
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Choose or explain?".to_string(),
+        stage:           "decide".to_string(),
+        question_type:   QuestionType::MultipleChoice,
+        options:         vec![],
+        allow_freeform:  true,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let answer = Answer::text_with_images(
+        "Here's why",
+        vec![ImageAttachment {
+            data:       vec![1, 2, 3],
+            media_type: "image/png".to_string(),
+        }],
+    );
+
+    let result = super::validate_answer_for_question(&question, &answer);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn validate_answer_rejects_text_with_images_for_yes_no() {
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Continue?".to_string(),
+        stage:           "gate".to_string(),
+        question_type:   QuestionType::YesNo,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let answer = Answer::text_with_images(
+        "Yes with context",
+        vec![ImageAttachment {
+            data:       vec![1, 2, 3],
+            media_type: "image/png".to_string(),
+        }],
+    );
+
+    let result = super::validate_answer_for_question(&question, &answer);
+    assert!(result.is_err());
+}

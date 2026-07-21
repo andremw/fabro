@@ -3741,7 +3741,17 @@ fn validate_answer_for_question(
         {
             Ok(())
         }
+        (QuestionType::Freeform, fabro_interview::AnswerValue::TextWithImages { text, .. })
+            if !text.trim().is_empty() =>
+        {
+            Ok(())
+        }
         (_, fabro_interview::AnswerValue::Text(text))
+            if question.allow_freeform && !text.trim().is_empty() =>
+        {
+            Ok(())
+        }
+        (_, fabro_interview::AnswerValue::TextWithImages { text, .. })
             if question.allow_freeform && !text.trim().is_empty() =>
         {
             Ok(())
