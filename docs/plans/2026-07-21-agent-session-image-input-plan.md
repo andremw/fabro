@@ -633,14 +633,14 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Test fabro-llm attachment resolution
   - [x] Run full fabro-workflow tests
   - [x] Refactor
-- [ ] Slice 6: Server handler and external call sites
-  - [ ] Update server sessions handler call site
-  - [ ] Test server compiles
-  - [ ] Check fabro-store for Message::User construction
-  - [ ] Test fabro-store compiles
-  - [ ] Run workspace build
-  - [ ] Run workspace tests
-  - [ ] Refactor
+- [x] Slice 6: Server handler and external call sites
+  - [x] Update server sessions handler call site
+  - [x] Test server compiles
+  - [x] Check fabro-store for Message::User construction
+  - [x] Test fabro-store compiles
+  - [x] Run workspace build
+  - [x] Run workspace tests
+  - [x] Refactor
 
 ### Wave 3
 - [ ] Slice 7: Documentation and plan completion
