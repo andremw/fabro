@@ -878,12 +878,12 @@ All blockers resolved. Plan is ready for implementation.
 ## Build Progress
 
 ### Slice 1: OpenAPI schema and type generation
-- [ ] Add SubmitAnswerTextWithImagesRequest schema to OpenAPI spec
-- [ ] Add text_with_images to discriminator mapping
-- [ ] Test OpenAPI spec validity
-- [ ] Generate Rust types
-- [ ] Generate TypeScript client
-- [ ] Refactor
+- [x] Add SubmitAnswerTextWithImagesRequest schema to OpenAPI spec
+- [x] Add text_with_images to discriminator mapping
+- [x] Test OpenAPI spec validity
+- [x] Generate Rust types
+- [x] Generate TypeScript client
+- [x] Refactor
 
 ### Slice 2: fabro-interview domain types for image attachments
 - [ ] Define ImageAttachment struct
