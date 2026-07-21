@@ -77,6 +77,11 @@ pub mod keys {
         format!("{INTERNAL_RETRY_COUNT_PREFIX}{node_id}")
     }
 
+    #[must_use]
+    pub fn human_answer_images_key(stage_id: &str) -> String {
+        format!("{HUMAN_ANSWER_IMAGES_PREFIX}{stage_id}")
+    }
+
     /// Returns `true` for engine-internal keys that should not propagate from
     /// child to parent workflow contexts.
     #[must_use]
@@ -153,6 +158,8 @@ pub trait WorkflowContext {
     /// its accumulated visit count. Returns `None` for run-level emissions
     /// where no stage is active (i.e., `CURRENT_NODE` is unset).
     fn current_stage_scope(&self) -> Option<StageScope>;
+    /// Returns image file paths from a human stage answer, if present in context.
+    fn get_human_answer_images(&self, stage_id: &str) -> Option<Vec<String>>;
 }
 
 impl WorkflowContext for Context {
@@ -190,6 +197,12 @@ impl WorkflowContext for Context {
             .get(keys::CURRENT_NODE)
             .and_then(|value| value.as_str().map(String::from))?;
         Some(StageScope::from_context(self, node_id))
+    }
+
+    fn get_human_answer_images(&self, stage_id: &str) -> Option<Vec<String>> {
+        let key = keys::human_answer_images_key(stage_id);
+        self.get(&key)
+            .and_then(|value| serde_json::from_value(value).ok())
     }
 }
 
@@ -390,5 +403,29 @@ mod tests {
         let ctx = Context::new();
         ctx.set(keys::CURRENT_NODE, serde_json::json!("plan"));
         assert_eq!(ctx.current_node_id(), "plan");
+    }
+
+    #[test]
+    fn get_human_answer_images_with_images() {
+        let ctx = Context::new();
+        ctx.set(
+            keys::human_answer_images_key("review"),
+            serde_json::json!(["/tmp/image.png", "/tmp/image2.jpg"]),
+        );
+        let images = ctx.get_human_answer_images("review");
+        assert_eq!(
+            images,
+            Some(vec![
+                "/tmp/image.png".to_string(),
+                "/tmp/image2.jpg".to_string()
+            ])
+        );
+    }
+
+    #[test]
+    fn get_human_answer_images_with_no_images() {
+        let ctx = Context::new();
+        let images = ctx.get_human_answer_images("review");
+        assert_eq!(images, None);
     }
 }
