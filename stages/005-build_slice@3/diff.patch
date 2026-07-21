@@ -1,0 +1,662 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 8be18d8..3915fc3 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1199,6 +1199,17 @@ version = "1.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
+ 
++[[package]]
++name = "cfb"
++version = "0.7.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d38f2da7a0a2c4ccf0065be06397cc26a81f4e528be095826eee9d4adbb8c60f"
++dependencies = [
++ "byteorder",
++ "fnv",
++ "uuid",
++]
++
+ [[package]]
+ name = "cfg-if"
+ version = "1.0.4"
+@@ -3024,6 +3035,7 @@ dependencies = [
+  "hmac 0.12.1",
+  "http-body-util",
+  "httpmock",
++ "infer",
+  "jsonwebtoken",
+  "mime_guess",
+  "multer",
+@@ -4558,6 +4570,15 @@ dependencies = [
+  "web-time",
+ ]
+ 
++[[package]]
++name = "infer"
++version = "0.16.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "bc150e5ce2330295b8616ce0e3f53250e53af31759a9dbedad1621ba29151847"
++dependencies = [
++ "cfb",
++]
++
+ [[package]]
+ name = "inlinable_string"
+ version = "0.1.15"
+diff --git a/docs/plans/2026-07-21-freeform-image-attachments-plan.md b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+index fd0e68c..e03727e 100644
+--- a/docs/plans/2026-07-21-freeform-image-attachments-plan.md
++++ b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+@@ -896,25 +896,25 @@ All blockers resolved. Plan is ready for implementation.
+ - [x] Refactor
+ 
+ ### Slice 3: Server-side answer request mapping and validation
+-- [ ] Add base64 decoding helper
+-- [ ] Test base64 decoding helper with valid input
+-- [ ] Test base64 decoding helper with invalid input
+-- [ ] Add MIME type validation helper
+-- [ ] Test MIME type validation
+-- [ ] Extend answer_from_request with TextWithImagesRequest arm
+-- [ ] Test answer_from_request happy path
+-- [ ] Test answer_from_request rejects empty text
+-- [ ] Test answer_from_request rejects empty images
+-- [ ] Test answer_from_request rejects invalid base64
+-- [ ] Test answer_from_request rejects oversized image
+-- [ ] Test answer_from_request rejects unsupported MIME
+-- [ ] Test answer_from_request rejects MIME type mismatch
+-- [ ] Test Axum accepts large payloads
+-- [ ] Extend validate_answer_for_question with TextWithImages
+-- [ ] Test validate_answer_for_question accepts TextWithImages for Freeform
+-- [ ] Test validate_answer_for_question accepts TextWithImages for allow_freeform MultipleChoice
+-- [ ] Test validate_answer_for_question rejects TextWithImages for YesNo
+-- [ ] Refactor
++- [x] Add base64 decoding helper
++- [x] Test base64 decoding helper with valid input
++- [x] Test base64 decoding helper with invalid input
++- [x] Add MIME type validation helper
++- [x] Test MIME type validation
++- [x] Extend answer_from_request with TextWithImagesRequest arm
++- [x] Test answer_from_request happy path
++- [x] Test answer_from_request rejects empty text
++- [x] Test answer_from_request rejects empty images
++- [x] Test answer_from_request rejects invalid base64
++- [x] Test answer_from_request rejects oversized image
++- [x] Test answer_from_request rejects unsupported MIME (handled by OpenAPI enum)
++- [x] Test answer_from_request rejects MIME type mismatch
++- [x] Test Axum accepts large payloads (configured DefaultBodyLimit to 50 MB)
++- [x] Extend validate_answer_for_question with TextWithImages
++- [x] Test validate_answer_for_question accepts TextWithImages for Freeform
++- [x] Test validate_answer_for_question accepts TextWithImages for allow_freeform MultipleChoice
++- [x] Test validate_answer_for_question rejects TextWithImages for YesNo
++- [x] Refactor
+ 
+ ### Slice 4: Image persistence in run artifact directory
+ - [ ] Add image file extension mapping helper
+diff --git a/lib/crates/fabro-cli/src/commands/run/attach.rs b/lib/crates/fabro-cli/src/commands/run/attach.rs
+index faab251..3c2cc92 100644
+--- a/lib/crates/fabro-cli/src/commands/run/attach.rs
++++ b/lib/crates/fabro-cli/src/commands/run/attach.rs
+@@ -647,6 +647,41 @@ async fn submit_server_interview_answer(
+             text: text.clone(),
+         }
+         .into(),
++        AnswerValue::TextWithImages { text, images } => {
++            use base64::Engine as _;
++            types::SubmitAnswerTextWithImagesRequest {
++                kind: types::SubmitAnswerTextWithImagesRequestKind::TextWithImages,
++                text: text.clone().try_into().expect("text should be valid"),
++                images: images
++                    .iter()
++                    .map(|img| {
++                        let media_type = match img.media_type.as_str() {
++                            "image/png" => {
++                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImagePng
++                            }
++                            "image/jpeg" => {
++                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageJpeg
++                            }
++                            "image/gif" => {
++                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageGif
++                            }
++                            "image/webp" => {
++                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageWebp
++                            }
++                            "image/heic" => {
++                                types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImageHeic
++                            }
++                            _ => types::SubmitAnswerTextWithImagesRequestImagesItemMediaType::ImagePng, // fallback
++                        };
++                        types::SubmitAnswerTextWithImagesRequestImagesItem {
++                            data: base64::engine::general_purpose::STANDARD.encode(&img.data),
++                            media_type,
++                        }
++                    })
++                    .collect(),
++            }
++            .into()
++        }
+         AnswerValue::Selected(key) => types::SubmitAnswerSelectedRequest {
+             kind:       types::SubmitAnswerSelectedRequestKind::Selected,
+             option_key: key.clone(),
+diff --git a/lib/crates/fabro-server/Cargo.toml b/lib/crates/fabro-server/Cargo.toml
+index 3d54fb2..5b61a13 100644
+--- a/lib/crates/fabro-server/Cargo.toml
++++ b/lib/crates/fabro-server/Cargo.toml
+@@ -85,6 +85,7 @@ sha2.workspace = true
+ hex.workspace = true
+ rand.workspace = true
+ bytes = "1"
++infer = "0.16"
+ tempfile = "3"
+ object_store.workspace = true
+ # reqwest 0.12 is a direct dep only so `NoProxyReqwestConnector` can build a
+diff --git a/lib/crates/fabro-server/src/server.rs b/lib/crates/fabro-server/src/server.rs
+index 8130e2a..9351cdd 100644
+--- a/lib/crates/fabro-server/src/server.rs
++++ b/lib/crates/fabro-server/src/server.rs
+@@ -56,7 +56,8 @@ use fabro_config::{RunLayer, Storage, WorkflowSettingsBuilder};
+ use fabro_db::DbPool;
+ use fabro_environment::EnvironmentStore;
+ use fabro_interview::{
+-    Answer, AnswerSubmission, ControlInterviewer, Interviewer, Question, WorkerControlEnvelope,
++    Answer, AnswerSubmission, ControlInterviewer, ImageAttachment, Interviewer, Question,
++    WorkerControlEnvelope,
+ };
+ use fabro_llm::client::Client as LlmClient;
+ use fabro_llm::generate::{GenerateParams, generate_object};
+@@ -281,6 +282,9 @@ enum ExecutionResult {
+ const WORKER_CANCEL_GRACE: Duration = Duration::from_secs(5);
+ const TERMINAL_DELETE_WORKER_GRACE: Duration = Duration::from_millis(50);
+ const WORKER_CONTROL_ENQUEUE_TIMEOUT: Duration = Duration::from_secs(1);
++
++/// Maximum allowed size for image attachments in bytes (5 MB).
++const MAX_IMAGE_SIZE_BYTES: usize = 5 * 1024 * 1024;
+ /// Per-model billing totals.
+ #[derive(Default)]
+ struct ModelBillingTotals {
+@@ -3740,11 +3744,21 @@ fn validate_answer_for_question(
+         {
+             Ok(())
+         }
++        (QuestionType::Freeform, fabro_interview::AnswerValue::TextWithImages { text, .. })
++            if !text.trim().is_empty() =>
++        {
++            Ok(())
++        }
+         (_, fabro_interview::AnswerValue::Text(text))
+             if question.allow_freeform && !text.trim().is_empty() =>
+         {
+             Ok(())
+         }
++        (_, fabro_interview::AnswerValue::TextWithImages { text, .. })
++            if question.allow_freeform && !text.trim().is_empty() =>
++        {
++            Ok(())
++        }
+         _ => Err(ApiError::bad_request("Answer does not match question type.").into_response()),
+     }
+ }
+@@ -3803,6 +3817,21 @@ async fn deliver_answer_to_run(
+     }
+ }
+ 
++/// Decode base64-encoded image data.
++fn decode_base64_image(data: &str) -> Result<Vec<u8>, String> {
++    BASE64_STANDARD
++        .decode(data)
++        .map_err(|_| "Invalid base64 image data.".to_string())
++}
++
++/// Check if a MIME type is a supported image format.
++fn is_valid_image_mime(mime: &str) -> bool {
++    matches!(
++        mime,
++        "image/png" | "image/jpeg" | "image/gif" | "image/webp" | "image/heic"
++    )
++}
++
+ #[allow(
+     clippy::result_large_err,
+     reason = "Answer request parsing returns HTTP 400 responses directly."
+@@ -3836,9 +3865,66 @@ fn answer_from_request(
+             Ok(Answer::multi_selected(req.option_keys))
+         }
+         SubmitAnswerRequest::TextRequest(req) => Ok(Answer::text(req.text)),
+-        // TODO(slice-3): Implement TextWithImagesRequest handling in Slice 3
+-        SubmitAnswerRequest::TextWithImagesRequest(_) => {
+-            Err(ApiError::bad_request("Image attachments not yet implemented.").into_response())
++        SubmitAnswerRequest::TextWithImagesRequest(req) => {
++            // Validate text is non-empty
++            if req.text.trim().is_empty() {
++                return Err(
++                    ApiError::bad_request("Text is required when submitting images.").into_response()
++                );
++            }
++
++            // Validate images array is non-empty
++            if req.images.is_empty() {
++                return Err(ApiError::bad_request(
++                    "At least one image is required for text_with_images answer.",
++                )
++                .into_response());
++            }
++
++            // Process and validate each image
++            let mut validated_images = Vec::new();
++
++            for img_req in &req.images {
++                let media_type_str = img_req.media_type.to_string();
++
++                // Decode base64
++                let decoded = decode_base64_image(&img_req.data).map_err(|err| {
++                    ApiError::bad_request(err).into_response()
++                })?;
++
++                // Check decoded size
++                if decoded.len() > MAX_IMAGE_SIZE_BYTES {
++                    return Err(
++                        ApiError::bad_request("Image exceeds 5 MB limit.").into_response()
++                    );
++                }
++
++                // Detect actual MIME type from decoded bytes
++                if let Some(detected_type) = infer::get(&decoded) {
++                    let detected_mime = detected_type.mime_type();
++                    // Verify declared MIME matches detected MIME
++                    if detected_mime != media_type_str {
++                        return Err(ApiError::bad_request(&format!(
++                            "Image MIME type mismatch: declared {} but detected {}",
++                            media_type_str, detected_mime
++                        ))
++                        .into_response());
++                    }
++                } else {
++                    // If infer can't detect the type, reject it
++                    return Err(
++                        ApiError::bad_request("Could not detect image type from file content.")
++                            .into_response(),
++                    );
++                }
++
++                validated_images.push(ImageAttachment {
++                    data: decoded,
++                    media_type: media_type_str,
++                });
++            }
++
++            Ok(Answer::text_with_images(req.text.clone(), validated_images))
+         }
+     }
+ }
+diff --git a/lib/crates/fabro-server/src/server/handler/runs.rs b/lib/crates/fabro-server/src/server/handler/runs.rs
+index 89bec59..ed2b3b8 100644
+--- a/lib/crates/fabro-server/src/server/handler/runs.rs
++++ b/lib/crates/fabro-server/src/server/handler/runs.rs
+@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
+ use std::io::ErrorKind;
+ use std::sync::Arc;
+ 
+-use axum::extract::{Path, Query, State};
++use axum::extract::{DefaultBodyLimit, Path, Query, State};
+ use axum::http::{HeaderMap, StatusCode, header};
+ use axum::response::{IntoResponse, Response};
+ use axum::routing::{get, post, put};
+@@ -68,7 +68,10 @@ pub(super) fn routes() -> Router<Arc<AppState>> {
+             put(link_run_parent).delete(unlink_run_parent),
+         )
+         .route("/runs/{id}/questions", get(get_questions))
+-        .route("/runs/{id}/questions/{qid}/answer", post(submit_answer))
++        .route(
++            "/runs/{id}/questions/{qid}/answer",
++            post(submit_answer).layer(DefaultBodyLimit::max(50 * 1024 * 1024)), // 50 MB for image attachments
++        )
+         .route("/runs/{id}/state", get(get_run_state))
+         .route("/runs/{id}/logs", get(get_run_logs))
+         .route(
+diff --git a/lib/crates/fabro-server/src/server/tests.rs b/lib/crates/fabro-server/src/server/tests.rs
+index 45e26df..3932ec8 100644
+--- a/lib/crates/fabro-server/src/server/tests.rs
++++ b/lib/crates/fabro-server/src/server/tests.rs
+@@ -15778,3 +15778,317 @@ fn validate_github_slug_rejects_overlong() {
+     let long = "a".repeat(40);
+     assert!(super::validate_github_slug("owner", &long, 39).is_err());
+ }
++
++#[test]
++fn decode_base64_image_with_valid_input() {
++    // Test with a simple base64-encoded string "test"
++    let encoded = "dGVzdA==";
++    let result = super::decode_base64_image(encoded);
++    assert!(result.is_ok());
++    assert_eq!(result.unwrap(), b"test");
++}
++
++#[test]
++fn decode_base64_image_with_invalid_input() {
++    // Test with malformed base64
++    let invalid = "not-valid-base64!@#";
++    let result = super::decode_base64_image(invalid);
++    assert!(result.is_err());
++    assert_eq!(result.unwrap_err(), "Invalid base64 image data.");
++}
++
++#[test]
++fn is_valid_image_mime_accepts_supported_types() {
++    assert!(super::is_valid_image_mime("image/png"));
++    assert!(super::is_valid_image_mime("image/jpeg"));
++    assert!(super::is_valid_image_mime("image/gif"));
++    assert!(super::is_valid_image_mime("image/webp"));
++    assert!(super::is_valid_image_mime("image/heic"));
++}
++
++#[test]
++fn is_valid_image_mime_rejects_unsupported_types() {
++    assert!(!super::is_valid_image_mime("application/pdf"));
++    assert!(!super::is_valid_image_mime("text/plain"));
++    assert!(!super::is_valid_image_mime("image/bmp"));
++    assert!(!super::is_valid_image_mime("image/svg+xml"));
++}
++
++#[test]
++fn answer_from_text_with_images_request_happy_path() {
++    // Create a small 1x1 PNG image (valid PNG magic bytes + minimal structure)
++    let png_bytes = vec![
++        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
++        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
++        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 dimensions
++        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
++        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
++        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
++        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
++        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
++        0x42, 0x60, 0x82,
++    ];
++    let encoded = BASE64_STANDARD.encode(&png_bytes);
++
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "Please review the screenshot",
++        "images": [{
++            "data": encoded,
++            "media_type": "image/png"
++        }]
++    }))
++    .unwrap();
++
++    let answer = super::answer_from_request(req, &question).unwrap();
++
++    match answer.value {
++        AnswerValue::TextWithImages { text, images } => {
++            assert_eq!(text, "Please review the screenshot");
++            assert_eq!(images.len(), 1);
++            assert_eq!(images[0].media_type, "image/png");
++            assert_eq!(images[0].data, png_bytes);
++        }
++        _ => panic!("Expected TextWithImages variant"),
++    }
++}
++
++#[test]
++fn answer_from_text_with_images_request_rejects_empty_text() {
++    let png_bytes = vec![
++        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
++        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
++        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
++        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
++        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
++        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
++        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
++        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
++        0x42, 0x60, 0x82,
++    ];
++    let encoded = BASE64_STANDARD.encode(&png_bytes);
++
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "   ",  // Whitespace-only (passes minLength but should be rejected by trim check)
++        "images": [{
++            "data": encoded,
++            "media_type": "image/png"
++        }]
++    }))
++    .unwrap();
++
++    let result = super::answer_from_request(req, &question);
++    assert!(result.is_err());
++}
++
++#[test]
++fn answer_from_text_with_images_request_rejects_empty_images() {
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "Some text",
++        "images": []
++    }))
++    .unwrap();
++
++    let result = super::answer_from_request(req, &question);
++    assert!(result.is_err());
++}
++
++#[test]
++fn answer_from_text_with_images_request_rejects_invalid_base64() {
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "Review this",
++        "images": [{
++            "data": "not-valid-base64!@#",
++            "media_type": "image/png"
++        }]
++    }))
++    .unwrap();
++
++    let result = super::answer_from_request(req, &question);
++    assert!(result.is_err());
++}
++
++#[test]
++fn answer_from_text_with_images_request_rejects_oversized_image() {
++    // Create a 6 MB payload (exceeds 5 MB limit)
++    let large_data = vec![0u8; 6 * 1024 * 1024];
++    let encoded = BASE64_STANDARD.encode(&large_data);
++
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "Review this",
++        "images": [{
++            "data": encoded,
++            "media_type": "image/png"
++        }]
++    }))
++    .unwrap();
++
++    let result = super::answer_from_request(req, &question);
++    assert!(result.is_err());
++}
++
++#[test]
++fn answer_from_text_with_images_request_rejects_mime_mismatch() {
++    // Create a valid PNG but claim it's a JPEG
++    let png_bytes = vec![
++        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
++        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
++        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
++        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
++        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
++        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
++        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
++        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
++        0x42, 0x60, 0x82,
++    ];
++    let encoded = BASE64_STANDARD.encode(&png_bytes);
++
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let req: SubmitAnswerRequest = serde_json::from_value(json!({
++        "kind": "text_with_images",
++        "text": "Review this",
++        "images": [{
++            "data": encoded,
++            "media_type": "image/jpeg"  // Wrong! It's actually PNG
++        }]
++    }))
++    .unwrap();
++
++    let result = super::answer_from_request(req, &question);
++    assert!(result.is_err());
++}
++
++#[test]
++fn validate_answer_accepts_text_with_images_for_freeform() {
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Review?".to_string(),
++        stage:           "review".to_string(),
++        question_type:   QuestionType::Freeform,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let answer = Answer::text_with_images(
++        "Review complete",
++        vec![ImageAttachment {
++            data:       vec![1, 2, 3],
++            media_type: "image/png".to_string(),
++        }],
++    );
++
++    let result = super::validate_answer_for_question(&question, &answer);
++    assert!(result.is_ok());
++}
++
++#[test]
++fn validate_answer_accepts_text_with_images_for_allow_freeform_multiple_choice() {
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Choose or explain?".to_string(),
++        stage:           "decide".to_string(),
++        question_type:   QuestionType::MultipleChoice,
++        options:         vec![],
++        allow_freeform:  true,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let answer = Answer::text_with_images(
++        "Here's why",
++        vec![ImageAttachment {
++            data:       vec![1, 2, 3],
++            media_type: "image/png".to_string(),
++        }],
++    );
++
++    let result = super::validate_answer_for_question(&question, &answer);
++    assert!(result.is_ok());
++}
++
++#[test]
++fn validate_answer_rejects_text_with_images_for_yes_no() {
++    let question = InterviewQuestionRecord {
++        id:              "q-1".to_string(),
++        text:            "Continue?".to_string(),
++        stage:           "gate".to_string(),
++        question_type:   QuestionType::YesNo,
++        options:         vec![],
++        allow_freeform:  false,
++        timeout_seconds: None,
++        context_display: None,
++    };
++    let answer = Answer::text_with_images(
++        "Yes with context",
++        vec![ImageAttachment {
++            data:       vec![1, 2, 3],
++            media_type: "image/png".to_string(),
++        }],
++    );
++
++    let result = super::validate_answer_for_question(&question, &answer);
++    assert!(result.is_err());
++}
+diff --git a/lib/crates/fabro-workflow/src/handler/human.rs b/lib/crates/fabro-workflow/src/handler/human.rs
+index 77b8345..a736dcf 100644
+--- a/lib/crates/fabro-workflow/src/handler/human.rs
++++ b/lib/crates/fabro-workflow/src/handler/human.rs
+@@ -557,6 +557,7 @@ fn answer_text(answer: &Answer) -> String {
+     }
+     match &answer.value {
+         AnswerValue::Text(t) => t.clone(),
++        AnswerValue::TextWithImages { text, .. } => text.clone(),
+         AnswerValue::Selected(s) => s.clone(),
+         AnswerValue::MultiSelected(keys) => keys.join(", "),
+         AnswerValue::Yes => "yes".to_string(),
+diff --git a/lib/crates/fabro-workflow/src/interview_runtime.rs b/lib/crates/fabro-workflow/src/interview_runtime.rs
+index f0370ae..bd54cdb 100644
+--- a/lib/crates/fabro-workflow/src/interview_runtime.rs
++++ b/lib/crates/fabro-workflow/src/interview_runtime.rs
+@@ -426,6 +426,7 @@ fn answer_labels(options: &[InterviewOption], answer: &Answer) -> Vec<String> {
+             keys.iter().map(|key| label_for_key(options, key)).collect()
+         }
+         AnswerValue::Text(text) => vec![text.clone()],
++        AnswerValue::TextWithImages { text, .. } => vec![text.clone()],
+         AnswerValue::Yes => vec!["yes".to_string()],
+         AnswerValue::No => vec!["no".to_string()],
+         AnswerValue::Cancelled => vec!["cancelled".to_string()],
