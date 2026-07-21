@@ -37,6 +37,9 @@ pub mod keys {
     pub const HUMAN_GATE_LABEL: &str = "human.gate.label";
     pub const HUMAN_GATE_TEXT: &str = "human.gate.text";
 
+    // --- fabro.human_answer_images.* keys ---
+    pub const HUMAN_ANSWER_IMAGES_PREFIX: &str = "fabro.human_answer_images.";
+
     // --- parallel.* keys ---
     pub const PARALLEL_RESULTS: &str = "parallel.results";
     pub const PARALLEL_BRANCH_COUNT: &str = "parallel.branch_count";
