@@ -15813,3 +15813,210 @@ fn is_valid_image_mime_rejects_unsupported_types() {
     assert!(!super::is_valid_image_mime("image/bmp"));
     assert!(!super::is_valid_image_mime("image/svg+xml"));
 }
+
+#[test]
+fn answer_from_text_with_images_request_happy_path() {
+    // Create a small 1x1 PNG image (valid PNG magic bytes + minimal structure)
+    let png_bytes = vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 dimensions
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82,
+    ];
+    let encoded = BASE64_STANDARD.encode(&png_bytes);
+
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "Please review the screenshot",
+        "images": [{
+            "data": encoded,
+            "media_type": "image/png"
+        }]
+    }))
+    .unwrap();
+
+    let answer = super::answer_from_request(req, &question).unwrap();
+
+    match answer.value {
+        AnswerValue::TextWithImages { text, images } => {
+            assert_eq!(text, "Please review the screenshot");
+            assert_eq!(images.len(), 1);
+            assert_eq!(images[0].media_type, "image/png");
+            assert_eq!(images[0].data, png_bytes);
+        }
+        _ => panic!("Expected TextWithImages variant"),
+    }
+}
+
+#[test]
+fn answer_from_text_with_images_request_rejects_empty_text() {
+    let png_bytes = vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82,
+    ];
+    let encoded = BASE64_STANDARD.encode(&png_bytes);
+
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "   ",  // Whitespace-only (passes minLength but should be rejected by trim check)
+        "images": [{
+            "data": encoded,
+            "media_type": "image/png"
+        }]
+    }))
+    .unwrap();
+
+    let result = super::answer_from_request(req, &question);
+    assert!(result.is_err());
+}
+
+#[test]
+fn answer_from_text_with_images_request_rejects_empty_images() {
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "Some text",
+        "images": []
+    }))
+    .unwrap();
+
+    let result = super::answer_from_request(req, &question);
+    assert!(result.is_err());
+}
+
+#[test]
+fn answer_from_text_with_images_request_rejects_invalid_base64() {
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "Review this",
+        "images": [{
+            "data": "not-valid-base64!@#",
+            "media_type": "image/png"
+        }]
+    }))
+    .unwrap();
+
+    let result = super::answer_from_request(req, &question);
+    assert!(result.is_err());
+}
+
+#[test]
+fn answer_from_text_with_images_request_rejects_oversized_image() {
+    // Create a 6 MB payload (exceeds 5 MB limit)
+    let large_data = vec![0u8; 6 * 1024 * 1024];
+    let encoded = BASE64_STANDARD.encode(&large_data);
+
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "Review this",
+        "images": [{
+            "data": encoded,
+            "media_type": "image/png"
+        }]
+    }))
+    .unwrap();
+
+    let result = super::answer_from_request(req, &question);
+    assert!(result.is_err());
+}
+
+#[test]
+fn answer_from_text_with_images_request_rejects_mime_mismatch() {
+    // Create a valid PNG but claim it's a JPEG
+    let png_bytes = vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82,
+    ];
+    let encoded = BASE64_STANDARD.encode(&png_bytes);
+
+    let question = InterviewQuestionRecord {
+        id:              "q-1".to_string(),
+        text:            "Review?".to_string(),
+        stage:           "review".to_string(),
+        question_type:   QuestionType::Freeform,
+        options:         vec![],
+        allow_freeform:  false,
+        timeout_seconds: None,
+        context_display: None,
+    };
+    let req: SubmitAnswerRequest = serde_json::from_value(json!({
+        "kind": "text_with_images",
+        "text": "Review this",
+        "images": [{
+            "data": encoded,
+            "media_type": "image/jpeg"  // Wrong! It's actually PNG
+        }]
+    }))
+    .unwrap();
+
+    let result = super::answer_from_request(req, &question);
+    assert!(result.is_err());
+}
