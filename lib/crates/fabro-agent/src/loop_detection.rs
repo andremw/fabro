@@ -1,6 +1,8 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+use fabro_llm::types::ContentPart;
+
 use crate::history::History;
 use crate::types::Message;
 
@@ -266,15 +268,15 @@ mod tests {
     fn user_turns_are_ignored() {
         let mut history = History::default();
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         history.push(Message::User {
-            content:   "hello".into(),
+            content:   vec![ContentPart::Text("hello".into())],
             timestamp: SystemTime::now(),
         });
         assert!(!detect_loop(&history, 10));
