@@ -917,17 +917,17 @@ All blockers resolved. Plan is ready for implementation.
 - [x] Refactor
 
 ### Slice 4: Image persistence in run artifact directory
-- [ ] Add image file extension mapping helper
-- [ ] Test extension mapping
-- [ ] Add image storage helper
-- [ ] Test image storage with single image
-- [ ] Test image storage with multiple images
-- [ ] Extend human handler execute method to store images
-- [ ] Add context key for image paths
-- [ ] Test context key is added for TextWithImages answer
-- [ ] Test no context key for Text answer
-- [ ] Test context key is stage-specific
-- [ ] Refactor
+- [x] Add image file extension mapping helper
+- [x] Test extension mapping
+- [x] Add image storage helper
+- [x] Test image storage with single image
+- [x] Test image storage with multiple images
+- [x] Extend human handler execute method to store images
+- [x] Add context key for image paths
+- [x] Test context key is added for TextWithImages answer
+- [x] Test no context key for Text answer
+- [x] Test context key is stage-specific
+- [x] Refactor
 
 ### Slice 5: Agent stage automatic image propagation
 - [ ] Add context key constant
