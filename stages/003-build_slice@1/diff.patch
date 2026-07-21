@@ -1,0 +1,196 @@
+diff --git a/docs/plans/2026-07-21-freeform-image-attachments-plan.md b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+index 823a2b9..c941af4 100644
+--- a/docs/plans/2026-07-21-freeform-image-attachments-plan.md
++++ b/docs/plans/2026-07-21-freeform-image-attachments-plan.md
+@@ -878,12 +878,12 @@ All blockers resolved. Plan is ready for implementation.
+ ## Build Progress
+ 
+ ### Slice 1: OpenAPI schema and type generation
+-- [ ] Add SubmitAnswerTextWithImagesRequest schema to OpenAPI spec
+-- [ ] Add text_with_images to discriminator mapping
+-- [ ] Test OpenAPI spec validity
+-- [ ] Generate Rust types
+-- [ ] Generate TypeScript client
+-- [ ] Refactor
++- [x] Add SubmitAnswerTextWithImagesRequest schema to OpenAPI spec
++- [x] Add text_with_images to discriminator mapping
++- [x] Test OpenAPI spec validity
++- [x] Generate Rust types
++- [x] Generate TypeScript client
++- [x] Refactor
+ 
+ ### Slice 2: fabro-interview domain types for image attachments
+ - [ ] Define ImageAttachment struct
+diff --git a/docs/public/api-reference/fabro-api.yaml b/docs/public/api-reference/fabro-api.yaml
+index d6e3844..a10a2d4 100644
+--- a/docs/public/api-reference/fabro-api.yaml
++++ b/docs/public/api-reference/fabro-api.yaml
+@@ -9472,6 +9472,7 @@ components:
+         - $ref: "#/components/schemas/SubmitAnswerSelectedRequest"
+         - $ref: "#/components/schemas/SubmitAnswerMultiSelectedRequest"
+         - $ref: "#/components/schemas/SubmitAnswerTextRequest"
++        - $ref: "#/components/schemas/SubmitAnswerTextWithImagesRequest"
+       discriminator:
+         propertyName: kind
+         mapping:
+@@ -9480,6 +9481,7 @@ components:
+           selected: "#/components/schemas/SubmitAnswerSelectedRequest"
+           multi_selected: "#/components/schemas/SubmitAnswerMultiSelectedRequest"
+           text: "#/components/schemas/SubmitAnswerTextRequest"
++          text_with_images: "#/components/schemas/SubmitAnswerTextWithImagesRequest"
+ 
+     SubmitAnswerYesRequest:
+       type: object
+@@ -9548,6 +9550,43 @@ components:
+           description: Freeform answer text.
+           example: "Yes, proceed with the changes."
+ 
++    SubmitAnswerTextWithImagesRequest:
++      type: object
++      required:
++        - kind
++        - text
++        - images
++      properties:
++        kind:
++          type: string
++          enum: [text_with_images]
++          description: Freeform text answer with image attachments.
++        text:
++          type: string
++          minLength: 1
++          description: Freeform answer text (required when submitting images).
++          example: "Please review the screenshot showing the bug."
++        images:
++          type: array
++          minItems: 1
++          maxItems: 4
++          description: Array of image attachments (1-4 images, each <= 5 MB).
++          items:
++            type: object
++            required:
++              - data
++              - media_type
++            properties:
++              data:
++                type: string
++                format: byte
++                description: Base64-encoded image data.
++              media_type:
++                type: string
++                description: Image MIME type.
++                enum: [image/png, image/jpeg, image/gif, image/webp, image/heic]
++                example: "image/png"
++
+     ErrorResponseEntry:
+       description: A single error entry in an error response.
+       type: object
+diff --git a/lib/crates/fabro-server/src/server.rs b/lib/crates/fabro-server/src/server.rs
+index 8ba881f..8130e2a 100644
+--- a/lib/crates/fabro-server/src/server.rs
++++ b/lib/crates/fabro-server/src/server.rs
+@@ -3836,6 +3836,10 @@ fn answer_from_request(
+             Ok(Answer::multi_selected(req.option_keys))
+         }
+         SubmitAnswerRequest::TextRequest(req) => Ok(Answer::text(req.text)),
++        // TODO(slice-3): Implement TextWithImagesRequest handling in Slice 3
++        SubmitAnswerRequest::TextWithImagesRequest(_) => {
++            Err(ApiError::bad_request("Image attachments not yet implemented.").into_response())
++        }
+     }
+ }
+ 
+diff --git a/lib/packages/fabro-api-client/src/models/index.ts b/lib/packages/fabro-api-client/src/models/index.ts
+index 7b51ee7..20a7713 100644
+--- a/lib/packages/fabro-api-client/src/models/index.ts
++++ b/lib/packages/fabro-api-client/src/models/index.ts
+@@ -461,6 +461,7 @@ export * from './submit-answer-no-request';
+ export * from './submit-answer-request';
+ export * from './submit-answer-selected-request';
+ export * from './submit-answer-text-request';
++export * from './submit-answer-text-with-images-request';
+ export * from './submit-answer-yes-request';
+ export * from './submit-turn-request';
+ export * from './success-reason';
+diff --git a/lib/packages/fabro-api-client/src/models/submit-answer-request.ts b/lib/packages/fabro-api-client/src/models/submit-answer-request.ts
+index 04fb93d..123a1a2 100644
+--- a/lib/packages/fabro-api-client/src/models/submit-answer-request.ts
++++ b/lib/packages/fabro-api-client/src/models/submit-answer-request.ts
+@@ -27,10 +27,13 @@ import type { SubmitAnswerSelectedRequest } from './submit-answer-selected-reque
+ import type { SubmitAnswerTextRequest } from './submit-answer-text-request';
+ // May contain unused imports in some cases
+ // @ts-ignore
++import type { SubmitAnswerTextWithImagesRequest } from './submit-answer-text-with-images-request';
++// May contain unused imports in some cases
++// @ts-ignore
+ import type { SubmitAnswerYesRequest } from './submit-answer-yes-request';
+ 
+ /**
+  * @type SubmitAnswerRequest
+  * Request body for submitting an answer to a pending question. The `kind` discriminator determines which answer shape is submitted.
+  */
+-export type SubmitAnswerRequest = { kind: 'multi_selected' } & SubmitAnswerMultiSelectedRequest | { kind: 'no' } & SubmitAnswerNoRequest | { kind: 'selected' } & SubmitAnswerSelectedRequest | { kind: 'text' } & SubmitAnswerTextRequest | { kind: 'yes' } & SubmitAnswerYesRequest;
++export type SubmitAnswerRequest = { kind: 'multi_selected' } & SubmitAnswerMultiSelectedRequest | { kind: 'no' } & SubmitAnswerNoRequest | { kind: 'selected' } & SubmitAnswerSelectedRequest | { kind: 'text' } & SubmitAnswerTextRequest | { kind: 'text_with_images' } & SubmitAnswerTextWithImagesRequest | { kind: 'yes' } & SubmitAnswerYesRequest;
+diff --git a/lib/packages/fabro-api-client/src/models/submit-answer-text-with-images-request.ts b/lib/packages/fabro-api-client/src/models/submit-answer-text-with-images-request.ts
+new file mode 100644
+index 0000000..b7280e5
+--- /dev/null
++++ b/lib/packages/fabro-api-client/src/models/submit-answer-text-with-images-request.ts
+@@ -0,0 +1,57 @@
++/* tslint:disable */
++/* eslint-disable */
++/**
++ * Fabro Run API
++ * HTTP API for managing Fabro workflow run executions.
++ *
++ * The version of the OpenAPI document: 0.1.0
++ *
++ *
++ * NOTE: This class is auto generated by OpenAPI Generator (https://openapi-generator.tech).
++ * https://openapi-generator.tech
++ * Do not edit the class manually.
++ */
++
++
++
++export interface SubmitAnswerTextWithImagesRequestImagesInner {
++    /**
++     * Base64-encoded image data.
++     */
++    'data': string;
++    /**
++     * Image MIME type.
++     */
++    'media_type': SubmitAnswerTextWithImagesRequestImagesInnerMediaTypeEnum;
++}
++
++export const SubmitAnswerTextWithImagesRequestImagesInnerMediaTypeEnum = {
++    PNG: 'image/png',
++    JPEG: 'image/jpeg',
++    GIF: 'image/gif',
++    WEBP: 'image/webp',
++    HEIC: 'image/heic'
++} as const;
++
++export type SubmitAnswerTextWithImagesRequestImagesInnerMediaTypeEnum = typeof SubmitAnswerTextWithImagesRequestImagesInnerMediaTypeEnum[keyof typeof SubmitAnswerTextWithImagesRequestImagesInnerMediaTypeEnum];
++
++export interface SubmitAnswerTextWithImagesRequest {
++    /**
++     * Freeform text answer with image attachments.
++     */
++    'kind': SubmitAnswerTextWithImagesRequestKindEnum;
++    /**
++     * Freeform answer text (required when submitting images).
++     */
++    'text': string;
++    /**
++     * Array of image attachments (1-4 images, each <= 5 MB).
++     */
++    'images': Array<SubmitAnswerTextWithImagesRequestImagesInner>;
++}
++
++export const SubmitAnswerTextWithImagesRequestKindEnum = {
++    TEXT_WITH_IMAGES: 'text_with_images'
++} as const;
++
++export type SubmitAnswerTextWithImagesRequestKindEnum = typeof SubmitAnswerTextWithImagesRequestKindEnum[keyof typeof SubmitAnswerTextWithImagesRequestKindEnum];
