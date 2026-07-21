@@ -15778,3 +15778,38 @@ fn validate_github_slug_rejects_overlong() {
     let long = "a".repeat(40);
     assert!(super::validate_github_slug("owner", &long, 39).is_err());
 }
+
+#[test]
+fn decode_base64_image_with_valid_input() {
+    // Test with a simple base64-encoded string "test"
+    let encoded = "dGVzdA==";
+    let result = super::decode_base64_image(encoded);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), b"test");
+}
+
+#[test]
+fn decode_base64_image_with_invalid_input() {
+    // Test with malformed base64
+    let invalid = "not-valid-base64!@#";
+    let result = super::decode_base64_image(invalid);
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Invalid base64 image data.");
+}
+
+#[test]
+fn is_valid_image_mime_accepts_supported_types() {
+    assert!(super::is_valid_image_mime("image/png"));
+    assert!(super::is_valid_image_mime("image/jpeg"));
+    assert!(super::is_valid_image_mime("image/gif"));
+    assert!(super::is_valid_image_mime("image/webp"));
+    assert!(super::is_valid_image_mime("image/heic"));
+}
+
+#[test]
+fn is_valid_image_mime_rejects_unsupported_types() {
+    assert!(!super::is_valid_image_mime("application/pdf"));
+    assert!(!super::is_valid_image_mime("text/plain"));
+    assert!(!super::is_valid_image_mime("image/bmp"));
+    assert!(!super::is_valid_image_mime("image/svg+xml"));
+}

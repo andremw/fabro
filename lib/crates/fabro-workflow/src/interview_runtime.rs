@@ -426,6 +426,7 @@ fn answer_labels(options: &[InterviewOption], answer: &Answer) -> Vec<String> {
             keys.iter().map(|key| label_for_key(options, key)).collect()
         }
         AnswerValue::Text(text) => vec![text.clone()],
+        AnswerValue::TextWithImages { text, .. } => vec![text.clone()],
         AnswerValue::Yes => vec!["yes".to_string()],
         AnswerValue::No => vec!["no".to_string()],
         AnswerValue::Cancelled => vec!["cancelled".to_string()],

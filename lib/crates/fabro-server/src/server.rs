@@ -3803,6 +3803,21 @@ async fn deliver_answer_to_run(
     }
 }
 
+/// Decode base64-encoded image data.
+fn decode_base64_image(data: &str) -> Result<Vec<u8>, String> {
+    BASE64_STANDARD
+        .decode(data)
+        .map_err(|_| "Invalid base64 image data.".to_string())
+}
+
+/// Check if a MIME type is a supported image format.
+fn is_valid_image_mime(mime: &str) -> bool {
+    matches!(
+        mime,
+        "image/png" | "image/jpeg" | "image/gif" | "image/webp" | "image/heic"
+    )
+}
+
 #[allow(
     clippy::result_large_err,
     reason = "Answer request parsing returns HTTP 400 responses directly."

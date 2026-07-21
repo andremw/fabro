@@ -85,6 +85,7 @@ sha2.workspace = true
 hex.workspace = true
 rand.workspace = true
 bytes = "1"
+infer = "0.16"
 tempfile = "3"
 object_store.workspace = true
 # reqwest 0.12 is a direct dep only so `NoProxyReqwestConnector` can build a
