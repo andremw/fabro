@@ -1,6 +1,6 @@
 # Plan: Agent Session Image Input API
 
-**Status**: in-progress
+**Status**: implemented
 **Spec**: docs/superpowers/specs/2026-07-21-agent-session-image-input.md
 
 ## Goal
@@ -643,9 +643,9 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Refactor
 
 ### Wave 3
-- [ ] Slice 7: Documentation and plan completion
-  - [ ] Check SDK documentation for Session examples
-  - [ ] Check fabro-agent README for Session examples
-  - [ ] Verify acceptance criteria
-  - [ ] Update plan status
-  - [ ] Refactor
+- [x] Slice 7: Documentation and plan completion
+  - [x] Check SDK documentation for Session examples
+  - [x] Check fabro-agent README for Session examples
+  - [x] Verify acceptance criteria
+  - [x] Update plan status
+  - [x] Refactor
