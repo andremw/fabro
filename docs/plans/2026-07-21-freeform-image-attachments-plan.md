@@ -886,14 +886,14 @@ All blockers resolved. Plan is ready for implementation.
 - [x] Refactor
 
 ### Slice 2: fabro-interview domain types for image attachments
-- [ ] Define ImageAttachment struct
-- [ ] Test ImageAttachment serialization
-- [ ] Add TextWithImages variant to AnswerValue
-- [ ] Test TextWithImages variant in pattern matching
-- [ ] Implement Answer::text_with_images constructor
-- [ ] Test text_with_images constructor
-- [ ] Test TextWithImages serialization round-trip
-- [ ] Refactor
+- [x] Define ImageAttachment struct
+- [x] Test ImageAttachment serialization
+- [x] Add TextWithImages variant to AnswerValue
+- [x] Test TextWithImages variant in pattern matching
+- [x] Implement Answer::text_with_images constructor
+- [x] Test text_with_images constructor
+- [x] Test TextWithImages serialization round-trip
+- [x] Refactor
 
 ### Slice 3: Server-side answer request mapping and validation
 - [ ] Add base64 decoding helper
