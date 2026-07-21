@@ -9472,6 +9472,7 @@ components:
         - $ref: "#/components/schemas/SubmitAnswerSelectedRequest"
         - $ref: "#/components/schemas/SubmitAnswerMultiSelectedRequest"
         - $ref: "#/components/schemas/SubmitAnswerTextRequest"
+        - $ref: "#/components/schemas/SubmitAnswerTextWithImagesRequest"
       discriminator:
         propertyName: kind
         mapping:
@@ -9480,6 +9481,7 @@ components:
           selected: "#/components/schemas/SubmitAnswerSelectedRequest"
           multi_selected: "#/components/schemas/SubmitAnswerMultiSelectedRequest"
           text: "#/components/schemas/SubmitAnswerTextRequest"
+          text_with_images: "#/components/schemas/SubmitAnswerTextWithImagesRequest"
 
     SubmitAnswerYesRequest:
       type: object
@@ -9547,6 +9549,43 @@ components:
           type: string
           description: Freeform answer text.
           example: "Yes, proceed with the changes."
+
+    SubmitAnswerTextWithImagesRequest:
+      type: object
+      required:
+        - kind
+        - text
+        - images
+      properties:
+        kind:
+          type: string
+          enum: [text_with_images]
+          description: Freeform text answer with image attachments.
+        text:
+          type: string
+          minLength: 1
+          description: Freeform answer text (required when submitting images).
+          example: "Please review the screenshot showing the bug."
+        images:
+          type: array
+          minItems: 1
+          maxItems: 4
+          description: Array of image attachments (1-4 images, each <= 5 MB).
+          items:
+            type: object
+            required:
+              - data
+              - media_type
+            properties:
+              data:
+                type: string
+                format: byte
+                description: Base64-encoded image data.
+              media_type:
+                type: string
+                description: Image MIME type.
+                enum: [image/png, image/jpeg, image/gif, image/webp, image/heic]
+                example: "image/png"
 
     ErrorResponseEntry:
       description: A single error entry in an error response.

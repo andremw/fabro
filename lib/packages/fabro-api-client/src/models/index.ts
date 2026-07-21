@@ -461,6 +461,7 @@ export * from './submit-answer-no-request';
 export * from './submit-answer-request';
 export * from './submit-answer-selected-request';
 export * from './submit-answer-text-request';
+export * from './submit-answer-text-with-images-request';
 export * from './submit-answer-yes-request';
 export * from './submit-turn-request';
 export * from './success-reason';

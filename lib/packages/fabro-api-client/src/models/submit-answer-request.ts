@@ -27,10 +27,13 @@ import type { SubmitAnswerSelectedRequest } from './submit-answer-selected-reque
 import type { SubmitAnswerTextRequest } from './submit-answer-text-request';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { SubmitAnswerTextWithImagesRequest } from './submit-answer-text-with-images-request';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { SubmitAnswerYesRequest } from './submit-answer-yes-request';
 
 /**
  * @type SubmitAnswerRequest
  * Request body for submitting an answer to a pending question. The `kind` discriminator determines which answer shape is submitted.
  */
-export type SubmitAnswerRequest = { kind: 'multi_selected' } & SubmitAnswerMultiSelectedRequest | { kind: 'no' } & SubmitAnswerNoRequest | { kind: 'selected' } & SubmitAnswerSelectedRequest | { kind: 'text' } & SubmitAnswerTextRequest | { kind: 'yes' } & SubmitAnswerYesRequest;
+export type SubmitAnswerRequest = { kind: 'multi_selected' } & SubmitAnswerMultiSelectedRequest | { kind: 'no' } & SubmitAnswerNoRequest | { kind: 'selected' } & SubmitAnswerSelectedRequest | { kind: 'text' } & SubmitAnswerTextRequest | { kind: 'text_with_images' } & SubmitAnswerTextWithImagesRequest | { kind: 'yes' } & SubmitAnswerYesRequest;
