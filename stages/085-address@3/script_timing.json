@@ -1,0 +1,6 @@
+{
+  "stdout": "I'll check the PR status and address any feedback.The PR has left draft status, so according to the instructions, I should do nothing.\n\n```json\n{\"preferred_next_label\": \"Done\"}\n```",
+  "stderr": "",
+  "stop_reason": "end_turn",
+  "duration_ms": 13324
+}
