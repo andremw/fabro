@@ -48,6 +48,13 @@ impl Question {
     }
 }
 
+/// An image attachment for a freeform answer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImageAttachment {
+    pub data:       Vec<u8>,
+    pub media_type: String,
+}
+
 /// The value of an answer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AnswerValue {
@@ -60,6 +67,7 @@ pub enum AnswerValue {
     Selected(String),
     MultiSelected(Vec<String>),
     Text(String),
+    TextWithImages { text: String, images: Vec<ImageAttachment> },
 }
 
 /// An answer from the user.
@@ -146,6 +154,18 @@ impl Answer {
         let t = text.into();
         Self {
             value:           AnswerValue::Text(t.clone()),
+            selected_option: None,
+            text:            Some(t),
+        }
+    }
+
+    pub fn text_with_images(text: impl Into<String>, images: Vec<ImageAttachment>) -> Self {
+        let t = text.into();
+        Self {
+            value:           AnswerValue::TextWithImages {
+                text:   t.clone(),
+                images,
+            },
             selected_option: None,
             text:            Some(t),
         }
@@ -421,5 +441,123 @@ mod tests {
 
         let answer = ask.await.unwrap().answer;
         assert_eq!(answer.value, AnswerValue::Yes);
+    }
+
+    #[test]
+    fn image_attachment_serialization_roundtrip() {
+        let attachment = ImageAttachment {
+            data:       vec![1, 2, 3, 255],
+            media_type: "image/png".to_string(),
+        };
+        let json = serde_json::to_value(&attachment).unwrap();
+        let deserialized: ImageAttachment = serde_json::from_value(json).unwrap();
+        assert_eq!(attachment, deserialized);
+        assert_eq!(deserialized.data, vec![1, 2, 3, 255]);
+        assert_eq!(deserialized.media_type, "image/png");
+    }
+
+    #[test]
+    fn answer_value_text_with_images_pattern_matching() {
+        let images = vec![
+            ImageAttachment {
+                data:       vec![1, 2, 3],
+                media_type: "image/png".to_string(),
+            },
+            ImageAttachment {
+                data:       vec![4, 5, 6],
+                media_type: "image/jpeg".to_string(),
+            },
+        ];
+        let value = AnswerValue::TextWithImages {
+            text:   "test content".to_string(),
+            images: images.clone(),
+        };
+
+        match value {
+            AnswerValue::TextWithImages { text, images: imgs } => {
+                assert_eq!(text, "test content");
+                assert_eq!(imgs.len(), 2);
+                assert_eq!(imgs[0].data, vec![1, 2, 3]);
+                assert_eq!(imgs[0].media_type, "image/png");
+                assert_eq!(imgs[1].data, vec![4, 5, 6]);
+                assert_eq!(imgs[1].media_type, "image/jpeg");
+            }
+            _ => panic!("Expected TextWithImages variant"),
+        }
+    }
+
+    #[test]
+    fn answer_text_with_images_constructor() {
+        let images = vec![ImageAttachment {
+            data:       vec![1, 2, 3],
+            media_type: "image/png".to_string(),
+        }];
+        let answer = Answer::text_with_images("test", images.clone());
+
+        match answer.value {
+            AnswerValue::TextWithImages { text, images: imgs } => {
+                assert_eq!(text, "test");
+                assert_eq!(imgs, images);
+            }
+            _ => panic!("Expected TextWithImages variant"),
+        }
+        assert_eq!(answer.text, Some("test".to_string()));
+        assert!(answer.selected_option.is_none());
+    }
+
+    #[test]
+    fn answer_text_with_images_serialization_roundtrip() {
+        let images = vec![
+            ImageAttachment {
+                data:       vec![1, 2, 3],
+                media_type: "image/png".to_string(),
+            },
+            ImageAttachment {
+                data:       vec![4, 5, 6, 7],
+                media_type: "image/jpeg".to_string(),
+            },
+        ];
+        let answer = Answer::text_with_images("test content", images.clone());
+
+        let json = serde_json::to_value(&answer).unwrap();
+        assert_eq!(json["text"], "test content");
+        assert_eq!(json["value"]["TextWithImages"]["text"], "test content");
+        assert!(json["value"]["TextWithImages"]["images"].is_array());
+        assert_eq!(
+            json["value"]["TextWithImages"]["images"][0]["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_u64().unwrap() as u8)
+                .collect::<Vec<u8>>(),
+            vec![1, 2, 3]
+        );
+        assert_eq!(
+            json["value"]["TextWithImages"]["images"][0]["media_type"],
+            "image/png"
+        );
+        assert_eq!(
+            json["value"]["TextWithImages"]["images"][1]["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_u64().unwrap() as u8)
+                .collect::<Vec<u8>>(),
+            vec![4, 5, 6, 7]
+        );
+        assert_eq!(
+            json["value"]["TextWithImages"]["images"][1]["media_type"],
+            "image/jpeg"
+        );
+
+        let deserialized: Answer = serde_json::from_value(json).unwrap();
+        assert_eq!(deserialized.text, Some("test content".to_string()));
+        match deserialized.value {
+            AnswerValue::TextWithImages { text, images: imgs } => {
+                assert_eq!(text, "test content");
+                assert_eq!(imgs, images);
+            }
+            _ => panic!("Expected TextWithImages variant"),
+        }
     }
 }

@@ -220,6 +220,7 @@ impl From<Answer> for WorkerControlAnswer {
             AnswerValue::Selected(key) => Self::Selected { key },
             AnswerValue::MultiSelected(keys) => Self::MultiSelected { keys },
             AnswerValue::Text(text) => Self::Text { text },
+            AnswerValue::TextWithImages { text, .. } => Self::Text { text },
         }
     }
 }
