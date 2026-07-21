@@ -1207,11 +1207,6 @@ impl Session {
         &self.file_tracker
     }
 
-    pub async fn process_input(&mut self, input: &str) -> Result<(), Error> {
-        self.process_input_with_runtime(input, AgentToolRuntime::default())
-            .await
-    }
-
     #[must_use]
     pub const fn last_input_timing(&self) -> SessionInputTiming {
         self.last_input_timing
@@ -1300,77 +1295,6 @@ impl Session {
             AgentToolRuntime::default(),
         )
         .await
-    }
-
-    /// Process an input. The inference/tool timing accumulated during the call
-    /// is available via [`Self::last_input_timing`] after this returns, even on
-    /// error.
-    pub async fn process_input_with_runtime(
-        &mut self,
-        input: &str,
-        agent_tool_runtime: AgentToolRuntime,
-    ) -> Result<(), Error> {
-        let mut timing = SessionInputTiming::default();
-        let mut usage = TokenCounts::default();
-        self.last_input_timing = timing;
-        self.last_input_usage = TokenCounts::default();
-        if self.state == SessionState::Closed {
-            return Err(Error::SessionClosed);
-        }
-
-        // Spawn wall-clock timeout task if configured
-        let timer_handle = self.config.wall_clock_timeout.map(|duration| {
-            let token = self.cancel_token.clone();
-            let reason_handle = self.interrupt_reason.clone();
-            tokio::spawn(async move {
-                time::sleep(duration).await;
-                {
-                    let mut guard = reason_handle
-                        .lock()
-                        .unwrap_or_else(std::sync::PoisonError::into_inner);
-                    if guard.is_none() {
-                        *guard = Some(InterruptReason::WallClockTimeout);
-                    }
-                }
-                token.cancel();
-            })
-        });
-
-        // Process the initial input, then drain any followups
-        let mut result = self
-            .run_single_input(input, &agent_tool_runtime, &mut timing, &mut usage)
-            .await;
-
-        if result.is_ok() {
-            loop {
-                let followup = self
-                    .followup_queue
-                    .lock()
-                    .expect("followup queue lock poisoned")
-                    .pop_front();
-                let Some(followup) = followup else { break };
-                result = self
-                    .run_single_input(&followup, &agent_tool_runtime, &mut timing, &mut usage)
-                    .await;
-                if result.is_err() {
-                    break;
-                }
-            }
-        }
-
-        // Stop the timer so it doesn't fire after we're done.
-        if let Some(handle) = timer_handle {
-            handle.abort();
-        }
-
-        // Only transition to Idle if the session wasn't closed by an error
-        if self.state != SessionState::Closed {
-            self.transition(SessionState::Idle);
-        }
-
-        self.last_input_timing = timing;
-        self.last_input_usage = usage;
-        result
     }
 
     async fn run_single_message(
