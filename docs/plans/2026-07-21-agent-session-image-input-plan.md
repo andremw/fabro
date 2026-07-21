@@ -584,16 +584,16 @@ These observations remain unchanged as they represent known trade-offs consisten
   - [x] Refactor
 
 ### Wave 1
-- [ ] Slice 2: Session::process_message API
-  - [ ] Add Session::process_message method
-  - [ ] Implement process_message body
-  - [ ] Test process_message with single text part
-  - [ ] Test process_message with multi-part content
-  - [ ] Add Session::process_text_input convenience method
-  - [ ] Test process_text_input delegates correctly
-  - [ ] Remove process_input and process_input_with_runtime
-  - [ ] Test removal by attempting build
-  - [ ] Refactor
+- [x] Slice 2: Session::process_message API
+  - [x] Add Session::process_message method
+  - [x] Implement process_message body
+  - [x] Test process_message with single text part
+  - [x] Test process_message with multi-part content
+  - [x] Add Session::process_text_input convenience method
+  - [x] Test process_text_input delegates correctly
+  - [x] Remove process_input and process_input_with_runtime
+  - [x] Test removal by attempting build
+  - [x] Refactor
 - [ ] Slice 3: Update agent crate test call sites
   - [ ] Update parity_matrix.rs call sites
   - [ ] Test parity_matrix compiles and passes
