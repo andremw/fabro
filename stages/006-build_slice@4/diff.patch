@@ -1,0 +1,317 @@
+diff --git a/docs/plans/2026-07-21-agent-session-image-input-plan.md b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+index 73e7591..37f64c1 100644
+--- a/docs/plans/2026-07-21-agent-session-image-input-plan.md
++++ b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+@@ -607,17 +607,17 @@ These observations remain unchanged as they represent known trade-offs consisten
+   - [x] Test CLI compiles
+   - [x] Run full fabro-agent test suite
+   - [x] Refactor
+-- [ ] Slice 4: CodergenRunRequest and backend updates
+-  - [ ] Change CodergenRunRequest.prompt to initial_content
+-  - [ ] Test CodergenRunRequest compiles
+-  - [ ] Update AgentApiBackend::run to use initial_content
+-  - [ ] Test AgentApiBackend compiles
+-  - [ ] Update AcpBackend::run to use initial_content
+-  - [ ] Test AcpBackend compiles
+-  - [ ] Update PromptHandler to extract text from initial_content
+-  - [ ] Test PromptHandler compiles
+-  - [ ] Run fabro-workflow tests
+-  - [ ] Refactor
++- [x] Slice 4: CodergenRunRequest and backend updates
++  - [x] Change CodergenRunRequest.prompt to initial_content
++  - [x] Test CodergenRunRequest compiles
++  - [x] Update AgentApiBackend::run to use initial_content
++  - [x] Test AgentApiBackend compiles
++  - [x] Update AcpBackend::run to use initial_content
++  - [x] Test AcpBackend compiles
++  - [x] Update PromptHandler to extract text from initial_content
++  - [x] Test PromptHandler compiles
++  - [x] Run fabro-workflow tests
++  - [x] Refactor
+ 
+ ### Wave 2
+ - [ ] Slice 5: Agent handler image propagation
+diff --git a/lib/crates/fabro-workflow/src/handler/agent.rs b/lib/crates/fabro-workflow/src/handler/agent.rs
+index 16dbe02..7466109 100644
+--- a/lib/crates/fabro-workflow/src/handler/agent.rs
++++ b/lib/crates/fabro-workflow/src/handler/agent.rs
+@@ -4,6 +4,7 @@ use std::sync::Arc;
+ use async_trait::async_trait;
+ use fabro_agent::Sandbox;
+ use fabro_graphviz::graph::{Graph, Node};
++use fabro_llm::types::ContentPart;
+ use fabro_types::{RunId, StageModelUsage, StageTiming};
+ pub(crate) use structured_output::extract_status_fields;
+ use tokio_util::sync::CancellationToken;
+@@ -39,7 +40,7 @@ pub enum CodergenResult {
+ 
+ pub struct CodergenRunRequest<'a> {
+     pub node:               &'a Node,
+-    pub prompt:             &'a str,
++    pub initial_content:    Vec<ContentPart>,
+     pub context:            &'a Context,
+     pub thread_id:          Option<&'a str>,
+     pub emitter:            &'a Arc<Emitter>,
+@@ -59,6 +60,24 @@ pub struct OneShotRequest<'a> {
+     pub cancel_token:  CancellationToken,
+ }
+ 
++/// Extract text from content parts, ignoring images.
++///
++/// This is a convenience helper for backends that don't support images
++/// (like ACP) or for test code that needs to inspect prompt text.
++pub fn extract_text_from_content(content: &[ContentPart]) -> String {
++    content
++        .iter()
++        .filter_map(|part| {
++            if let ContentPart::Text(text) = part {
++                Some(text.as_str())
++            } else {
++                None
++            }
++        })
++        .collect::<Vec<_>>()
++        .join("")
++}
++
+ /// Emit the canonical `Event::Prompt` for a stage prompt and return the
+ /// resolved [`StageScope`] so the caller can keep building events scoped to
+ /// the same stage.
+@@ -288,7 +307,7 @@ impl Handler for AgentHandler {
+                 let result = backend
+                     .run(CodergenRunRequest {
+                         node,
+-                        prompt: &prompt,
++                        initial_content: vec![ContentPart::Text(prompt.clone())],
+                         context,
+                         thread_id: thread_id.as_deref(),
+                         emitter: &services.run.emitter,
+@@ -1250,7 +1269,8 @@ Some text in between.
+         #[async_trait]
+         impl CodergenBackend for PromptCapturingBackend {
+             async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
+-                *self.captured_prompt.lock().unwrap() = Some(request.prompt.to_string());
++                let prompt_text = extract_text_from_content(&request.initial_content);
++                *self.captured_prompt.lock().unwrap() = Some(prompt_text);
+                 Ok(CodergenResult::Text {
+                     text:              "ok".to_string(),
+                     usage:             None,
+@@ -1311,7 +1331,8 @@ Some text in between.
+         #[async_trait]
+         impl CodergenBackend for PromptCapturingBackend {
+             async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
+-                *self.captured_prompt.lock().unwrap() = Some(request.prompt.to_string());
++                let prompt_text = extract_text_from_content(&request.initial_content);
++                *self.captured_prompt.lock().unwrap() = Some(prompt_text);
+                 Ok(CodergenResult::Text {
+                     text:              "ok".to_string(),
+                     usage:             None,
+diff --git a/lib/crates/fabro-workflow/src/handler/fan_in.rs b/lib/crates/fabro-workflow/src/handler/fan_in.rs
+index aa03d8f..72c598e 100644
+--- a/lib/crates/fabro-workflow/src/handler/fan_in.rs
++++ b/lib/crates/fabro-workflow/src/handler/fan_in.rs
+@@ -272,7 +272,7 @@ async fn llm_evaluate(
+     match backend
+         .run(CodergenRunRequest {
+             node: &eval_node,
+-            prompt: &full_prompt,
++            initial_content: vec![fabro_llm::types::ContentPart::Text(full_prompt.clone())],
+             context,
+             thread_id: None,
+             emitter,
+diff --git a/lib/crates/fabro-workflow/src/handler/llm/acp.rs b/lib/crates/fabro-workflow/src/handler/llm/acp.rs
+index e83d50c..19b28f3 100644
+--- a/lib/crates/fabro-workflow/src/handler/llm/acp.rs
++++ b/lib/crates/fabro-workflow/src/handler/llm/acp.rs
+@@ -16,7 +16,9 @@ use fabro_types::{
+ use fabro_util::time::elapsed_ms;
+ use tokio_util::sync::CancellationToken;
+ 
+-use super::super::agent::{CodergenBackend, CodergenResult, CodergenRunRequest, OneShotRequest};
++use super::super::agent::{
++    CodergenBackend, CodergenResult, CodergenRunRequest, OneShotRequest, extract_text_from_content,
++};
+ use super::activation_lease::{ActivationLease, ActivationLeaseOptions};
+ use super::changed_files;
+ use crate::error::Error;
+@@ -335,9 +337,10 @@ impl CodergenBackend for AgentAcpBackend {
+             ));
+         }
+         let stage_scope = StageScope::for_handler(request.context, &request.node.id);
++        let prompt_text = extract_text_from_content(&request.initial_content);
+         self.run_turn(
+             request.node,
+-            request.prompt.to_string(),
++            prompt_text,
+             request.emitter,
+             &stage_scope,
+             request.sandbox,
+@@ -421,6 +424,7 @@ mod tests {
+     use fabro_acp::{AcpError, AcpProcessExit};
+     use fabro_agent::{LocalSandbox, Sandbox, shell_quote};
+     use fabro_graphviz::graph::{AttrValue, Node};
++    use fabro_llm::types::ContentPart;
+     use fabro_sandbox::test_support::MockSandbox;
+     use fabro_types::{CommandTermination, EventBody, ExecOutputTail};
+     use tokio_util::sync::CancellationToken;
+@@ -461,7 +465,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -509,7 +513,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -579,7 +583,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -627,7 +631,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -666,7 +670,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -716,7 +720,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "cancel",
++                initial_content:    vec![ContentPart::Text("cancel".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -770,7 +774,7 @@ mod tests {
+         backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -812,7 +816,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+@@ -865,7 +869,7 @@ mod tests {
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "write hello",
++                initial_content:    vec![ContentPart::Text("write hello".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+diff --git a/lib/crates/fabro-workflow/src/handler/llm/api.rs b/lib/crates/fabro-workflow/src/handler/llm/api.rs
+index c1f27a7..f34749b 100644
+--- a/lib/crates/fabro-workflow/src/handler/llm/api.rs
++++ b/lib/crates/fabro-workflow/src/handler/llm/api.rs
+@@ -1137,7 +1137,7 @@ impl CodergenBackend for AgentApiBackend {
+ 
+     async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
+         let node = request.node;
+-        let prompt = request.prompt;
++        let initial_content = request.initial_content;
+         let context = request.context;
+         let thread_id = request.thread_id;
+         let emitter = request.emitter;
+@@ -1269,7 +1269,7 @@ impl CodergenBackend for AgentApiBackend {
+                     emit_agent_tools_available(&session, &node.id, &stage_id, emitter);
+                 }
+                 let process_result = session
+-                    .process_input_with_runtime(prompt, agent_tool_runtime.clone())
++                    .process_message(initial_content.clone(), agent_tool_runtime.clone())
+                     .await;
+                 let timing = session.last_input_timing();
+                 inference_duration = inference_duration.saturating_add(timing.inference);
+@@ -1403,7 +1403,7 @@ impl CodergenBackend for AgentApiBackend {
+                         }
+                         emit_agent_tools_available(&session, &node.id, &stage_id, emitter);
+                         let process_result = session
+-                            .process_input_with_runtime(prompt, agent_tool_runtime.clone())
++                            .process_message(initial_content.clone(), agent_tool_runtime.clone())
+                             .await;
+                         let timing = session.last_input_timing();
+                         inference_duration = inference_duration.saturating_add(timing.inference);
+@@ -1471,8 +1471,8 @@ impl CodergenBackend for AgentApiBackend {
+                         }
+                         let repair_message = error.repair_message(schema);
+                         let repair_result = session
+-                            .process_input_with_runtime(
+-                                &repair_message,
++                            .process_message(
++                                vec![fabro_llm::types::ContentPart::Text(repair_message)],
+                                 fabro_agent::AgentToolRuntime::default(),
+                             )
+                             .await;
+@@ -2866,7 +2866,7 @@ reasoning = false
+         let result = backend
+             .run(CodergenRunRequest {
+                 node:               &node,
+-                prompt:             "Audit the result",
++                initial_content:    vec![fabro_llm::types::ContentPart::Text("Audit the result".to_string())],
+                 context:            &context,
+                 thread_id:          None,
+                 emitter:            &emitter,
+diff --git a/lib/crates/fabro-workflow/tests/it/integration.rs b/lib/crates/fabro-workflow/tests/it/integration.rs
+index 3ceeced..a527be3 100644
+--- a/lib/crates/fabro-workflow/tests/it/integration.rs
++++ b/lib/crates/fabro-workflow/tests/it/integration.rs
+@@ -1775,11 +1775,13 @@ struct MockCodergenBackend;
+ #[async_trait::async_trait]
+ impl CodergenBackend for MockCodergenBackend {
+     async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
++        let prompt_text = fabro_workflow::handler::agent::extract_text_from_content(&request.initial_content);
++        let truncated = &prompt_text[..prompt_text.len().min(50)];
+         Ok(CodergenResult::Text {
+             text:              format!(
+                 "Response for {}: processed prompt '{}'",
+                 request.node.id,
+-                &request.prompt[..request.prompt.len().min(50)]
++                truncated
+             ),
+             usage:             None,
+             files_touched:     Vec::new(),
+@@ -6694,7 +6696,8 @@ mod real_llm {
+     #[async_trait]
+     impl CodergenBackend for LlmCodergenBackend {
+         async fn run(&self, request: CodergenRunRequest<'_>) -> Result<CodergenResult, Error> {
+-            self.complete(request.prompt).await
++            let prompt_text = fabro_workflow::handler::agent::extract_text_from_content(&request.initial_content);
++            self.complete(&prompt_text).await
+         }
+ 
+         async fn one_shot(&self, request: OneShotRequest<'_>) -> Result<CodergenResult, Error> {
