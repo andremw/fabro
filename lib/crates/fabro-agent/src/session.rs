@@ -2361,7 +2361,7 @@ mod tests {
         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
 
         let result = session
-            .process_input_with_runtime("use the slow tool", AgentToolRuntime::default())
+            .process_message(vec![ContentPart::Text("use the slow tool".to_string())], AgentToolRuntime::default())
             .await;
         result.unwrap();
         let first = session.last_input_timing();
@@ -2375,7 +2375,7 @@ mod tests {
         );
 
         let result = session
-            .process_input_with_runtime("no tools this time", AgentToolRuntime::default())
+            .process_message(vec![ContentPart::Text("no tools this time".to_string())], AgentToolRuntime::default())
             .await;
         result.unwrap();
         let second = session.last_input_timing();
