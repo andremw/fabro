@@ -313,12 +313,38 @@ impl Handler for AgentHandler {
                     node_id: node.id.clone(),
                 }) as Arc<dyn fabro_agent::ToolHookCallback>
             });
+        // 2. Build initial_content with images from prior stage if available
+        let initial_content = {
+            let mut content = Vec::new();
+
+            // Try to extract images from the prior stage
+            if let Some(prior_stage_id) = context
+                .get(keys::LAST_STAGE)
+                .and_then(|v| v.as_str().map(String::from))
+            {
+                if let Some(image_paths) = extract_human_images(context, &prior_stage_id) {
+                    for path in image_paths {
+                        content.push(ContentPart::Image(fabro_llm::types::ImageData {
+                            url: Some(path),
+                            data: None,
+                            media_type: None,
+                            detail: None,
+                        }));
+                    }
+                }
+            }
+
+            // Always append the text prompt
+            content.push(ContentPart::Text(prompt.clone()));
+            content
+        };
+
         let (response_text, stage_usage, backend_files_touched, last_file_touched, timing) =
             if let Some(backend) = &self.backend {
                 let result = backend
                     .run(CodergenRunRequest {
                         node,
-                        initial_content: vec![ContentPart::Text(prompt.clone())],
+                        initial_content,
                         context,
                         thread_id: thread_id.as_deref(),
                         emitter: &services.run.emitter,
