@@ -1,0 +1,948 @@
+diff --git a/docs/plans/2026-07-21-agent-session-image-input-plan.md b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+index 4843804..73e7591 100644
+--- a/docs/plans/2026-07-21-agent-session-image-input-plan.md
++++ b/docs/plans/2026-07-21-agent-session-image-input-plan.md
+@@ -594,19 +594,19 @@ These observations remain unchanged as they represent known trade-offs consisten
+   - [x] Remove process_input and process_input_with_runtime
+   - [x] Test removal by attempting build
+   - [x] Refactor
+-- [ ] Slice 3: Update agent crate test call sites
+-  - [ ] Update parity_matrix.rs call sites
+-  - [ ] Test parity_matrix compiles and passes
+-  - [ ] Update compaction.rs call sites
+-  - [ ] Test compaction compiles and passes
+-  - [ ] Update subagent.rs call site
+-  - [ ] Test subagent compiles
+-  - [ ] Update apply_patch.rs call site
+-  - [ ] Test apply_patch compiles
+-  - [ ] Update cli.rs call site
+-  - [ ] Test CLI compiles
+-  - [ ] Run full fabro-agent test suite
+-  - [ ] Refactor
++- [x] Slice 3: Update agent crate test call sites
++  - [x] Update parity_matrix.rs call sites
++  - [x] Test parity_matrix compiles and passes
++  - [x] Update compaction.rs call sites
++  - [x] Test compaction compiles and passes
++  - [x] Update subagent.rs call site
++  - [x] Test subagent compiles
++  - [x] Update apply_patch.rs call site
++  - [x] Test apply_patch compiles
++  - [x] Update cli.rs call site
++  - [x] Test CLI compiles
++  - [x] Run full fabro-agent test suite
++  - [x] Refactor
+ - [ ] Slice 4: CodergenRunRequest and backend updates
+   - [ ] Change CodergenRunRequest.prompt to initial_content
+   - [ ] Test CodergenRunRequest compiles
+diff --git a/lib/crates/fabro-agent/src/apply_patch.rs b/lib/crates/fabro-agent/src/apply_patch.rs
+index f3d264c..50aa338 100644
+--- a/lib/crates/fabro-agent/src/apply_patch.rs
++++ b/lib/crates/fabro-agent/src/apply_patch.rs
+@@ -1768,7 +1768,7 @@ def farewell(name):
+         );
+         session.initialize().await.unwrap();
+         session
+-            .process_input("Update the greeting functions")
++            .process_text_input("Update the greeting functions")
+             .await
+             .unwrap();
+ 
+@@ -1840,7 +1840,7 @@ def farewell(name):
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+         session.initialize().await.unwrap();
+         session
+-            .process_input("Patch a missing function")
++            .process_text_input("Patch a missing function")
+             .await
+             .unwrap();
+ 
+diff --git a/lib/crates/fabro-agent/src/cli.rs b/lib/crates/fabro-agent/src/cli.rs
+index 866c647..6e49c9b 100644
+--- a/lib/crates/fabro-agent/src/cli.rs
++++ b/lib/crates/fabro-agent/src/cli.rs
+@@ -793,7 +793,7 @@ pub async fn run_with_args_and_client_and_catalog(
+ 
+     // Initialize and run
+     session.initialize().await?;
+-    let result = session.process_input(&args.prompt).await;
++    let result = session.process_text_input(&args.prompt).await;
+ 
+     if matches!(output_format, OutputFormat::Text) {
+         // Print assistant text to stdout
+diff --git a/lib/crates/fabro-agent/src/history.rs b/lib/crates/fabro-agent/src/history.rs
+index 17a7df6..c16fdf5 100644
+--- a/lib/crates/fabro-agent/src/history.rs
++++ b/lib/crates/fabro-agent/src/history.rs
+@@ -5,12 +5,6 @@ use fabro_types::SessionMessage;
+ 
+ use crate::types::Message;
+ 
+-/// Helper to create a text-only content vector for testing
+-#[cfg(test)]
+-fn text_content(s: &str) -> Vec<ContentPart> {
+-    vec![ContentPart::Text(s.to_string())]
+-}
+-
+ /// Helper to extract text from content vector
+ fn extract_text(content: &[ContentPart]) -> String {
+     content
+diff --git a/lib/crates/fabro-agent/src/session.rs b/lib/crates/fabro-agent/src/session.rs
+index 6ae8479..24ec8cf 100644
+--- a/lib/crates/fabro-agent/src/session.rs
++++ b/lib/crates/fabro-agent/src/session.rs
+@@ -1323,14 +1323,32 @@ impl Session {
+             .collect::<Vec<_>>()
+             .join("");
+ 
++        // For text-only messages, perform skill expansion
++        let (final_content, expanded_text) = if content.len() == 1
++            && matches!(content.first(), Some(ContentPart::Text(_)))
++            && !self.skills.is_empty() {
++            let expanded = expand_skill(&self.skills, &text_content).map_err(Error::InvalidState)?;
++            if let Some(ref name) = expanded.skill_name {
++                self.activated_skill_context_observed = true;
++                self.event_emitter
++                    .emit(self.id.clone(), AgentEvent::SkillActivated {
++                        skill_name: name.clone(),
++                        source:     SkillActivationSource::Slash,
++                    });
++            }
++            (vec![ContentPart::Text(expanded.text.clone())], expanded.text)
++        } else {
++            (content, text_content)
++        };
++
+         // Append user turn and emit event
+         self.history.push(Message::User {
+-            content:   content,
++            content:   final_content,
+             timestamp: SystemTime::now(),
+         });
+         self.event_emitter
+             .emit(self.id.clone(), AgentEvent::UserInput {
+-                text: text_content,
++                text: expanded_text,
+             });
+ 
+         self.run_agent_loop_after_user_message(agent_tool_runtime, timing, usage_accumulator)
+@@ -2287,7 +2305,7 @@ mod tests {
+     #[tokio::test]
+     async fn text_only_response_natural_completion() {
+         let mut session = make_session(vec![text_response("Hello there!")]).await;
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+ 
+         assert_eq!(session.state(), SessionState::Idle);
+         let turns = session.history().turns();
+@@ -2310,7 +2328,7 @@ mod tests {
+         ];
+ 
+         let mut session = make_session_with_tools(responses, registry).await;
+-        session.process_input("Use echo tool").await.unwrap();
++        session.process_text_input("Use echo tool").await.unwrap();
+ 
+         assert_eq!(session.state(), SessionState::Idle);
+         let turns = session.history().turns();
+@@ -2361,7 +2379,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+ 
+         let result = session
+-            .process_input_with_runtime("use the slow tool", AgentToolRuntime::default())
++            .process_message(vec![ContentPart::Text("use the slow tool".to_string())], AgentToolRuntime::default())
+             .await;
+         result.unwrap();
+         let first = session.last_input_timing();
+@@ -2375,7 +2393,7 @@ mod tests {
+         );
+ 
+         let result = session
+-            .process_input_with_runtime("no tools this time", AgentToolRuntime::default())
++            .process_message(vec![ContentPart::Text("no tools this time".to_string())], AgentToolRuntime::default())
+             .await;
+         result.unwrap();
+         let second = session.last_input_timing();
+@@ -2445,7 +2463,7 @@ mod tests {
+             ])),
+         }));
+ 
+-        session.process_input("Use tools").await.unwrap();
++        session.process_text_input("Use tools").await.unwrap();
+ 
+         assert_eq!(seen_tokens.lock().unwrap().as_slice(), [
+             "t1".to_string(),
+@@ -2472,7 +2490,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        session.process_input("Keep using tools").await.unwrap();
++        session.process_text_input("Keep using tools").await.unwrap();
+ 
+         // Should stop after 2 rounds: User + (Asst+ToolResult) * 2 = 5 turns
+         assert_eq!(session.state(), SessionState::Idle);
+@@ -2496,11 +2514,11 @@ mod tests {
+         let mut session = make_session_with_config(responses, config).await;
+ 
+         // First input: adds User + Assistant = 2 turns
+-        session.process_input("one").await.unwrap();
++        session.process_text_input("one").await.unwrap();
+         assert_eq!(session.history().turns().len(), 2);
+ 
+         // Second input: adds User (now 3 turns), then max_turns check triggers
+-        session.process_input("two").await.unwrap();
++        session.process_text_input("two").await.unwrap();
+         // Should have 3 turns total (User + Asst + User), max_turns hit before LLM call
+         assert_eq!(session.history().turns().len(), 3);
+     }
+@@ -2509,7 +2527,7 @@ mod tests {
+     async fn steer_injects_steering_turn() {
+         let mut session = make_session(vec![text_response("OK")]).await;
+         session.steer("Focus on the task".to_string());
+-        session.process_input("Do something").await.unwrap();
++        session.process_text_input("Do something").await.unwrap();
+ 
+         let turns = session.history().turns();
+         // User + Steering + Assistant = 3
+@@ -2526,7 +2544,7 @@ mod tests {
+         let mut session = make_session(vec![text_response("OK")]).await;
+         let mut rx = session.subscribe();
+         session.steer("hi there".to_string());
+-        session.process_input("Do something").await.unwrap();
++        session.process_text_input("Do something").await.unwrap();
+ 
+         let mut found_text = None;
+         while let Ok(ev) = rx.try_recv() {
+@@ -2562,7 +2580,7 @@ mod tests {
+             wake_handle.steer("resume now".to_string(), None);
+         });
+ 
+-        timeout(Duration::from_secs(1), session.process_input("start"))
++        timeout(Duration::from_secs(1), session.process_text_input("start"))
+             .await
+             .expect("session should wake when steering arrives")
+             .unwrap();
+@@ -2579,7 +2597,7 @@ mod tests {
+ 
+         let handle = session.control_handle();
+         handle.interrupt_then_steer("stop now".to_string(), None);
+-        session.process_input("start").await.unwrap();
++        session.process_text_input("start").await.unwrap();
+ 
+         let mut found_text = None;
+         while let Ok(ev) = rx.try_recv() {
+@@ -2629,7 +2647,7 @@ mod tests {
+             handle,
+         }));
+ 
+-        session.process_input("hi").await.unwrap();
++        session.process_text_input("hi").await.unwrap();
+         let turns = session.history().turns();
+         // User + Assistant + Steering + Assistant = 4
+         assert_eq!(turns.len(), 4);
+@@ -2652,7 +2670,7 @@ mod tests {
+ 
+         let mut session = make_session(responses).await;
+         session.follow_up("followup message".to_string());
+-        session.process_input("initial message").await.unwrap();
++        session.process_text_input("initial message").await.unwrap();
+ 
+         let turns = session.history().turns();
+         // First cycle: User + Assistant = 2
+@@ -2677,7 +2695,7 @@ mod tests {
+         let mut rx = session.subscribe();
+ 
+         session.initialize().await.unwrap();
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+         session.close();
+ 
+         // Collect events
+@@ -2722,7 +2740,7 @@ mod tests {
+         .await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+ 
+         let context_window = std::iter::from_fn(|| rx.try_recv().ok()).find_map(|event| {
+             if let AgentEvent::AssistantMessage { context_window, .. } = event.event {
+@@ -2753,7 +2771,7 @@ mod tests {
+         let mut session = make_session_with_tools(responses, registry).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         let mut tool_end_events = Vec::new();
+         while let Ok(event) = rx.try_recv() {
+@@ -2780,7 +2798,7 @@ mod tests {
+         ];
+ 
+         let mut session = make_session(responses).await;
+-        session.process_input("Do something").await.unwrap();
++        session.process_text_input("Do something").await.unwrap();
+ 
+         let turns = session.history().turns();
+         // User + Asst(tool_call) + ToolResults + Asst(text) = 4
+@@ -2807,7 +2825,7 @@ mod tests {
+         ];
+ 
+         let mut session = make_session_with_tools(responses, registry).await;
+-        session.process_input("Use fail tool").await.unwrap();
++        session.process_text_input("Use fail tool").await.unwrap();
+ 
+         let turns = session.history().turns();
+         if let Message::ToolResults { results, .. } = &turns[2] {
+@@ -2843,7 +2861,7 @@ mod tests {
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Keep echoing").await.unwrap();
++        session.process_text_input("Keep echoing").await.unwrap();
+ 
+         // Check for LoopDetected event
+         let mut found_loop_detection = false;
+@@ -2879,7 +2897,7 @@ mod tests {
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+         // Set interrupt before processing
+         session.interrupt();
+-        let result = session.process_input("Do something").await;
++        let result = session.process_text_input("Do something").await;
+ 
+         // Should return Interrupted error and transition to Closed
+         assert!(matches!(result, Err(Error::Interrupted(_))));
+@@ -2934,7 +2952,7 @@ mod tests {
+         // Wire the session's cancel_token to our shared one
+         session.cancel_token = cancel_token;
+ 
+-        let result = session.process_input("Do something").await;
++        let result = session.process_text_input("Do something").await;
+ 
+         // Should return Interrupted error and transition to Closed
+         assert!(matches!(result, Err(Error::Interrupted(_))));
+@@ -2964,7 +2982,7 @@ mod tests {
+         let env = Arc::new(MockSandbox::default());
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+         assert!(result.is_err());
+         assert!(matches!(result.unwrap_err(), Error::Llm(_)));
+         assert_eq!(session.state(), SessionState::Closed);
+@@ -2976,10 +2994,10 @@ mod tests {
+ 
+         let mut session = make_session(responses).await;
+ 
+-        session.process_input("one").await.unwrap();
++        session.process_text_input("one").await.unwrap();
+         assert_eq!(session.state(), SessionState::Idle);
+ 
+-        session.process_input("two").await.unwrap();
++        session.process_text_input("two").await.unwrap();
+         assert_eq!(session.state(), SessionState::Idle);
+ 
+         let turns = session.history().turns();
+@@ -2996,7 +3014,7 @@ mod tests {
+         session.close();
+         assert_eq!(session.state(), SessionState::Closed);
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+         assert!(result.is_err());
+         assert!(matches!(result.unwrap_err(), Error::SessionClosed));
+     }
+@@ -3025,7 +3043,7 @@ mod tests {
+         session.close();
+ 
+         let mut rx = session.subscribe();
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+         assert!(matches!(result, Err(Error::SessionClosed)));
+ 
+         // No SessionStarted event should have been emitted
+@@ -3062,7 +3080,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Use echo three times").await.unwrap();
++        session.process_text_input("Use echo three times").await.unwrap();
+ 
+         let turns = session.history().turns();
+         // User + Assistant(3 tool calls) + ToolResults + Assistant(text) = 4
+@@ -3113,7 +3131,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input(&large_input).await.unwrap();
++        session.process_text_input(&large_input).await.unwrap();
+ 
+         let mut found_warning = false;
+         while let Ok(event) = rx.try_recv() {
+@@ -3136,7 +3154,7 @@ mod tests {
+ 
+         // Default reasoning_effort is None
+         session.set_reasoning_effort(Some(ReasoningEffort::High));
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3158,7 +3176,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+ 
+         let mut found_warning = false;
+         while let Ok(event) = rx.try_recv() {
+@@ -3196,7 +3214,7 @@ mod tests {
+         ];
+ 
+         let mut session = make_session_with_tools(responses, registry).await;
+-        session.process_input("Use strict tool").await.unwrap();
++        session.process_text_input("Use strict tool").await.unwrap();
+ 
+         let turns = session.history().turns();
+         if let Message::ToolResults { results, .. } = &turns[2] {
+@@ -3242,7 +3260,7 @@ mod tests {
+         ];
+ 
+         let mut session = make_session_with_tools(responses, registry).await;
+-        session.process_input("Use strict tool").await.unwrap();
++        session.process_text_input("Use strict tool").await.unwrap();
+ 
+         let turns = session.history().turns();
+         if let Message::ToolResults { results, .. } = &turns[2] {
+@@ -3260,8 +3278,8 @@ mod tests {
+         let mut rx = session.subscribe();
+ 
+         session.initialize().await.unwrap();
+-        session.process_input("one").await.unwrap();
+-        session.process_input("two").await.unwrap();
++        session.process_text_input("one").await.unwrap();
++        session.process_text_input("two").await.unwrap();
+         session.close();
+ 
+         let mut session_start_count = 0;
+@@ -3293,7 +3311,7 @@ mod tests {
+         };
+         let mut session = Session::new(client, profile, env, config, None);
+         session.initialize().await.unwrap();
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         // Verify user instructions are included in the system prompt
+         let captured = provider_ref.captured_request.lock().unwrap();
+@@ -3318,7 +3336,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+ 
+         // Intentionally skip initialize(): system prompt remains empty.
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3349,7 +3367,7 @@ mod tests {
+         let env = Arc::new(MockSandbox::default());
+         let mut session = Session::new(client, profile, env, SessionOptions::default(), None);
+ 
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3376,11 +3394,11 @@ mod tests {
+ 
+         for index in 0..10 {
+             session
+-                .process_input(&format!("turn {index}"))
++                .process_text_input(&format!("turn {index}"))
+                 .await
+                 .unwrap();
+         }
+-        session.process_input("turn 10").await.unwrap();
++        session.process_text_input("turn 10").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3417,7 +3435,7 @@ mod tests {
+         };
+         let mut session = Session::new(client, profile, env, config, None);
+ 
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3480,7 +3498,7 @@ mod tests {
+         };
+         let mut session = Session::new(client, profile, env, config, None);
+ 
+-        session.process_input("test").await.unwrap();
++        session.process_text_input("test").await.unwrap();
+ 
+         let captured = provider_ref.captured_request.lock().unwrap();
+         let request = captured
+@@ -3511,7 +3529,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         assert_eq!(session.state(), SessionState::Idle);
+         let turns = session.history().turns();
+@@ -3552,7 +3570,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         let turns = session.history().turns();
+         if let Message::ToolResults { results, .. } = &turns[2] {
+@@ -3591,7 +3609,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         let captured_value = captured.lock().unwrap();
+         let (name, args) = captured_value
+@@ -3617,7 +3635,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         let turns = session.history().turns();
+         if let Message::ToolResults { results, .. } = &turns[2] {
+@@ -3652,7 +3670,7 @@ mod tests {
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Use echo").await.unwrap();
++        session.process_text_input("Use echo").await.unwrap();
+ 
+         let mut tool_end_events = Vec::new();
+         while let Ok(event) = rx.try_recv() {
+@@ -3678,7 +3696,7 @@ mod tests {
+         let mut session = make_session(vec![text_response("Hello there!")]).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+ 
+         let mut deltas = Vec::new();
+         while let Ok(event) = rx.try_recv() {
+@@ -3706,7 +3724,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hello").await.unwrap();
++        session.process_text_input("Hello").await.unwrap();
+ 
+         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
+         assert_eq!(session.history().turns().len(), 2);
+@@ -3761,7 +3779,7 @@ mod tests {
+         ]));
+         let mut session = make_session_with_provider(provider.clone()).await;
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+ 
+         assert!(matches!(
+             result,
+@@ -3793,7 +3811,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+ 
+         assert!(matches!(
+             result,
+@@ -3875,7 +3893,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+ 
+         assert!(matches!(result, Err(Error::Llm(LlmError::Stream { .. }))));
+         assert_eq!(provider.call_index.load(Ordering::SeqCst), 4);
+@@ -3926,7 +3944,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hello").await.unwrap();
++        session.process_text_input("Hello").await.unwrap();
+ 
+         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
+         let turns = session.history().turns();
+@@ -3964,7 +3982,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("Hello").await.unwrap();
++        session.process_text_input("Hello").await.unwrap();
+ 
+         assert_eq!(provider.call_index.load(Ordering::SeqCst), 2);
+         let turns = session.history().turns();
+@@ -4013,7 +4031,7 @@ mod tests {
+         let mut session = make_session_with_provider(provider.clone()).await;
+         let mut rx = session.subscribe();
+ 
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+         assert!(matches!(
+             result,
+             Err(Error::Llm(LlmError::Provider {
+@@ -4096,7 +4114,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, config, None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input(&large_input).await.unwrap();
++        session.process_text_input(&large_input).await.unwrap();
+ 
+         let mut found_started = false;
+         let mut found_completed = false;
+@@ -4142,7 +4160,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, config, None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("hi").await.unwrap();
++        session.process_text_input("hi").await.unwrap();
+ 
+         let mut started = None;
+         let mut found_completed = false;
+@@ -4182,7 +4200,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, config, None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input(&large_input).await.unwrap();
++        session.process_text_input(&large_input).await.unwrap();
+ 
+         let mut found_warning = false;
+         let mut found_compaction = false;
+@@ -4222,7 +4240,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, config, None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input(&large_input).await.unwrap();
++        session.process_text_input(&large_input).await.unwrap();
+ 
+         let mut found_compaction = false;
+         while let Ok(event) = rx.try_recv() {
+@@ -4253,7 +4271,7 @@ mod tests {
+         let mut session = Session::new(client, profile, env, config, None);
+         let mut rx = session.subscribe();
+ 
+-        session.process_input("hi").await.unwrap();
++        session.process_text_input("hi").await.unwrap();
+ 
+         let mut found_api_usage_warning = false;
+         let mut found_compaction = false;
+@@ -4355,7 +4373,7 @@ mod tests {
+         let mut rx = session.subscribe();
+ 
+         // Should not return an error even though compaction fails
+-        let result = session.process_input(&large_input).await;
++        let result = session.process_text_input(&large_input).await;
+         assert!(
+             result.is_ok(),
+             "Session should continue despite compaction failure"
+@@ -4463,7 +4481,7 @@ mod tests {
+ 
+         // First call: tool call executes, files get tracked, no compaction yet
+         // (compaction may trigger but file tracker is populated by tool execution)
+-        session.process_input("Read the file").await.unwrap();
++        session.process_text_input("Read the file").await.unwrap();
+         assert_eq!(
+             session.file_tracker().file_count(),
+             1,
+@@ -4473,7 +4491,7 @@ mod tests {
+         // Second call with large input: context is well over threshold, compaction
+         // triggers
+         let large_input = "x".repeat(400);
+-        session.process_input(&large_input).await.unwrap();
++        session.process_text_input(&large_input).await.unwrap();
+ 
+         // Verify the compaction request has the structured prompt
+         let captured = provider.captured_complete.lock().unwrap();
+@@ -4581,7 +4599,7 @@ mod tests {
+         assert!(mcp_ready, "McpServerReady event should be emitted");
+ 
+         // Process input — LLM calls MCP tool, gets result, responds
+-        session.process_input("Call the echo tool").await.unwrap();
++        session.process_text_input("Call the echo tool").await.unwrap();
+ 
+         // Verify turn sequence
+         let turns = session.history().turns();
+@@ -4673,7 +4691,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_tools_and_config(responses, registry, config).await;
+-        let result = session.process_input("Do something slow").await;
++        let result = session.process_text_input("Do something slow").await;
+ 
+         assert!(
+             matches!(
+@@ -4695,7 +4713,7 @@ mod tests {
+         };
+ 
+         let mut session = make_session_with_config(responses, config).await;
+-        let result = session.process_input("Hello").await;
++        let result = session.process_text_input("Hello").await;
+ 
+         assert!(result.is_ok());
+         assert_eq!(session.state(), SessionState::Idle);
+@@ -4766,7 +4784,7 @@ mod tests {
+         session.initialize().await.unwrap();
+ 
+         let mut rx = session.subscribe();
+-        session.process_input("Hi").await.unwrap();
++        session.process_text_input("Hi").await.unwrap();
+ 
+         assert_eq!(session.state(), SessionState::Idle);
+ 
+@@ -4951,7 +4969,7 @@ mod tests {
+         session.initialize().await.unwrap();
+ 
+         let mut rx = session.subscribe();
+-        session.process_input("/commit fix things").await.unwrap();
++        session.process_text_input("/commit fix things").await.unwrap();
+ 
+         let mut activations: Vec<(String, SkillActivationSource)> = Vec::new();
+         while let Ok(envelope) = rx.try_recv() {
+@@ -5000,7 +5018,7 @@ mod tests {
+         session.initialize().await.unwrap();
+ 
+         let mut rx = session.subscribe();
+-        session.process_input("please commit").await.unwrap();
++        session.process_text_input("please commit").await.unwrap();
+ 
+         let mut tool_activations = 0;
+         while let Ok(envelope) = rx.try_recv() {
+diff --git a/lib/crates/fabro-agent/src/subagent.rs b/lib/crates/fabro-agent/src/subagent.rs
+index 52cec77..0547f91 100644
+--- a/lib/crates/fabro-agent/src/subagent.rs
++++ b/lib/crates/fabro-agent/src/subagent.rs
+@@ -112,7 +112,7 @@ impl SubAgentManager {
+         let task_prompt_for_spawn = task_prompt.clone();
+         let task = tokio::spawn(async move {
+             session.initialize().await?;
+-            session.process_input(&task_prompt_for_spawn).await?;
++            session.process_text_input(&task_prompt_for_spawn).await?;
+             let turns = session.history().turns();
+             let last_text = turns.iter().rev().find_map(|t| match t {
+                 Message::Assistant { content, .. } => Some(content.clone()),
+diff --git a/lib/crates/fabro-agent/tests/it/compaction.rs b/lib/crates/fabro-agent/tests/it/compaction.rs
+index 084deae..b9edd26 100644
+--- a/lib/crates/fabro-agent/tests/it/compaction.rs
++++ b/lib/crates/fabro-agent/tests/it/compaction.rs
+@@ -27,7 +27,7 @@ async fn openai_twin_compaction_preserves_tool_call_pairs() {
+     session.initialize().await.unwrap();
+ 
+     let result = session
+-        .process_input(
++        .process_text_input(
+             "Trigger the compaction regression by writing four small files, then say done.",
+         )
+         .await;
+diff --git a/lib/crates/fabro-agent/tests/it/parity_matrix.rs b/lib/crates/fabro-agent/tests/it/parity_matrix.rs
+index 3c720ec..bae62d3 100644
+--- a/lib/crates/fabro-agent/tests/it/parity_matrix.rs
++++ b/lib/crates/fabro-agent/tests/it/parity_matrix.rs
+@@ -311,7 +311,7 @@ async fn openai_compatible_twin_preserves_raw_apply_patch_arguments() {
+     let mut rx = session.subscribe();
+ 
+     session
+-        .process_input("Replace old with new in data.txt using apply_patch")
++        .process_text_input("Replace old with new in data.txt using apply_patch")
+         .await
+         .expect("process_input failed");
+ 
+@@ -529,7 +529,7 @@ non_openai_provider_tests!(provider_specific_editing);
+ // ---------------------------------------------------------------------------
+ async fn scenario_simple_file_creation(session: &mut Session, dir: &Path) {
+     session
+-        .process_input("Create a file called hello.txt containing 'Hello'")
++        .process_text_input("Create a file called hello.txt containing 'Hello'")
+         .await
+         .expect("process_input failed");
+     assert!(dir.join("hello.txt").exists());
+@@ -541,7 +541,7 @@ async fn scenario_simple_file_creation(session: &mut Session, dir: &Path) {
+ async fn scenario_read_and_edit_file(session: &mut Session, dir: &Path) {
+     std::fs::write(dir.join("data.txt"), "old content").expect("failed to write data.txt");
+     session
+-        .process_input("Read data.txt and replace its content with 'new content'")
++        .process_text_input("Read data.txt and replace its content with 'new content'")
+         .await
+         .expect("process_input failed");
+     let content = std::fs::read_to_string(dir.join("data.txt")).expect("failed to read data.txt");
+@@ -558,7 +558,7 @@ async fn scenario_multi_file_edit(session: &mut Session, dir: &Path) {
+     std::fs::write(dir.join("a.txt"), "aaa").expect("failed to write a.txt");
+     std::fs::write(dir.join("b.txt"), "bbb").expect("failed to write b.txt");
+     session
+-        .process_input(
++        .process_text_input(
+             "Read a.txt and b.txt, then replace the content of a.txt with 'AAA' and b.txt with 'BBB'",
+         )
+         .await
+@@ -574,7 +574,7 @@ async fn scenario_multi_file_edit(session: &mut Session, dir: &Path) {
+ // ---------------------------------------------------------------------------
+ async fn scenario_shell_execution(session: &mut Session, _dir: &Path) {
+     session
+-        .process_input(
++        .process_text_input(
+             "Run the command `echo hello_from_shell` in the shell and tell me what it printed",
+         )
+         .await
+@@ -586,7 +586,7 @@ async fn scenario_shell_execution(session: &mut Session, _dir: &Path) {
+ // ---------------------------------------------------------------------------
+ async fn scenario_shell_timeout(session: &mut Session, _dir: &Path) {
+     session
+-        .process_input("Run the command `sleep 999` with a 1-second timeout")
++        .process_text_input("Run the command `sleep 999` with a 1-second timeout")
+         .await
+         .expect("process_input failed");
+ }
+@@ -599,7 +599,7 @@ async fn scenario_grep_and_glob(session: &mut Session, dir: &Path) {
+         .expect("failed to write target.txt");
+     std::fs::write(dir.join("other.txt"), "nothing").expect("failed to write other.txt");
+     session
+-        .process_input(
++        .process_text_input(
+             "Search for files containing 'needle_pattern_xyz' and tell me which file has it",
+         )
+         .await
+@@ -616,7 +616,7 @@ async fn scenario_multi_step_read_analyze_edit(session: &mut Session, dir: &Path
+     )
+     .expect("failed to write buggy.rs");
+     session
+-        .process_input("Read buggy.rs, find the bug, and fix it")
++        .process_text_input("Read buggy.rs, find the bug, and fix it")
+         .await
+         .expect("process_input failed");
+     let content = std::fs::read_to_string(dir.join("buggy.rs")).expect("failed to read buggy.rs");
+@@ -636,7 +636,7 @@ async fn scenario_tool_output_truncation(session: &mut Session, dir: &Path) {
+     });
+     std::fs::write(dir.join("big.txt"), lines).expect("failed to write big.txt");
+     session
+-        .process_input("Read the file big.txt and tell me how many lines it has")
++        .process_text_input("Read the file big.txt and tell me how many lines it has")
+         .await
+         .expect("process_input failed");
+ }
+@@ -649,7 +649,7 @@ async fn scenario_parallel_tool_calls(session: &mut Session, dir: &Path) {
+     std::fs::write(dir.join("two.txt"), "content_two").expect("failed to write two.txt");
+     std::fs::write(dir.join("three.txt"), "content_three").expect("failed to write three.txt");
+     session
+-        .process_input("Read one.txt, two.txt, and three.txt and tell me what each contains")
++        .process_text_input("Read one.txt, two.txt, and three.txt and tell me what each contains")
+         .await
+         .expect("process_input failed");
+ }
+@@ -660,7 +660,7 @@ async fn scenario_parallel_tool_calls(session: &mut Session, dir: &Path) {
+ async fn scenario_steering_before_input(session: &mut Session, _dir: &Path) {
+     session.steer("Stop counting and just say DONE".to_string());
+     session
+-        .process_input("Count from 1 to 100, one number per line")
++        .process_text_input("Count from 1 to 100, one number per line")
+         .await
+         .expect("process_input failed");
+ }
+@@ -693,7 +693,7 @@ async fn scenario_steering_mid_task(session: &mut Session, dir: &Path) {
+     });
+ 
+     session
+-        .process_input(
++        .process_text_input(
+             "Read task.txt, then create files a.txt, b.txt, c.txt, d.txt, e.txt each containing their letter",
+         )
+         .await
+@@ -714,7 +714,7 @@ async fn scenario_steering_mid_task(session: &mut Session, dir: &Path) {
+ async fn scenario_follow_up(session: &mut Session, dir: &Path) {
+     session.follow_up("Create a file called second.txt containing 'second'".to_string());
+     session
+-        .process_input("Create a file called first.txt containing 'first'")
++        .process_text_input("Create a file called first.txt containing 'first'")
+         .await
+         .expect("process_input failed");
+ 
+@@ -751,7 +751,7 @@ macro_rules! reasoning_effort_tests {
+                 make_session_with_config($provider, $model, tmp.path(), config, None).await;
+             session.initialize().await.unwrap();
+             session
+-                .process_input("Say hello")
++                .process_text_input("Say hello")
+                 .await
+                 .expect("process_input failed");
+         }
+@@ -805,7 +805,7 @@ reasoning_effort_tests!(
+ async fn scenario_subagent_spawn(session: &mut Session, dir: &Path) {
+     std::fs::write(dir.join("secret.txt"), "the_secret_value").expect("failed to write secret.txt");
+     session
+-        .process_input(
++        .process_text_input(
+             "Spawn a subagent to read the file secret.txt and report its contents. \
+              Wait for the subagent to finish, then tell me what it found.",
+         )
+@@ -830,7 +830,7 @@ macro_rules! loop_detection_tests {
+                 make_session_with_config($provider, $model, tmp.path(), config, None).await;
+             session.initialize().await.unwrap();
+             session
+-                .process_input("Repeatedly read the file /dev/null")
++                .process_text_input("Repeatedly read the file /dev/null")
+                 .await
+                 .expect("process_input failed");
+         }
+@@ -1007,7 +1007,7 @@ async fn load_openai_twin_scenario(name: &str, namespace: &str, cwd: &Path) {
+ // ---------------------------------------------------------------------------
+ async fn scenario_error_recovery(session: &mut Session, dir: &Path) {
+     session
+-        .process_input(
++        .process_text_input(
+             "Try to read a file called nonexistent_file.txt. If it doesn't exist, create it with the content 'recovered'",
+         )
+         .await
+@@ -1030,7 +1030,7 @@ async fn scenario_error_recovery(session: &mut Session, dir: &Path) {
+ async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
+     // Test basic fetch (HTML-to-markdown conversion)
+     session
+-        .process_input(
++        .process_text_input(
+             "Use the web_fetch tool to fetch https://example.com and write its content to a file called fetched.txt",
+         )
+         .await
+@@ -1052,7 +1052,7 @@ async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
+ 
+     // Test fetch with prompt parameter (LLM summarization)
+     session
+-        .process_input(
++        .process_text_input(
+             "Use the web_fetch tool with the prompt parameter to fetch https://example.com and answer: 'What is the title heading on this page?' Write only the answer to a file called answer.txt",
+         )
+         .await
+@@ -1072,7 +1072,7 @@ async fn scenario_web_fetch(session: &mut Session, dir: &Path) {
+ // ---------------------------------------------------------------------------
+ async fn scenario_web_search(session: &mut Session, dir: &Path) {
+     session
+-        .process_input(
++        .process_text_input(
+             "Use the web_search tool to search for 'Rust programming language' and write the first result's title and URL to a file called search_results.txt",
+         )
+         .await
+@@ -1093,7 +1093,7 @@ async fn scenario_provider_specific_editing(session: &mut Session, dir: &Path) {
+     std::fs::write(dir.join("target.rs"), "fn greet() { println!(\"hello\"); }")
+         .expect("failed to write target.rs");
+     session
+-        .process_input("Edit target.rs to change 'hello' to 'goodbye'")
++        .process_text_input("Edit target.rs to change 'hello' to 'goodbye'")
+         .await
+         .expect("process_input failed");
+     let content = std::fs::read_to_string(dir.join("target.rs")).expect("failed to read target.rs");
