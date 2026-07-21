@@ -299,14 +299,112 @@
     }
   },
   "web_url": "http://127.0.0.1:32276/runs/01KY1WHQKHVT77ZA62MMD7PKE2",
-  "start": null,
-  "status": {
-    "kind": "starting"
+  "start": {
+    "start_time": "2026-07-21T08:26:57.839092Z",
+    "run_branch": "fabro/run/01KY1WHQKHVT77ZA62MMD7PKE2",
+    "base_sha": "fbbe4ab2861583ee3d4b324c7d556e22beebbbc5"
   },
-  "status_updated_at": "2026-07-21T08:26:47.374919Z",
-  "last_event_at": "2026-07-21T08:26:57.467168Z",
+  "status": {
+    "kind": "running"
+  },
+  "status_updated_at": "2026-07-21T08:26:57.839134Z",
+  "last_event_at": "2026-07-21T08:27:00.545694Z",
   "pending_control": null,
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "seq": 19,
+      "checkpoint": {
+        "timestamp": "2026-07-21T08:27:00.545549Z",
+        "current_node": "start",
+        "completed_nodes": [
+          "start"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "graph.rankdir": "LR",
+          "internal.fidelity": "compact",
+          "internal.work_dir": "/workspace/fabro",
+          "outcome": "succeeded",
+          "failure_class": "",
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "internal.retry_count.start": 0,
+          "internal.node_visit_count": 1,
+          "internal.run_id": "01KY1WHQKHVT77ZA62MMD7PKE2",
+          "current_node": "start",
+          "internal.thread_id": null,
+          "failure_signature": "",
+          "graph.loop_restart_signature_limit": "1000"
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "check",
+        "node_visits": {
+          "start": 1
+        }
+      },
+      "diff": {}
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-07-21T08:27:03.791188Z",
+        "current_node": "check",
+        "completed_nodes": [
+          "start",
+          "check"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "internal.fidelity": "compact",
+          "internal.retry_count.check": 0,
+          "outcome": "succeeded",
+          "command.output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647",
+          "internal.retry_count.start": 0,
+          "graph.goal": "Watch the open pull request for the checked-out branch; when new review feedback arrives, implement it, push, and reply — until the PR leaves draft, merges, or closes",
+          "graph.loop_restart_signature_limit": "1000",
+          "failure_signature": "",
+          "graph.rankdir": "LR",
+          "failure_class": "",
+          "internal.work_dir": "/workspace/fabro",
+          "internal.thread_id": "start",
+          "current_node": "check",
+          "internal.node_visit_count": 1,
+          "thread.start.current_node": "check",
+          "internal.run_id": "01KY1WHQKHVT77ZA62MMD7PKE2"
+        },
+        "node_outcomes": {
+          "check": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/ae39987432eb142e610599c0443906069a92682cc56fe4ccc045cfce125f4647"
+            },
+            "notes": "Script completed: set -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 3206,
+              "active_time_ms": 3206
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "address",
+        "node_visits": {
+          "check": 1,
+          "start": 1
+        }
+      },
+      "diff": {}
+    }
+  ],
   "conclusion": null,
   "sandbox": {
     "kind": "ready",
@@ -333,5 +431,67 @@
   "pull_request": null,
   "superseded_by": null,
   "pending_interviews": {},
-  "stages": {}
+  "stages": {
+    "start@1": {
+      "first_event_seq": 16,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-07-21T08:27:00.545348Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T08:27:00.545235Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "check@1": {
+      "first_event_seq": 20,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "set -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
+        "command": "exec 2>&1\nset -u\nbranch=$(git rev-parse --abbrev-ref HEAD)\norigin=$(gh repo view --json nameWithOwner --jq .nameWithOwner)\nparent=$(gh api repos/$origin --jq '.parent.full_name // empty')\npr=''; repo=''\nfor r in $parent $origin; do\n  n=$(gh pr list --repo $r --search head:$branch --state open --json number --jq '.[0].number // empty')\n  if [ -n \"$n\" ]; then pr=$n; repo=$r; break; fi\ndone\nif [ -z \"$pr\" ]; then echo \"VERDICT: no open PR for $branch (merged/closed?) — stop watching\"; exit 0; fi\ndraft=$(gh pr view $pr --repo $repo --json isDraft --jq .isDraft)\nif [ \"$draft\" != \"true\" ]; then echo \"VERDICT: PR $repo#$pr left draft — stop watching\"; exit 0; fi\nown=${repo%%/*}; nam=${repo##*/}\nq='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}'\nunresolved=$(gh api graphql -f query=\"$q\" -f o=$own -f n=$nam -F p=$pr --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved|not)]|length')\nexport TIP=$(git log -1 --format=%cI)\nnewc=$(gh api repos/$repo/issues/$pr/comments --jq '[.[]|select(.created_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\nnewrev=$(gh api repos/$repo/pulls/$pr/reviews --jq '[.[]|select(.submitted_at > env.TIP)|select(.body|contains(\"[fabro]\")|not)]|length')\necho \"PR $repo#$pr draft; unresolved threads=$unresolved, comments since $TIP: $newc, reviews: $newrev\"\nif [ $((unresolved + newc + newrev)) -gt 0 ]; then echo \"VERDICT: feedback to address on $repo#$pr\"; exit 0; fi\nexit 1",
+        "language": "shell"
+      },
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-07-21T08:27:00.545662Z",
+      "handler": "command",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    }
+  }
 }
