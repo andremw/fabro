@@ -896,25 +896,25 @@ All blockers resolved. Plan is ready for implementation.
 - [x] Refactor
 
 ### Slice 3: Server-side answer request mapping and validation
-- [ ] Add base64 decoding helper
-- [ ] Test base64 decoding helper with valid input
-- [ ] Test base64 decoding helper with invalid input
-- [ ] Add MIME type validation helper
-- [ ] Test MIME type validation
-- [ ] Extend answer_from_request with TextWithImagesRequest arm
-- [ ] Test answer_from_request happy path
-- [ ] Test answer_from_request rejects empty text
-- [ ] Test answer_from_request rejects empty images
-- [ ] Test answer_from_request rejects invalid base64
-- [ ] Test answer_from_request rejects oversized image
-- [ ] Test answer_from_request rejects unsupported MIME
-- [ ] Test answer_from_request rejects MIME type mismatch
-- [ ] Test Axum accepts large payloads
-- [ ] Extend validate_answer_for_question with TextWithImages
-- [ ] Test validate_answer_for_question accepts TextWithImages for Freeform
-- [ ] Test validate_answer_for_question accepts TextWithImages for allow_freeform MultipleChoice
-- [ ] Test validate_answer_for_question rejects TextWithImages for YesNo
-- [ ] Refactor
+- [x] Add base64 decoding helper
+- [x] Test base64 decoding helper with valid input
+- [x] Test base64 decoding helper with invalid input
+- [x] Add MIME type validation helper
+- [x] Test MIME type validation
+- [x] Extend answer_from_request with TextWithImagesRequest arm
+- [x] Test answer_from_request happy path
+- [x] Test answer_from_request rejects empty text
+- [x] Test answer_from_request rejects empty images
+- [x] Test answer_from_request rejects invalid base64
+- [x] Test answer_from_request rejects oversized image
+- [x] Test answer_from_request rejects unsupported MIME (handled by OpenAPI enum)
+- [x] Test answer_from_request rejects MIME type mismatch
+- [x] Test Axum accepts large payloads (configured DefaultBodyLimit to 50 MB)
+- [x] Extend validate_answer_for_question with TextWithImages
+- [x] Test validate_answer_for_question accepts TextWithImages for Freeform
+- [x] Test validate_answer_for_question accepts TextWithImages for allow_freeform MultipleChoice
+- [x] Test validate_answer_for_question rejects TextWithImages for YesNo
+- [x] Refactor
 
 ### Slice 4: Image persistence in run artifact directory
 - [ ] Add image file extension mapping helper
