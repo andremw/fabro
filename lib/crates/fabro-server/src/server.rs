@@ -282,6 +282,9 @@ enum ExecutionResult {
 const WORKER_CANCEL_GRACE: Duration = Duration::from_secs(5);
 const TERMINAL_DELETE_WORKER_GRACE: Duration = Duration::from_millis(50);
 const WORKER_CONTROL_ENQUEUE_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// Maximum allowed size for image attachments in bytes (5 MB).
+const MAX_IMAGE_SIZE_BYTES: usize = 5 * 1024 * 1024;
 /// Per-model billing totals.
 #[derive(Default)]
 struct ModelBillingTotals {
@@ -3879,7 +3882,6 @@ fn answer_from_request(
             }
 
             // Process and validate each image
-            const MAX_IMAGE_SIZE_BYTES: usize = 5 * 1024 * 1024; // 5 MB
             let mut validated_images = Vec::new();
 
             for img_req in &req.images {
