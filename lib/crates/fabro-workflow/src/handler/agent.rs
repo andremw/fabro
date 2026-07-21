@@ -1446,4 +1446,17 @@ Some text in between.
         let images = get_human_answer_images(&context, "review");
         assert_eq!(images, None);
     }
+
+    #[test]
+    fn prior_human_stage_id_returns_stage_with_images() {
+        let context = test_context();
+        context.set(keys::LAST_STAGE, serde_json::json!("review"));
+        context.set(
+            format!("{}review", keys::HUMAN_ANSWER_IMAGES_PREFIX),
+            serde_json::json!(["/tmp/image.png"]),
+        );
+
+        let prior_stage = prior_human_stage_id(&context);
+        assert_eq!(prior_stage, Some("review".to_string()));
+    }
 }
